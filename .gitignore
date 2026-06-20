@@ -1,0 +1,74 @@
+# ───────────────────────────────────────────────
+# AI DevKit — .gitignore (multi-stack)
+# ───────────────────────────────────────────────
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Variáveis de ambiente e segredos (NUNCA commitar)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+
+# Go
+bin/
+*.exe
+*.test
+*.out
+
+# Java / .NET
+target/
+*.class
+obj/
+
+# Logs e temporários
+*.log
+logs/
+tmp/
+.cache/
+
+# Artefatos locais de agentes de IA
+.claude/local/
+.agent-cache/
+
+# Documentação local de desenvolvimento e artefatos gerados.
+# Esta pasta não representa a documentação versionada do projeto final.
+docs/

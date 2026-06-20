@@ -1,0 +1,33 @@
+id: azure-devops.get-work-item-comments
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Lista comentarios de um work item.
+
+operation:
+  repository_method: get_work_item_comments
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - work_item_id
+    - project
+  optional:
+    - limit
+    - order
+
+outputs:
+  type: comment-list
+  fields:
+    - id
+    - author
+    - created_at
+    - modified_at
+    - text
+
+guardrails:
+  - aplicar limite padrao quando limit nao for informado
+  - nao executar escrita

@@ -1,0 +1,36 @@
+{
+  "name": "app",
+  "version": "1.1.6",
+  "revision": "1.1.6-prd",
+  "entry": "SKILL.md",
+  "specEntry": "spec.md",
+  "requiredReads": ["SKILL.md", "spec.md"],
+  "description": "Use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining case .us.md artifacts, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow.",
+  "hosts": {
+    "codex": {
+      "projectPath": ".codex/skills/app",
+      "globalPathEnv": "CODEX_HOME",
+      "globalPathFallback": "~/.codex/skills/app"
+    },
+    "claude": {
+      "projectPath": ".claude/skills/app",
+      "globalPathEnv": "CLAUDE_HOME",
+      "globalPathFallback": "~/.claude/skills/app"
+    },
+    "copilot": {
+      "projectPath": ".github/skills/app",
+      "globalPathEnv": "COPILOT_HOME",
+      "globalPathFallback": "~/.copilot/skills/app"
+    },
+    "windsurf": {
+      "projectPath": ".windsurf/skills/app",
+      "globalPathEnv": "WINDSURF_HOME",
+      "globalPathFallback": "~/.codeium/windsurf/skills/app"
+    },
+    "agents": {
+      "projectPath": ".agents/skills/app",
+      "globalPathEnv": "AGENTS_HOME",
+      "globalPathFallback": "~/.agents/skills/app"
+    }
+  }
+}

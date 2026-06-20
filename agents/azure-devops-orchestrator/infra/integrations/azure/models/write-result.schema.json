@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Azure DevOps Write Result",
+  "type": "object",
+  "required": ["dry_run", "work_item_id"],
+  "properties": {
+    "dry_run": { "type": "boolean" },
+    "work_item_id": { "type": "integer" },
+    "comment_id": { "type": ["integer", "string", "null"] },
+    "previous_rev": { "type": ["integer", "null"] },
+    "new_rev": { "type": ["integer", "null"] },
+    "changed_fields": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "operations": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "reason": { "type": ["string", "null"] },
+    "comment": { "type": ["string", "null"] },
+    "url": { "type": ["string", "null"] },
+    "created_at": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

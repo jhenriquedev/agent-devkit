@@ -1,0 +1,36 @@
+id: azure-devops-orchestrator.listar-cards
+kind: capability
+name: Listar Cards
+version: 0.1.0
+status: draft
+
+purpose: >
+  Listar work items de um projeto Azure DevOps usando filtros explicitos, query
+  ou criterios fornecidos pelo usuario.
+
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/listar-cards.md
+  output_template: ../../templates/listar-cards-output.md
+
+inputs:
+  required:
+    - project
+  optional:
+    - query_id
+    - wiql
+    - state
+    - assigned_to
+    - tags
+    - limit
+
+outputs:
+  artifacts:
+    - cards-listados.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/list-work-items.yaml
+
+write_policy: read_only

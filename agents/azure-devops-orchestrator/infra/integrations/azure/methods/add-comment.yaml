@@ -1,0 +1,34 @@
+id: azure-devops.add-comment
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Adiciona comentario em um work item.
+
+operation:
+  repository_method: add_comment
+  type: write
+  confirmation_required: true
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - comment
+  optional:
+    - dry_run
+
+outputs:
+  type: comment-write-result
+  fields:
+    - work_item_id
+    - comment_id
+    - url
+    - created_at
+    - dry_run
+
+guardrails:
+  - exigir confirmacao explicita antes de dry_run=false
+  - nao incluir dados sensiveis nao solicitados
+  - retornar preview quando dry_run=true

@@ -1,0 +1,31 @@
+id: azure-devops.find-users
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Busca usuarios ou identidades para atribuicao de work items.
+
+operation:
+  repository_method: find_users
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - query
+    - project
+  optional:
+    - limit
+
+outputs:
+  type: identity-list
+  fields:
+    - display_name
+    - unique_name
+    - descriptor
+    - email
+
+guardrails:
+  - nao escolher usuario automaticamente quando houver multiplos candidatos
+  - preferir unique_name ou email para atribuicao

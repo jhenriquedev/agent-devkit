@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Azure DevOps Work Item",
+  "type": "object",
+  "required": ["id", "title", "state"],
+  "properties": {
+    "id": { "type": ["integer", "null"] },
+    "rev": { "type": ["integer", "null"] },
+    "work_item_type": { "type": ["string", "null"] },
+    "title": { "type": ["string", "null"] },
+    "state": { "type": ["string", "null"] },
+    "created_date": { "type": ["string", "null"] },
+    "changed_date": { "type": ["string", "null"] },
+    "board_column": { "type": ["string", "null"] },
+    "board_column_done": { "type": ["boolean", "null"] },
+    "assigned_to": { "type": ["string", "null"] },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "description": { "type": ["string", "null"] },
+    "acceptance_criteria": { "type": ["string", "null"] },
+    "relations": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "url": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

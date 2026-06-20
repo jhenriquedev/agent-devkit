@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Azure DevOps Comment",
+  "type": "object",
+  "required": ["id", "text"],
+  "properties": {
+    "id": { "type": ["integer", "string", "null"] },
+    "author": { "type": ["string", "null"] },
+    "created_at": { "type": ["string", "null"] },
+    "modified_at": { "type": ["string", "null"] },
+    "text": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

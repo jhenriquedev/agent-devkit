@@ -1,0 +1,38 @@
+id: azure-devops.update-work-item
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Atualiza campos de um work item, incluindo state, tags e assigned_to.
+
+operation:
+  repository_method: update_work_item
+  type: write
+  confirmation_required: true
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - operations
+  optional:
+    - dry_run
+    - reason
+
+outputs:
+  type: work-item-update-result
+  fields:
+    - work_item_id
+    - previous_rev
+    - new_rev
+    - changed_fields
+    - dry_run
+    - url
+
+guardrails:
+  - exigir confirmacao explicita antes de dry_run=false
+  - listar antes e depois de cada campo
+  - validar usuario antes de alterar assigned_to
+  - validar estados permitidos antes de alterar state
+  - nao remover tags sem listar tags atuais e tags removidas

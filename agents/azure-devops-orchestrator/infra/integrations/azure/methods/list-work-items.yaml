@@ -1,0 +1,39 @@
+id: azure-devops.list-work-items
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Lista work items do Azure DevOps usando query, WIQL ou filtros simples.
+
+operation:
+  repository_method: list_work_items
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - project
+  optional:
+    - query_id
+    - wiql
+    - state
+    - assigned_to
+    - tags
+    - limit
+
+outputs:
+  type: work-item-list
+  fields:
+    - id
+    - work_item_type
+    - title
+    - state
+    - assigned_to
+    - tags
+    - url
+
+guardrails:
+  - aplicar limite padrao quando limit nao for informado
+  - nao executar escrita
+  - registrar filtros usados na resposta

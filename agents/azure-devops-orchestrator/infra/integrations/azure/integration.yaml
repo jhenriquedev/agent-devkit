@@ -1,0 +1,39 @@
+id: azure-devops
+version: 0.1.0
+status: draft
+
+provider: azure-devops
+scope:
+  - boards
+  - work-items
+  - comments
+  - identities
+
+env:
+  required:
+    - AZURE_DEVOPS_ORG
+    - AZURE_DEVOPS_PAT
+  optional:
+    - AZURE_DEVOPS_API_VERSION
+    - AZURE_DEVOPS_PROJECT
+
+capabilities:
+  read:
+    - list-work-items
+    - get-work-item
+    - get-work-item-comments
+    - find-users
+  write:
+    - add-comment
+    - update-work-item
+
+repository:
+  language: python
+  path: azure_repository.py
+  cli: cli.py
+  dependencies: stdlib-only
+  project_resolution: explicit_project_argument_with_env_fallback
+
+auth:
+  method: personal-access-token
+  secret_env: AZURE_DEVOPS_PAT

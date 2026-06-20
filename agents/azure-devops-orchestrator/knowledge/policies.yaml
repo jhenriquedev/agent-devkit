@@ -1,0 +1,54 @@
+id: azure-devops-orchestrator.policies
+version: 0.1.0
+status: draft
+
+read_operations:
+  confirmation_required: false
+  allowed:
+    - list_projects
+    - list_boards
+    - list_queries
+    - list_work_items
+    - get_work_item
+    - get_work_item_comments
+    - find_users
+
+write_operations:
+  confirmation_required: true
+  allowed:
+    - add_comment
+    - update_fields
+    - add_tags
+    - remove_tags
+    - assign_user
+    - move_state
+  confirmation_block:
+    required_fields:
+      - target
+      - action
+      - before
+      - after
+      - risk
+      - confirmation_required
+
+bulk_operations:
+  policy: plan_then_confirm
+  required_steps:
+    - list_affected_items
+    - generate_change_plan
+    - highlight_risks_and_ambiguities
+    - request_confirmation
+    - execute_item_by_item
+    - generate_final_summary
+
+audit:
+  add_trace_comment_when:
+    - state_changed
+    - tags_changed
+    - assignee_changed
+  trace_comment_required: when_useful_for_team_context
+
+risk_levels:
+  - baixo
+  - medio
+  - alto

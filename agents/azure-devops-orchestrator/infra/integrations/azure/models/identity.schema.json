@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Azure DevOps Identity",
+  "type": "object",
+  "properties": {
+    "display_name": { "type": ["string", "null"] },
+    "unique_name": { "type": ["string", "null"] },
+    "descriptor": { "type": ["string", "null"] },
+    "email": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

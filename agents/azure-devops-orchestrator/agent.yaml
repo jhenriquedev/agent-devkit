@@ -1,0 +1,49 @@
+id: azure-devops-orchestrator
+kind: specialist-agent
+name: Azure DevOps Orchestrator
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Gerenciar work items, cards, comentarios, tags, atribuicoes e movimentacao de
+  estado no Azure DevOps Boards como um pacote especialista para agentes
+  consumidores.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - AZURE_DEVOPS_ORG
+    - AZURE_DEVOPS_PAT
+  optional:
+    - AZURE_DEVOPS_API_VERSION
+    - AZURE_DEVOPS_PROJECT
+
+capabilities:
+  - listar-cards
+  - ler-card
+  - comentar-card
+
+agent_surface:
+  repositories:
+    - infra/integrations/azure/azure_repository.py
+  methods:
+    - infra/integrations/azure/methods/list-work-items.yaml
+    - infra/integrations/azure/methods/get-work-item.yaml
+    - infra/integrations/azure/methods/get-work-item-comments.yaml
+    - infra/integrations/azure/methods/add-comment.yaml
+    - infra/integrations/azure/methods/update-work-item.yaml
+    - infra/integrations/azure/methods/find-users.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  comment_operations: confirm
+  tag_operations: confirm
+  assign_operations: confirm
+  move_state_operations: confirm
+  bulk_operations: plan_then_confirm

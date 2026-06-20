@@ -1,0 +1,43 @@
+id: azure-devops.get-work-item
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Busca um work item por ID e retorna seus campos principais.
+
+operation:
+  repository_method: get_work_item
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - work_item_id
+    - project
+  optional:
+    - fields
+    - expand_relations
+
+outputs:
+  type: work-item
+  fields:
+    - id
+    - rev
+    - work_item_type
+    - title
+    - state
+    - created_date
+    - changed_date
+    - board_column
+    - board_column_done
+    - assigned_to
+    - tags
+    - description
+    - acceptance_criteria
+    - relations
+    - url
+
+guardrails:
+  - nao alterar o work item
+  - retornar campos ausentes como null ou lista vazia

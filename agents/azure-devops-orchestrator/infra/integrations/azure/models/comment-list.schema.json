@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Azure DevOps Comment List",
+  "type": "object",
+  "required": ["work_item_id", "count", "comments"],
+  "properties": {
+    "work_item_id": { "type": "integer" },
+    "count": { "type": "integer" },
+    "comments": {
+      "type": "array",
+      "items": { "$ref": "comment.schema.json" }
+    }
+  },
+  "additionalProperties": false
+}

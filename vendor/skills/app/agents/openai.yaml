@@ -1,0 +1,4 @@
+interface:
+  display_name: "APP /app"
+  short_description: "Inspect, create, validate, and review APP Cases"
+  default_prompt: "Before acting, read SKILL.md and the adjacent installed spec.md. Treat spec.md as the normative protocol source and SKILL.md as the operational profile. If spec.md is missing, report incomplete /app installation or drift. Then inspect or update this APP project using the canonical /app workflow, keep <case>.us.md aligned, and preserve APP grammar."
