@@ -1,0 +1,4 @@
+id: figma.inspect-file
+purpose: Inspect a Figma file before creating or updating designs.
+tools: [get_metadata, get_screenshot, get_libraries, search_design_system]
+confirmation_required: false

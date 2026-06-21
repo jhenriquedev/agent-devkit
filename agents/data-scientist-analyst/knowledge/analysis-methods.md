@@ -18,3 +18,13 @@ O agente prioriza metodos simples, auditaveis e reproduziveis:
 - cohorts por data de entrada e idade em dias;
 - anomalias temporais por z-score;
 - forecast baseline por media movel.
+- teste de hipotese para diferenca de medias com aproximacao normal;
+- intervalos de confianca para media;
+- tamanho de amostra para duas proporcoes balanceadas;
+- Cohen's d para tamanho de efeito;
+- interpretacao de p-valor, alpha e relevancia pratica.
+- preparo de dataset de modelagem com alvo, features e split deterministico;
+- baseline de classificacao binaria por melhor threshold numerico;
+- avaliacao por accuracy, precision, recall, F1 e matriz de confusao;
+- deteccao heuristica de leakage por copia de alvo e nomes pos-evento;
+- monitoramento baseline de drift por deslocamento de media normalizado.

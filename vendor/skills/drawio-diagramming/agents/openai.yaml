@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draw.io Diagramming"
+  short_description: "Create and validate editable Draw.io diagrams."
+  default_prompt: "Create an editable Draw.io diagram from the provided source material."

@@ -4,18 +4,127 @@
 from __future__ import annotations
 
 import json
+import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "ai-devkit"
+CLI_TIMEOUT_SECONDS = int(os.environ.get("AI_DEVKIT_TEST_CLI_TIMEOUT_SECONDS", "60"))
+WORKBOOK_SUPPORT = (
+    ROOT
+    / "agents"
+    / "excel-workbook-builder"
+    / "capabilities"
+    / "_shared"
+    / "workbook_support.py"
+)
+NODE = Path(
+    os.environ.get(
+        "CODEX_NODE",
+        Path.home()
+        / ".cache"
+        / "codex-runtimes"
+        / "codex-primary-runtime"
+        / "dependencies"
+        / "node"
+        / "bin"
+        / ("node.exe" if os.name == "nt" else "node"),
+    )
+)
+NODE_MODULES = Path(
+    os.environ.get(
+        "CODEX_NODE_MODULES",
+        Path.home()
+        / ".cache"
+        / "codex-runtimes"
+        / "codex-primary-runtime"
+        / "dependencies"
+        / "node"
+        / "node_modules",
+    )
+)
+
+
+def load_workbook_support_module():
+    spec = importlib.util.spec_from_file_location("excel_workbook_support_for_tests", WORKBOOK_SUPPORT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def create_test_workbook(path: Path, sheets: dict[str, list[list[object]]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    script = path.parent / "create-test-workbook.mjs"
+    payload = path.parent / "create-test-workbook.json"
+    package_json = path.parent / "package.json"
+    node_modules = path.parent / "node_modules"
+    package_json.write_text('{"private":true,"type":"module"}\n', encoding="utf-8")
+    if not node_modules.exists():
+        if os.name == "nt":
+            subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(node_modules), str(NODE_MODULES)],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        else:
+            os.symlink(NODE_MODULES, node_modules, target_is_directory=True)
+    payload.write_text(json.dumps({"path": str(path), "sheets": sheets}, ensure_ascii=False), encoding="utf-8")
+    script.write_text(
+        r'''
+import { SpreadsheetFile, Workbook } from "@oai/artifact-tool";
+import fs from "node:fs/promises";
+
+const payload = JSON.parse(await fs.readFile(process.argv[2], "utf8"));
+const workbook = Workbook.create();
+for (const [name, rows] of Object.entries(payload.sheets)) {
+  const sheet = workbook.worksheets.add(name);
+  if (rows.length > 0 && rows[0].length > 0) {
+    sheet.getRangeByIndexes(0, 0, rows.length, rows[0].length).values = rows;
+  }
+}
+const output = await SpreadsheetFile.exportXlsx(workbook);
+await output.save(payload.path);
+''',
+        encoding="utf-8",
+    )
+    subprocess.run(
+        [str(NODE), str(script), str(payload)],
+        cwd=path.parent,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
 
 
 class AiDevKitCliTest(unittest.TestCase):
+    def run_cli_ok(self, *args: str) -> subprocess.CompletedProcess[str]:
+        try:
+            result = subprocess.run(
+                [sys.executable, str(CLI), *args],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=CLI_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as error:
+            command = " ".join([str(CLI), *args])
+            self.fail(f"CLI timed out after {CLI_TIMEOUT_SECONDS}s: {command}\n{error}")
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+        return result
+
     def test_lists_available_agents(self) -> None:
         result = subprocess.run(
             [sys.executable, str(CLI), "--json", "agents"],
@@ -44,6 +153,7 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertIn("software-specification-analyst", agents)
         self.assertIn("technical-integration-analyst", agents)
         self.assertIn("topdesk-orchestrator", agents)
+        self.assertIn("figma-ui-ux-product-designer", agents)
 
     def test_lists_all_presentation_deck_builder_capabilities(self) -> None:
         result = subprocess.run(
@@ -85,6 +195,90 @@ class AiDevKitCliTest(unittest.TestCase):
                 "review-generated-deck",
             },
         )
+
+    def test_lists_all_figma_ui_ux_product_designer_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "figma-ui-ux-product-designer",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "analyze-existing-figma-project",
+                "analyze-product-context",
+                "apply-design-feedback",
+                "capture-url-to-figma",
+                "conduct-design-interview",
+                "conduct-design-review-session",
+                "create-design-system-foundation",
+                "create-figma-project",
+                "create-mobile-app-design",
+                "create-web-app-design",
+                "facelift-existing-product",
+                "generate-dev-handoff",
+                "generate-user-journey-diagram",
+                "ingest-design-source",
+                "read-azure-card-for-design",
+                "recreate-legacy-design",
+                "review-design-quality",
+                "triage-design-feedback",
+                "update-existing-figma-design",
+            },
+        )
+
+    def test_figma_ui_ux_product_designer_generates_plan_only_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            brief = Path(tmpdir) / "brief.md"
+            output_dir = Path(tmpdir) / "design"
+            brief.write_text(
+                "# Portal de Sustentacao\n\nCriar dashboard web para acompanhar KPIs, cards e prioridades.",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "figma-ui-ux-product-designer",
+                    "create-web-app-design",
+                    "--brief",
+                    str(brief),
+                    "--platform",
+                    "web",
+                    "--output-dir",
+                    str(output_dir),
+                    "--yes-create-dir",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((output_dir / "design-brief.md").exists())
+            self.assertTrue((output_dir / "figma-action-plan.md").exists())
+            self.assertTrue((output_dir / "web-screen-map.md").exists())
+            self.assertTrue((output_dir / "dev-handoff.md").exists())
+            brief_text = (output_dir / "design-brief.md").read_text(encoding="utf-8")
+            self.assertIn("Figma mode: `plan_only`", brief_text)
+            self.assertIn("Portal de Sustentacao", brief_text)
 
     def test_register_template_creates_versioned_template_assets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -339,7 +533,7 @@ class AiDevKitCliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             template_path = Path(tmpdir) / "conciliation-template.xlsx"
             templates_root = Path(tmpdir) / "templates"
-            template_path.write_bytes(b"fake xlsx content")
+            create_test_workbook(template_path, {"Template": [["field", "value"], ["name", ""]]})
 
             result = subprocess.run(
                 [
@@ -380,6 +574,213 @@ class AiDevKitCliTest(unittest.TestCase):
             self.assertTrue((version_dir / "sheet-map.yaml").exists())
             manifest = (template_dir / "template.yaml").read_text(encoding="utf-8")
             self.assertIn("current_version: 0.1.0", manifest)
+            self.assertIn("status: validated", manifest)
+
+    def test_excel_generate_from_template_preserves_template_sheets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "kpi-template.xlsx"
+            templates_root = Path(tmpdir) / "templates"
+            input_path = Path(tmpdir) / "input.json"
+            output_path = Path(tmpdir) / "output.xlsx"
+            inspection_path = Path(tmpdir) / "inspection.md"
+
+            create_test_workbook(
+                template_path,
+                {
+                    "Template": [["Title", "Sustentacao KPIs"], ["Total Tickets", ""]],
+                    "Data": [["id", "status"], [1, "Aberto"]],
+                },
+            )
+            input_path.write_text(
+                json.dumps(
+                    {
+                        "columns": ["metric", "value"],
+                        "rows": [{"metric": "Total Tickets", "value": 10}],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "register-template",
+                "--template",
+                str(template_path),
+                "--template-id",
+                "kpi-template",
+                "--version",
+                "1.0.0",
+                "--status",
+                "validated",
+                "--templates-root",
+                str(templates_root),
+                "--yes-save",
+            )
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "generate-workbook-from-template",
+                "--template-id",
+                "kpi-template",
+                "--templates-root",
+                str(templates_root),
+                "--input",
+                str(input_path),
+                "--output",
+                str(output_path),
+            )
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "inspect-template",
+                "--workbook",
+                str(output_path),
+                "--output",
+                str(inspection_path),
+            )
+            inspection = inspection_path.read_text(encoding="utf-8")
+            self.assertIn("Template", inspection)
+            self.assertIn("Data", inspection)
+
+    def test_excel_refresh_preserves_existing_non_data_sheets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workbook_path = Path(tmpdir) / "original.xlsx"
+            refresh_csv = Path(tmpdir) / "refresh.csv"
+            output_path = Path(tmpdir) / "refreshed.xlsx"
+            inspection_path = Path(tmpdir) / "inspection.md"
+
+            create_test_workbook(
+                workbook_path,
+                {
+                    "Dashboard": [["Metric", "Value"], ["Tickets", "=COUNTA(Data!A:A)-1"]],
+                    "Data": [["id", "status"], [1, "Aberto"]],
+                },
+            )
+            refresh_csv.write_text("id,status\n1,Fechado\n2,Aberto\n", encoding="utf-8")
+
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "refresh-workbook-data",
+                "--workbook",
+                str(workbook_path),
+                "--input",
+                str(refresh_csv),
+                "--output",
+                str(output_path),
+                "--sheet",
+                "Data",
+            )
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "inspect-template",
+                "--workbook",
+                str(output_path),
+                "--output",
+                str(inspection_path),
+            )
+            inspection = inspection_path.read_text(encoding="utf-8")
+            self.assertIn("Dashboard", inspection)
+            self.assertIn("Data", inspection)
+
+    def test_excel_node_script_timeout_reports_hanging_child(self) -> None:
+        workbook_support = load_workbook_support_module()
+        started_at = time.monotonic()
+
+        with self.assertRaisesRegex(TimeoutError, "node script timed out"):
+            workbook_support.run_node_script(
+                "setInterval(() => {}, 1000);\n",
+                [],
+                timeout_seconds=0.2,
+            )
+
+        self.assertLess(time.monotonic() - started_at, 5)
+
+    def test_excel_promote_template_version_requires_existing_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "template.xlsx"
+            templates_root = Path(tmpdir) / "templates"
+            create_test_workbook(template_path, {"Template": [["field", "value"]]})
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "register-template",
+                "--template",
+                str(template_path),
+                "--template-id",
+                "finance-template",
+                "--version",
+                "1.0.0",
+                "--status",
+                "draft",
+                "--templates-root",
+                str(templates_root),
+                "--yes-save",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "promote-template-version",
+                    "--template-id",
+                    "finance-template",
+                    "--template-version",
+                    "9.9.9",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("template version not found in manifest", result.stdout)
+
+    def test_excel_promote_template_version_updates_current_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "template.xlsx"
+            templates_root = Path(tmpdir) / "templates"
+            create_test_workbook(template_path, {"Template": [["field", "value"]]})
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "register-template",
+                "--template",
+                str(template_path),
+                "--template-id",
+                "finance-template",
+                "--version",
+                "1.0.0",
+                "--status",
+                "draft",
+                "--templates-root",
+                str(templates_root),
+                "--yes-save",
+            )
+
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "promote-template-version",
+                "--template-id",
+                "finance-template",
+                "--template-version",
+                "1.0.0",
+                "--templates-root",
+                str(templates_root),
+            )
+
+            manifest = (templates_root / "finance-template" / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("current_version: 1.0.0", manifest)
             self.assertIn("status: validated", manifest)
 
     def test_excel_ingests_csv_and_generates_workbook(self) -> None:
@@ -612,6 +1013,39 @@ class AiDevKitCliTest(unittest.TestCase):
             self.assertIn("Workbook Inspection", review)
             self.assertIn("Worksheets", review)
 
+    def test_excel_review_fails_when_required_sheet_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workbook_path = Path(tmpdir) / "workbook.xlsx"
+            review_path = Path(tmpdir) / "review.md"
+            create_test_workbook(workbook_path, {"Data": [["id"], [1]]})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "review-generated-workbook",
+                    "--workbook",
+                    str(workbook_path),
+                    "--required-sheet",
+                    "Dashboard",
+                    "--strict",
+                    "--output",
+                    str(review_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            review = review_path.read_text(encoding="utf-8")
+            self.assertIn("Status: fail", review)
+            self.assertIn("required sheet missing: Dashboard", review)
+
     def test_excel_phase_2_normalizes_validates_maps_and_delegates(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             source_path = Path(tmpdir) / "clientes.csv"
@@ -737,6 +1171,41 @@ class AiDevKitCliTest(unittest.TestCase):
             delegation = delegation_path.read_text(encoding="utf-8")
             self.assertIn("postgres-data-analyzer", delegation)
             self.assertIn("run-readonly-query", delegation)
+
+    def test_excel_request_database_data_can_execute_allowed_delegate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fake_devkit = Path(tmpdir) / "fake-ai-devkit"
+            result_path = Path(tmpdir) / "delegated.json"
+            fake_devkit.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json, sys\n"
+                "print(json.dumps({'argv': sys.argv[1:], 'rows': [{'id': 1}]}))\n",
+                encoding="utf-8",
+            )
+            fake_devkit.chmod(0o755)
+
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "request-database-data",
+                "--agent-id",
+                "postgres-data-analyzer",
+                "--capability-id",
+                "run-readonly-query",
+                "--request",
+                "listar clientes ativos",
+                "--expected-schema",
+                "id",
+                "--execute",
+                "--ai-devkit",
+                str(fake_devkit),
+                "--result-output",
+                str(result_path),
+            )
+
+            payload = json.loads(result_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["rows"], [{"id": 1}])
+            self.assertEqual(payload["argv"][:3], ["run", "postgres-data-analyzer", "run-readonly-query"])
 
     def test_excel_phase_3_reconciles_composite_keys_and_multi_columns(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1064,6 +1533,58 @@ class AiDevKitCliTest(unittest.TestCase):
             self.assertEqual(workbook_ingest.returncode, 0, workbook_ingest.stderr)
             payload = json.loads(ingested_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["columns"], ["Total", "17"])
+
+    def test_excel_adds_formula_validation_and_comment_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workbook_path = Path(tmpdir) / "tickets.xlsx"
+            formula_plan = Path(tmpdir) / "formula-plan.json"
+            output_path = Path(tmpdir) / "tickets-formulas.xlsx"
+            inspection_path = Path(tmpdir) / "inspection.md"
+            create_test_workbook(workbook_path, {"Data": [["id", "status"], [1, "Aberto"], [2, "Fechado"]]})
+            formula_plan.write_text(
+                json.dumps(
+                    {
+                        "sheet": "Inputs",
+                        "cells": [
+                            {"cell": "A1", "label": "Status", "format": {"bold": True}},
+                            {"cell": "B1", "formula": "=COUNTA(Data!A:A)-1"},
+                        ],
+                        "validations": [
+                            {"range": "A2:A20", "type": "list", "values": ["Aberto", "Fechado"]}
+                        ],
+                        "comments": [
+                            {"cell": "A1", "text": "Status permitido para o relatorio"}
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "add-formulas-and-validations",
+                "--workbook",
+                str(workbook_path),
+                "--formula-plan",
+                str(formula_plan),
+                "--output",
+                str(output_path),
+            )
+            self.run_cli_ok(
+                "run",
+                "excel-workbook-builder",
+                "inspect-template",
+                "--workbook",
+                str(output_path),
+                "--output",
+                str(inspection_path),
+            )
+            inspection = inspection_path.read_text(encoding="utf-8")
+            self.assertIn("Inputs", inspection)
+            self.assertIn("_Comments", inspection)
+            self.assertIn("Data validations: 1", inspection)
 
     def test_lists_all_bpo_analyser_capabilities(self) -> None:
         result = subprocess.run(

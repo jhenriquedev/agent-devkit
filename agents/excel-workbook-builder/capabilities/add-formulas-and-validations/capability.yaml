@@ -3,12 +3,13 @@ kind: capability
 name: Add Formulas And Validations
 version: 0.1.0
 status: draft
-purpose: Add formulas, data validation, conditional formatting, and comments.
+purpose: Add formulas, supported data validations, formatting, and auditable comment metadata from an explicit JSON plan.
 entrypoint:
   runner: runner.py
   workflow: workflow.md
 inputs:
   required: [workbook, formula_plan]
+  optional: [output]
 outputs:
   artifacts: [workbook.xlsx]
 write_policy: output_only

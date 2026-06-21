@@ -1,0 +1,5 @@
+id: figma.update-screen
+purpose: Update an existing Figma screen by creating a new version or frame.
+tool: use_figma
+requires_skill: figma-use
+confirmation_required: true

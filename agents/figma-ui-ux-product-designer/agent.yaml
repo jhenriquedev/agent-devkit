@@ -1,0 +1,80 @@
+id: figma-ui-ux-product-designer
+kind: specialist-agent
+name: Figma UI/UX Product Designer
+version: 0.1.0
+status: draft
+owner: ai-devkit
+
+purpose: >
+  Atuar como designer UI/UX de produto, analisando especificacoes, documentos,
+  cards Azure DevOps, projetos existentes, URLs e entrevistas para criar,
+  recriar, evoluir e revisar designs mobile e web. O agente deve operar em modo
+  agentic completo, com descoberta, perguntas, proposta, execucao, revisao e
+  handoff, usando Figma direto quando MCP/credenciais estiverem disponiveis e
+  gerando planos executaveis quando nao estiverem.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+  - knowledge/figma-workflow.md
+  - knowledge/design-quality-checklist.md
+
+env:
+  required: []
+  optional:
+    - FIGMA_ACCESS_TOKEN
+    - FIGMA_DEFAULT_PLAN_KEY
+    - FIGMA_DEFAULT_PROJECT_ID
+    - FIGMA_MCP_ENABLED
+    - FIGMA_DIRECT_MODE
+    - AZURE_DEVOPS_ORG
+    - AZURE_DEVOPS_PAT
+
+capabilities:
+  - conduct-design-interview
+  - ingest-design-source
+  - read-azure-card-for-design
+  - analyze-product-context
+  - analyze-existing-figma-project
+  - create-figma-project
+  - create-design-system-foundation
+  - create-mobile-app-design
+  - create-web-app-design
+  - capture-url-to-figma
+  - recreate-legacy-design
+  - facelift-existing-product
+  - update-existing-figma-design
+  - triage-design-feedback
+  - apply-design-feedback
+  - conduct-design-review-session
+  - generate-user-journey-diagram
+  - generate-dev-handoff
+  - review-design-quality
+
+agent_surface:
+  repositories:
+    - infra/integrations/figma/figma_repository.py
+  methods:
+    - infra/integrations/figma/methods/create-new-file.yaml
+    - infra/integrations/figma/methods/inspect-file.yaml
+    - infra/integrations/figma/methods/search-design-system.yaml
+    - infra/integrations/figma/methods/create-screen.yaml
+    - infra/integrations/figma/methods/update-screen.yaml
+    - infra/integrations/figma/methods/capture-url-to-figma.yaml
+    - infra/integrations/figma/methods/generate-diagram.yaml
+    - infra/integrations/figma/methods/export-review-context.yaml
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+  plugins_catalog:
+    - ../../vendor/plugins/CATALOG.md
+
+write_policy:
+  read_operations: auto
+  local_artifacts: ask_before_creating_output_directory
+  figma_create_file: confirm
+  figma_update_existing_file: confirm
+  figma_comments: confirm
+  azure_card_comment: confirm
+  destructive_design_changes: forbidden_by_default

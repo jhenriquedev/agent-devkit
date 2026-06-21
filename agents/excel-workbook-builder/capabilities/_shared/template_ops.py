@@ -16,6 +16,7 @@ from workbook_support import (
     version_dir,
     write_input_schema_md,
     write_input_schema_xlsx,
+    write_manifest_data,
     write_sheet_map,
     write_template_manifest,
     write_usage_notes,
@@ -204,35 +205,40 @@ def compare_template_versions() -> int:
 
 
 def append_manifest_version(path: Path, version: str, status: str) -> None:
-    content = path.read_text(encoding="utf-8").rstrip()
-    addition = "\n".join(
-        [
-            f"  - version: {version}",
-            f"    status: {status}",
-            f"    path: versions/{version}/template.xlsx",
-            f"    input_schema: versions/{version}/input-schema.xlsx",
-            "    notes: template versionado pelo agente",
-        ]
+    manifest = parse_template_manifest(path)
+    versions = manifest.setdefault("versions", [])
+    if any(item.get("version") == version for item in versions):
+        raise ValueError(f"template version already exists in manifest: {version}")
+    versions.append(
+        {
+            "version": version,
+            "status": status,
+            "path": f"versions/{version}/template.xlsx",
+            "input_schema": f"versions/{version}/input-schema.xlsx",
+            "created_at": date.today().isoformat(),
+            "notes": "template versionado pelo agente",
+        }
     )
-    path.write_text(content + "\n" + addition + "\n", encoding="utf-8")
+    if status == "validated":
+        manifest["current_version"] = version
+    write_manifest_data(path, manifest)
 
 
 def update_manifest_status(path: Path, version: str, status: str, current: bool) -> None:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    output = []
-    in_target = False
-    for line in lines:
-        if line.startswith("current_version:") and current:
-            output.append(f"current_version: {version}")
-            continue
-        stripped = line.strip()
-        if stripped.startswith("- version:"):
-            in_target = stripped.split(":", 1)[1].strip() == version
-        if in_target and stripped.startswith("status:"):
-            output.append(line[: len(line) - len(line.lstrip())] + f"status: {status}")
-            continue
-        output.append(line)
-    path.write_text("\n".join(output).rstrip() + "\n", encoding="utf-8")
+    manifest = parse_template_manifest(path)
+    found = False
+    for item in manifest.get("versions", []):
+        if item.get("version") == version:
+            item["status"] = status
+            found = True
+            break
+    if not found:
+        raise ValueError(f"template version not found in manifest: {version}")
+    if current:
+        manifest["current_version"] = version
+    elif manifest.get("current_version") == version and status in {"deprecated", "archived"}:
+        manifest["current_version"] = ""
+    write_manifest_data(path, manifest)
 
 
 def write_or_print(markdown: str, output: str | None) -> None:

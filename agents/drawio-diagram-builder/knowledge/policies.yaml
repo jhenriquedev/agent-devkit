@@ -1,0 +1,59 @@
+id: drawio-diagram-builder.policies
+version: 0.1.0
+status: draft
+
+source_handling:
+  separate_facts_inferences_assumptions: true
+  mark_open_questions: true
+  preserve_user_language: portuguese
+  read_directories_recursively: true
+  ignore_common_generated_directories:
+    - .git
+    - node_modules
+    - vendor
+    - __pycache__
+    - dist
+    - build
+    - target
+    - .next
+
+interview_policy:
+  ask_when_goal_or_scope_missing: true
+  ask_targeted_questions: true
+  avoid_long_questionnaires: true
+  required_dimensions:
+    - objetivo
+    - audiencia
+    - tipo_de_diagrama
+    - nivel_de_detalhe
+    - fontes
+    - escopo
+    - fora_de_escopo
+    - elementos_obrigatorios
+
+diagram_policy:
+  output_format: drawio
+  drawio_encoding: uncompressed_xml
+  prefer_multiple_diagrams_when_overloaded: true
+  require_title: true
+  require_legend_when_styles_have_meaning: true
+  require_connector_direction: true
+  require_connector_labels_for_business_or_integration_flows: true
+
+filesystem_policy:
+  ask_before_creating_output_directory: true
+  overwrite_existing_files: ask
+  allowed_write_scope:
+    - current_project_only
+
+quality_gates:
+  - xml_parseavel
+  - raiz_mxfile_presente
+  - pagina_drawio_presente
+  - nos_com_labels
+  - conectores_com_source_e_target_existentes
+  - geometria_nao_sobreposta_para_todos_os_nos
+  - titulo_presente
+  - legenda_quando_necessaria
+  - perguntas_abertas_explicitas
+  - fontes_rastreadas

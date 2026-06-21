@@ -22,6 +22,12 @@ env:
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
     - AWS_SESSION_TOKEN
+    - AWS_OPERATIONS_ALLOWED_ACCOUNTS_DEV
+    - AWS_OPERATIONS_ALLOWED_ACCOUNTS_HML
+    - AWS_OPERATIONS_ALLOWED_ACCOUNTS_PRD
+    - AWS_OPERATIONS_DEFAULT_REGION_DEV
+    - AWS_OPERATIONS_DEFAULT_REGION_HML
+    - AWS_OPERATIONS_DEFAULT_REGION_PRD
 
 capabilities:
   - plan-operational-action
@@ -60,3 +66,5 @@ write_policy:
   execute_operations: requires_execute
   production_operations: requires_explicit_environment
   destructive_operations: blocked_by_default
+  account_validation: required_for_execute
+  sensitive_payloads: redacted_in_artifacts

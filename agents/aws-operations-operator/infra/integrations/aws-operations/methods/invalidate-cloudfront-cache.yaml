@@ -1,0 +1,10 @@
+id: aws-operations.invalidate-cloudfront-cache
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: run_operation
+  type: mutation
+  confirmation_required: true
+outputs:
+  type: operation-result

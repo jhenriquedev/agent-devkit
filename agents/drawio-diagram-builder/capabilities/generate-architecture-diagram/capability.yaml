@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.generate-architecture-diagram
+kind: capability
+name: Generate Architecture Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Gerar diagramas arquiteturais Draw.io para sistemas, cloud, APIs, filas,
+  bancos, integracoes, boundaries e runtime.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [brief, text, file, directory, title, output, yes_overwrite]
+outputs:
+  artifacts: [architecture.drawio, diagram-spec.json]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: output_only

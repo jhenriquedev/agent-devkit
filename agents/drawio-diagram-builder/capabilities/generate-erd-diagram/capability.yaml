@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.generate-erd-diagram
+kind: capability
+name: Generate ERD Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Gerar diagramas ERD Draw.io para entidades, tabelas, chaves,
+  relacionamentos, cardinalidade e dominios de dados.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [brief, text, file, directory, title, output, yes_overwrite]
+outputs:
+  artifacts: [erd.drawio, diagram-spec.json]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: output_only

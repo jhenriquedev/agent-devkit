@@ -20,6 +20,9 @@ import xml.etree.ElementTree as ET
 
 AGENT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_TEMPLATES_ROOT = AGENT_DIR / "templates"
+DEFAULT_NODE_SCRIPT_TIMEOUT_SECONDS = float(
+    os.environ.get("AI_DEVKIT_NODE_SCRIPT_TIMEOUT_SECONDS", "30")
+)
 
 
 def slugify(value: str) -> str:
@@ -456,6 +459,27 @@ def generate_workbook_from_dataset(
     run_workbook_builder(payload, output)
 
 
+def fill_workbook_from_dataset(
+    workbook: Path,
+    dataset: dict[str, Any],
+    output: Path,
+    *,
+    data_sheet: str = "Data",
+) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "dataset": normalize_dataset(dataset, source=dataset.get("source")),
+        "data_sheet": data_sheet,
+    }
+    with tempfile.NamedTemporaryFile("w", suffix=".json", encoding="utf-8", delete=False) as file:
+        json.dump(payload, file, ensure_ascii=False, indent=2)
+        payload_path = Path(file.name)
+    try:
+        run_node_script(FILL_WORKBOOK_FROM_DATASET_JS, [str(workbook), str(payload_path), str(output)])
+    finally:
+        payload_path.unlink(missing_ok=True)
+
+
 def run_workbook_builder(payload: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="excel-workbook-builder-") as tmpdir:
@@ -477,20 +501,32 @@ def run_workbook_builder(payload: dict[str, Any], output: Path) -> None:
             raise ValueError(result.stderr.strip() or f"node failed: {result.returncode}")
 
 
-def run_node_script(script: str, args: list[str]) -> None:
+def run_node_script(
+    script: str,
+    args: list[str],
+    *,
+    timeout_seconds: float = DEFAULT_NODE_SCRIPT_TIMEOUT_SECONDS,
+) -> None:
     with tempfile.TemporaryDirectory(prefix="excel-workbook-builder-") as tmpdir:
         workspace = Path(tmpdir)
         ensure_artifact_workspace(workspace)
         script_path = workspace / "script.mjs"
         script_path.write_text(script, encoding="utf-8")
-        result = subprocess.run(
-            [str(resolve_node()), str(script_path), *args],
-            cwd=workspace,
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        command = [str(resolve_node()), str(script_path), *args]
+        try:
+            result = subprocess.run(
+                command,
+                cwd=workspace,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise TimeoutError(
+                f"node script timed out after {timeout_seconds:g}s: {' '.join(command)}"
+            ) from error
         if result.returncode != 0:
             raise ValueError(result.stderr.strip() or f"node failed: {result.returncode}")
 
@@ -517,6 +553,14 @@ def render_workbook_preview(
 def apply_formula_plan(workbook: Path, formula_plan: Path, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     run_node_script(APPLY_FORMULA_PLAN_JS, [str(workbook), str(formula_plan), str(output)])
+
+
+def inspect_workbook_deep(path: Path) -> dict[str, Any]:
+    result = inspect_xlsx(path)
+    result["inspection_warnings"] = []
+    if not result["worksheets"]:
+        result["inspection_warnings"].append("workbook has no worksheets")
+    return result
 
 
 def ensure_artifact_workspace(workspace: Path) -> None:
@@ -594,6 +638,11 @@ def inspect_xlsx(path: Path) -> dict[str, Any]:
             for name in names
             if name.endswith(".xml")
         )
+        worksheet_xml = {
+            name: archive.read(name).decode("utf-8", errors="replace")
+            for name in names
+            if name.startswith("xl/worksheets/") and name.endswith(".xml")
+        }
     error_markers = ["#REF!", "#DIV/0!", "#VALUE!", "#NAME?", "#N/A"]
     found_errors = [marker for marker in error_markers if marker in xml_text]
     workbook = read_xlsx_workbook(path)
@@ -602,11 +651,50 @@ def inspect_xlsx(path: Path) -> dict[str, Any]:
         "part_count": len(names),
         "worksheet_count": len([name for name in names if name.startswith("xl/worksheets/")]),
         "worksheets": [
-            {"name": sheet["name"], "rows": len(sheet["values"])}
+            {
+                "name": sheet["name"],
+                "rows": len(sheet["values"]),
+                "path": sheet["path"],
+                "formulas": count_xml_fragments(worksheet_xml.get(sheet["path"], ""), "<f"),
+                "validations": count_data_validation_rules(worksheet_xml.get(sheet["path"], "")),
+                "tables": count_xml_fragments(worksheet_xml.get(sheet["path"], ""), "tablePart"),
+            }
             for sheet in workbook["sheets"]
         ],
+        "formula_count": count_xml_fragments(xml_text, "<f"),
+        "data_validation_count": count_data_validation_rules(xml_text),
+        "table_count": count_xml_fragments(xml_text, "tablePart"),
         "formula_errors": found_errors,
     }
+
+
+def count_xml_fragments(text: str, fragment: str) -> int:
+    return text.count(fragment)
+
+
+def count_data_validation_rules(text: str) -> int:
+    return len(re.findall(r"<(?:[a-zA-Z0-9]+:)?dataValidation(?:\s|>)", text))
+
+
+def write_manifest_data(path: Path, data: dict[str, Any]) -> None:
+    lines = [
+        f"id: {data.get('id', '')}",
+        f"name: {data.get('name', '')}",
+        f"current_version: {data.get('current_version', '')}",
+        "versions:",
+    ]
+    for version in data.get("versions", []):
+        lines.extend(
+            [
+                f"  - version: {version.get('version', '')}",
+                f"    status: {version.get('status', '')}",
+                f"    path: {version.get('path', '')}",
+                f"    input_schema: {version.get('input_schema', '')}",
+                f"    created_at: {version.get('created_at', '')}",
+                f"    notes: {version.get('notes', '')}",
+            ]
+        )
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 XML_MAIN_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -700,10 +788,67 @@ async function main() {
   await xlsx.save(outputPath);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+'''
+
+FILL_WORKBOOK_FROM_DATASET_JS = r'''
+import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
+import fs from "node:fs/promises";
+
+function matrix(columns, rows) {
+  return [
+    columns,
+    ...rows.map((row) => columns.map((column) => row[column] ?? null)),
+  ];
+}
+
+async function clearUsedRange(sheet) {
+  if (!sheet.getUsedRange) return;
+  const used = sheet.getUsedRange();
+  if (used && typeof used.clear === "function") {
+    used.clear();
+  }
+}
+
+async function main() {
+  const [workbookPath, payloadPath, outputPath] = process.argv.slice(2);
+  const input = await FileBlob.load(workbookPath);
+  const workbook = await SpreadsheetFile.importXlsx(input);
+  const payload = JSON.parse(await fs.readFile(payloadPath, "utf8"));
+  const dataset = payload.dataset || { columns: [], rows: [] };
+  const sheetName = payload.data_sheet || "Data";
+  const sheet = workbook.worksheets.getOrAdd(sheetName);
+  sheet.showGridLines = false;
+  const columns = dataset.columns || [];
+  const rows = dataset.rows || [];
+  await clearUsedRange(sheet);
+  if (columns.length > 0) {
+    const values = matrix(columns, rows);
+    const range = sheet.getRangeByIndexes(0, 0, values.length, columns.length);
+    range.values = values;
+    sheet.getRangeByIndexes(0, 0, 1, columns.length).format.font = { bold: true, color: "#FFFFFF" };
+    sheet.getRangeByIndexes(0, 0, 1, columns.length).format.fill = { color: "#111827" };
+    range.format.borders = { preset: "all", style: "thin", color: "#E5E7EB" };
+    range.format.autofitColumns();
+    if (sheet.freezePanes) sheet.freezePanes.freezeRows(1);
+  } else {
+    sheet.getRange("A1").values = [["No data"]];
+  }
+  const output = await SpreadsheetFile.exportXlsx(workbook);
+  await output.save(outputPath);
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 '''
 
 RENDER_WORKBOOK_JS = r'''
@@ -721,15 +866,37 @@ async function main() {
   await fs.writeFile(outputPath, new Uint8Array(await preview.arrayBuffer()));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 '''
 
 APPLY_FORMULA_PLAN_JS = r'''
 import { FileBlob, SpreadsheetFile } from "@oai/artifact-tool";
 import fs from "node:fs/promises";
+
+function validationRule(item) {
+  if (item.type === "list") {
+    const values = item.values || [];
+    const formula = item.formula1 || `"${values.join(",")}"`;
+    return { type: "list", formula1: formula };
+  }
+  if (item.type === "whole" || item.type === "decimal" || item.type === "date") {
+    return {
+      type: item.type,
+      operator: item.operator || "between",
+      formula1: item.formula1,
+      formula2: item.formula2,
+    };
+  }
+  if (item.formula1) {
+    return { type: item.type || "custom", formula1: item.formula1 };
+  }
+  throw new Error(`unsupported validation rule: ${JSON.stringify(item)}`);
+}
 
 async function main() {
   const [workbookPath, planPath, outputPath] = process.argv.slice(2);
@@ -746,6 +913,39 @@ async function main() {
     } else {
       range.values = [[item.value ?? item.label ?? ""]];
     }
+    if (item.format?.bold) {
+      range.format.font = { ...(range.format.font || {}), bold: true };
+    }
+    if (item.format?.fill) {
+      range.format.fill = { color: item.format.fill };
+    }
+  }
+  for (const item of plan.validations || []) {
+    const range = sheet.getRange(item.range);
+    if (!range.dataValidation) {
+      throw new Error("data validation API not available in artifact-tool runtime");
+    }
+    range.dataValidation.rule = validationRule(item);
+    range.dataValidation.ignoreBlanks = item.ignoreBlanks ?? true;
+    range.dataValidation.inCellDropDown = item.inCellDropDown ?? true;
+    if (item.prompt) {
+      range.dataValidation.prompt = {
+        showPrompt: true,
+        title: item.prompt.title || "Input",
+        message: item.prompt.message || item.prompt,
+      };
+    }
+  }
+  if (plan.comments && plan.comments.length > 0) {
+    const comments = workbook.worksheets.getOrAdd("_Comments");
+    comments.showGridLines = false;
+    comments.getRangeByIndexes(0, 0, plan.comments.length + 1, 3).values = [
+      ["Sheet", "Cell", "Comment"],
+      ...plan.comments.map((item) => [sheetName, item.cell, item.text || ""]),
+    ];
+    comments.getRange("A1:C1").format.font = { bold: true, color: "#FFFFFF" };
+    comments.getRange("A1:C1").format.fill = { color: "#374151" };
+    comments.getRange("A:C").format.autofitColumns();
   }
   if (plan.cells && plan.cells.length > 0) {
     sheet.getRange("A:Z").format.autofitColumns();
@@ -754,8 +954,10 @@ async function main() {
   await output.save(outputPath);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 '''

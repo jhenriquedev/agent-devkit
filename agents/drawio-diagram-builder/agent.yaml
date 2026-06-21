@@ -1,0 +1,59 @@
+id: drawio-diagram-builder
+kind: specialist-agent
+name: Draw.io Diagram Builder
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Criar, revisar e refinar diagramas Draw.io completos, detalhados,
+  entendiveis e visualmente organizados a partir de briefings, documentos,
+  pastas, cards Azure, especificacoes, inventarios tecnicos e feedback
+  iterativo.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+  - knowledge/diagram-taxonomy.yaml
+  - knowledge/visual-rules.md
+
+env:
+  required: []
+  optional:
+    - AZURE_DEVOPS_ORG
+    - AZURE_DEVOPS_PAT
+    - AZURE_DEVOPS_PROJECT
+
+capabilities:
+  - conduct-diagram-interview
+  - ingest-diagram-sources
+  - read-azure-card-context
+  - analyze-diagram-context
+  - plan-diagram
+  - generate-drawio-diagram
+  - review-drawio-diagram
+  - refine-drawio-diagram
+  - execute-diagram-delivery
+  - generate-architecture-diagram
+  - generate-flow-diagram
+  - generate-erd-diagram
+
+agent_surface:
+  repositories:
+    - infra/integrations/drawio/source_reader.py
+    - infra/integrations/drawio/drawio_renderer.py
+    - infra/integrations/drawio/validators.py
+  methods: []
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+    - ../../vendor/skills/drawio-diagramming/SKILL.md
+
+write_policy:
+  source_reading: read_only
+  azure_card_reading: delegated_read_only
+  diagram_generation: output_only
+  refinement: output_only
+  overwrite_operations: confirm
+  external_side_effects: unsupported

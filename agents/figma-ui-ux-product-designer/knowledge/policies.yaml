@@ -1,0 +1,54 @@
+id: figma-ui-ux-product-designer.policies
+version: 0.1.0
+figma_policy:
+  credentials_source: env_only
+  direct_mode_requires_mcp: true
+  plan_only_when_mcp_missing: true
+  create_file_requires_confirmation: true
+  update_existing_requires_confirmation: true
+  destructive_changes_forbidden_by_default: true
+  prefer_new_version_for_validated_designs: true
+source_policy:
+  accepted_sources:
+    - markdown
+    - text
+    - pdf
+    - docx
+    - csv
+    - xlsx
+    - folder
+    - azure_card
+    - figma_url
+    - web_url
+  unsupported_binary_policy: inventory_and_request_conversion
+agentic_policy:
+  ask_when_business_rule_ambiguous: true
+  classify_depth_before_designing: true
+  require_open_questions_file: true
+  require_source_traceability: true
+design_policy:
+  prefer_existing_design_system: true
+  create_variants_before_overwriting: true
+  require_responsive_states_for_web: true
+  require_mobile_frames_for_mobile: true
+  require_core_states:
+    - empty
+    - loading
+    - error
+    - success
+    - permission
+  require_accessibility_review: true
+  require_dev_handoff: true
+quality_gates:
+  design_brief_created:
+    artifact: design-brief.md
+  screen_inventory_created:
+    artifact: screen-inventory.md
+  figma_strategy_selected:
+    artifact: figma-action-plan.md
+  open_questions_tracked:
+    artifact: open-design-questions.md
+  handoff_created:
+    artifact: dev-handoff.md
+  quality_review_created:
+    artifact: design-quality-report.md

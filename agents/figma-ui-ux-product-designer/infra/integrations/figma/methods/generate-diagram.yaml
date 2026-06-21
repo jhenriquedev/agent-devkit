@@ -1,0 +1,5 @@
+id: figma.generate-diagram
+purpose: Generate journey or flow diagrams in FigJam.
+tool: generate_diagram
+requires_skill: figma-generate-diagram
+confirmation_required: true

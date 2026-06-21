@@ -1,0 +1,32 @@
+id: figma-ui-ux-product-designer.figma
+provider: figma
+version: 0.1.0
+mode:
+  direct:
+    requires:
+      - figma_mcp_tooling
+      - user_permission
+    env_optional:
+      - FIGMA_ACCESS_TOKEN
+      - FIGMA_DEFAULT_PLAN_KEY
+      - FIGMA_DEFAULT_PROJECT_ID
+      - FIGMA_MCP_ENABLED
+      - FIGMA_DIRECT_MODE
+  plan_only:
+    requires: []
+    behavior: generate_executable_action_plan
+tools:
+  create_new_file: create new Figma design files when authorized
+  use_figma: create and update frames, pages, variables and components
+  generate_figma_design: capture authorized URLs into an existing Figma file
+  get_metadata: inspect pages and nodes
+  get_screenshot: review visual output
+  search_design_system: find components, variables and styles
+  get_libraries: discover libraries
+  generate_diagram: generate FigJam diagrams
+guardrails:
+  credentials_in_env_only: true
+  confirm_create_file: true
+  confirm_update_existing_file: true
+  forbid_destructive_changes_by_default: true
+  clone_third_party_without_permission: false

@@ -11,7 +11,7 @@ import sys
 SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
 sys.path.insert(0, str(SHARED_DIR))
 
-from workbook_support import inspect_xlsx  # noqa: E402
+from workbook_support import inspect_workbook_deep  # noqa: E402
 
 
 def main() -> int:
@@ -28,20 +28,31 @@ def main() -> int:
         source = Path(source_arg).expanduser().resolve()
         if not source.exists():
             raise ValueError(f"workbook not found: {source}")
-        result = inspect_xlsx(source)
+        result = inspect_workbook_deep(source)
         lines = [
             "# Workbook Inspection",
             "",
             f"- File: {result['file']}",
             f"- Package parts: {result['part_count']}",
             f"- Worksheet count: {result['worksheet_count']}",
+            f"- Formula count: {result['formula_count']}",
+            f"- Data validations: {result['data_validation_count']}",
+            f"- Tables: {result['table_count']}",
             f"- Formula errors: {', '.join(result['formula_errors']) if result['formula_errors'] else '-'}",
             "",
             "## Worksheets",
             "",
         ]
         for sheet in result["worksheets"]:
-            lines.append(f"- {sheet['name']}: {sheet['rows']} row(s)")
+            lines.append(
+                f"- {sheet['name']}: {sheet['rows']} row(s), "
+                f"{sheet['formulas']} formula(s), "
+                f"{sheet['validations']} validation(s), "
+                f"{sheet['tables']} table reference(s)"
+            )
+        if result.get("inspection_warnings"):
+            lines.extend(["", "## Warnings", ""])
+            lines.extend(f"- {warning}" for warning in result["inspection_warnings"])
         markdown = "\n".join(lines).rstrip() + "\n"
         if args.output:
             output = Path(args.output).expanduser().resolve()
@@ -57,4 +68,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

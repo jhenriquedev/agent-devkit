@@ -3,19 +3,25 @@
 Agente especialista em criar e manter planilhas Excel com templates
 versionados, ingestao de dados, reconciliacao, dashboards e revisao tecnica.
 
-## Fase 1
+## Fase 3
 
-A Fase 1 entrega a superficie completa de capabilities e runners executaveis
-para o nucleo operacional:
+O agente entrega a superficie completa de capabilities e runners executaveis
+para o nucleo operacional de Excel:
 
 - Registro e versionamento de templates.
 - Listagem de templates e versoes.
 - Geracao de arquivo de entrada para preenchimento.
 - Ingestao de dados tabulares.
 - Geracao de workbook `.xlsx` a partir de dados.
-- Geracao de workbook `.xlsx` a partir de template registrado.
+- Geracao de workbook `.xlsx` a partir de template registrado, preservando o
+  workbook base e atualizando a aba `Data`.
+- Atualizacao de workbooks existentes preservando abas e estrutura fora da aba
+  de dados alvo.
 - Conciliacao basica entre duas bases.
-- Revisao tecnica basica de workbooks gerados.
+- Revisao tecnica de workbooks gerados com checagem de abas obrigatorias,
+  formulas, validacoes e marcadores de erro.
+- Delegacao segura para agentes de dados, com execucao apenas quando solicitada
+  explicitamente.
 
 ## Exemplos
 
@@ -43,4 +49,3 @@ para o nucleo operacional:
   --compare-column amount \
   --output ./conciliacao.xlsx
 ```
-

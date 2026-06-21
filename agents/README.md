@@ -45,6 +45,8 @@ agents/<agent-id>/
 - `n1-support-agent`: especialista N1 para runbooks operacionais a partir de
   cards Azure DevOps.
 - `database-change-operator`: especialista em mudancas controladas em Postgres.
+- `drawio-diagram-builder`: especialista em diagramas Draw.io editaveis a
+  partir de fontes reais, entrevista, geracao, revisao e refinamento.
 - `presentation-deck-builder`: especialista em templates versionados e geracao
   de apresentacoes PowerPoint.
 - `postgres-data-analyzer`: especialista em analise read-only forte de dados

@@ -1,0 +1,14 @@
+id: figma-ui-ux-product-designer.analyze-product-context
+kind: capability
+name: Analyze Product Context
+version: 0.1.0
+status: draft
+purpose: Analisar contexto de produto, requisitos, jornadas e riscos antes de desenhar.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [source, brief, depth, platform, scope, output_dir]
+outputs:
+  artifacts: [design-brief.md, screen-inventory.md, open-design-questions.md, source-traceability.md]
+write_policy: ask_before_creating_output_directory

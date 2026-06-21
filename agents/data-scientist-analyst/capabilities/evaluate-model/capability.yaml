@@ -1,0 +1,23 @@
+id: data-scientist-analyst.evaluate-model
+kind: capability
+name: Evaluate Model
+version: 0.1.0
+status: draft
+purpose: >
+  Avaliar baseline preditivo com accuracy, precision, recall, F1 e matriz de
+  confusao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/evaluate-model.md
+  output_template: null
+inputs:
+  required: [source, target_column]
+  optional: [feature_columns, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/evaluate-model.yaml
+write_policy: read_only

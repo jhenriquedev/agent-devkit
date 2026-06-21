@@ -18,6 +18,17 @@ relatorios tecnicos ou executivos.
 - `analyze-cohorts`: acompanha cohorts por idade em dias desde a entrada.
 - `detect-anomalies`: detecta picos e quedas por z-score em serie temporal.
 - `forecast-series`: projeta proximos periodos por media movel baseline.
+- `test-hypothesis`: testa diferenca de medias entre dois grupos.
+- `calculate-confidence-intervals`: calcula intervalo de confianca para media.
+- `calculate-sample-size`: estima amostra para duas proporcoes balanceadas.
+- `measure-effect-size`: calcula Cohen's d entre dois grupos.
+- `explain-statistical-result`: explica p-valor, alpha e tamanho de efeito.
+- `prepare-modeling-dataset`: prepara contrato de modelagem com alvo, features e split.
+- `baseline-predictive-model`: treina baseline explicavel por threshold numerico.
+- `evaluate-model`: calcula metricas de classificacao e matriz de confusao.
+- `explain-model-results`: explica driver principal, regra e limitacoes do baseline.
+- `detect-data-leakage`: detecta colunas suspeitas de vazamento de alvo.
+- `monitor-model-drift`: compara referencia e amostra atual por drift de medias.
 - `reconcile-spreadsheets`: concilia duas bases por chave e tolerancias.
 - `generate-reconciliation-report`: gera relatorio markdown de conciliacao.
 - `generate-data-report`: gera relatorio markdown de perfil da base.
@@ -53,4 +64,28 @@ relatorios tecnicos ou executivos.
   --source dados.csv --date-column created_at --metric-column amount --threshold 2
 ./ai-devkit run data-scientist-analyst forecast-series \
   --source dados.csv --date-column created_at --metric-column amount --periods 3 --window 3
+./ai-devkit run data-scientist-analyst test-hypothesis \
+  --source experimento.csv --test-type mean-difference --group-column variant \
+  --group-a control --group-b treatment --metric-column revenue
+./ai-devkit run data-scientist-analyst calculate-confidence-intervals \
+  --source dados.csv --metric-column amount --confidence 0.95
+./ai-devkit run data-scientist-analyst calculate-sample-size \
+  --baseline-rate 0.5 --minimum-detectable-effect 0.1 --alpha 0.05 --power 0.8
+./ai-devkit run data-scientist-analyst measure-effect-size \
+  --source experimento.csv --group-column variant --group-a control \
+  --group-b treatment --metric-column revenue
+./ai-devkit run data-scientist-analyst explain-statistical-result \
+  --p-value 0.01 --alpha 0.05 --effect-size 0.8
+./ai-devkit run data-scientist-analyst prepare-modeling-dataset \
+  --source base.csv --target-column converted --feature-columns score,income,channel
+./ai-devkit run data-scientist-analyst baseline-predictive-model \
+  --source base.csv --target-column converted --feature-columns score,income
+./ai-devkit run data-scientist-analyst evaluate-model \
+  --source base.csv --target-column converted --feature-columns score,income
+./ai-devkit run data-scientist-analyst explain-model-results \
+  --source base.csv --target-column converted --feature-columns score,income
+./ai-devkit run data-scientist-analyst detect-data-leakage \
+  --source base.csv --target-column converted
+./ai-devkit run data-scientist-analyst monitor-model-drift \
+  --reference-source treino.csv --source producao.csv --columns score,income
 ```

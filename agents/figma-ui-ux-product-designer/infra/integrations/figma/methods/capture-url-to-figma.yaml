@@ -1,0 +1,5 @@
+id: figma.capture-url-to-figma
+purpose: Capture an authorized web URL into an existing Figma design file.
+tool: generate_figma_design
+requires_skill: figma-generate-design
+confirmation_required: true

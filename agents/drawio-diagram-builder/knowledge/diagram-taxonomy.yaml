@@ -1,0 +1,41 @@
+id: drawio-diagram-builder.diagram-taxonomy
+version: 0.1.0
+
+families:
+  architecture:
+    examples:
+      - c4_context
+      - c4_container
+      - c4_component
+      - cloud_architecture
+      - integration_architecture
+      - api_contract_flow
+      - event_driven_flow
+      - deployment_runtime
+      - observability
+      - security_trust_boundary
+      - blast_radius
+  product:
+    examples:
+      - user_journey
+      - service_blueprint
+      - onboarding_flow
+      - checkout_flow
+      - approval_flow
+      - conversion_funnel
+      - exception_flow
+  operations:
+    examples:
+      - runbook
+      - incident_flow
+      - n1_triage
+      - n2_escalation
+      - support_ticket_state
+      - decision_tree
+  data:
+    examples:
+      - erd
+      - data_lineage
+      - etl_flow
+      - reconciliation_flow
+      - domain_relationships

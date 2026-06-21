@@ -13,7 +13,7 @@ from runner_support import (
     build_reproduction_strategy_payload,
     build_contract,
     classify_root_cause,
-    execute_specialist_validation_payload,
+    execute_specialist_validation_payload_from_args,
     load_fixture,
     load_support_context,
     rank_code_findings_payload,
@@ -60,7 +60,11 @@ def run(capability: str) -> int:
         content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n" if args.format == "json" else render_generic(capability, payload)
     elif capability == "execute-specialist-validation":
         context = load_support_context(args)
-        payload = execute_specialist_validation_payload(context, classify_root_cause(context, analyze_codebase(args.codebase_path, context)))
+        payload = execute_specialist_validation_payload_from_args(
+            args,
+            context,
+            classify_root_cause(context, analyze_codebase(args.codebase_path, context)),
+        )
         content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n" if args.format == "json" else render_generic(capability, payload)
     elif capability == "rank-code-findings":
         context = load_support_context(args)

@@ -1,0 +1,15 @@
+id: figma-ui-ux-product-designer.triage-design-feedback
+kind: capability
+name: Triage Design Feedback
+version: 0.1.0
+status: draft
+purpose: Classificar comentarios e feedback de design em acoes visuais, UX, negocio, acessibilidade e handoff.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [feedback]
+  optional: [figma_file_url, source, output_dir]
+outputs:
+  artifacts: [feedback-triage.md, open-design-questions.md]
+write_policy: ask_before_creating_output_directory

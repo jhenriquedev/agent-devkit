@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.analyze-diagram-context
+kind: capability
+name: Analyze Diagram Context
+version: 0.1.0
+status: draft
+purpose: >
+  Analisar contexto ingerido para decidir diagramas, gerar spec intermediaria,
+  fatos, premissas e perguntas abertas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [source_context, text, file, directory, diagram_type, title, spec_output, output]
+outputs:
+  artifacts: [diagram-spec.json, diagram-plan.md, open-questions.md]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: output_only

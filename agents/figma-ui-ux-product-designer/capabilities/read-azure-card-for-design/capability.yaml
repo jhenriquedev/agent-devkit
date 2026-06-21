@@ -1,0 +1,18 @@
+id: figma-ui-ux-product-designer.read-azure-card-for-design
+kind: capability
+name: Read Azure Card For Design
+version: 0.1.0
+status: draft
+purpose: Preparar contexto de design a partir de card Azure DevOps, delegando leitura para azure-devops-orchestrator quando disponivel.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [azure_card]
+  optional: [source, output_dir]
+outputs:
+  artifacts: [azure-card-design-context.md, design-brief.md, open-design-questions.md]
+integration:
+  delegated_agent: azure-devops-orchestrator
+  delegated_capability: read-card
+write_policy: read_only

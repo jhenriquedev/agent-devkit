@@ -3,7 +3,7 @@ kind: capability
 name: Execute Specialist Validation
 version: 0.1.0
 status: draft
-purpose: Build structured specialist validation steps for the selected N2 checks.
+purpose: Plan or execute safe specialist validations for the selected N2 checks.
 entrypoint:
   runner: runner.py
   workflow: workflow.md

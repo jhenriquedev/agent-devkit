@@ -1,0 +1,19 @@
+id: drawio-diagram-builder.generate-drawio-diagram
+kind: capability
+name: Generate Drawio Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Gerar arquivo `.drawio` editavel a partir de spec, briefing ou fontes locais.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [spec, brief, text, file, directory, diagram_type, title, output, spec_output, notes_output, yes_overwrite]
+outputs:
+  artifacts: [diagram.drawio, diagram-spec.json, diagram-notes.md]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: output_only

@@ -1,0 +1,14 @@
+id: figma-ui-ux-product-designer.recreate-legacy-design
+kind: capability
+name: Recreate Legacy Design
+version: 0.1.0
+status: draft
+purpose: Recriar design legado autorizado a partir de documentos, screenshots, projeto, URL ou Figma existente.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [source, url, figma_file_url, brief, require_direct, output_dir]
+outputs:
+  artifacts: [design-brief.md, screen-inventory.md, facelift-plan.md, figma-action-plan.md]
+write_policy: confirm

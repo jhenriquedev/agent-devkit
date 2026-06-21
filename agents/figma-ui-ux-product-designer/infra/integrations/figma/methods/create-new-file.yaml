@@ -1,0 +1,5 @@
+id: figma.create-new-file
+purpose: Create a new Figma design file after user confirmation.
+tool: create_new_file
+requires_skill: figma-create-new-file
+confirmation_required: true

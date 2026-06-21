@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.refine-drawio-diagram
+kind: capability
+name: Refine Drawio Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Refinar um `.drawio` existente com feedback, preservando estrutura e gerando
+  changelog da nova versao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [diagram, feedback]
+  optional: [spec, output, spec_output, changelog_output, yes_overwrite]
+outputs:
+  artifacts: [diagram.drawio, diagram-spec.refined.json, diagram-changelog.md]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: output_only

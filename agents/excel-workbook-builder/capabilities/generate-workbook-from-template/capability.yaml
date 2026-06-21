@@ -3,7 +3,7 @@ kind: capability
 name: Generate Workbook From Template
 version: 0.1.0
 status: draft
-purpose: Generate a workbook from a registered template and structured data.
+purpose: Generate a workbook by filling the Data sheet of a registered template while preserving the template workbook.
 entrypoint:
   runner: runner.py
 inputs:
@@ -12,4 +12,3 @@ inputs:
 outputs:
   artifacts: [workbook.xlsx]
 write_policy: output_only
-

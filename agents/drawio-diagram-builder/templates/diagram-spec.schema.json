@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Drawio Diagram Spec",
+  "type": "object",
+  "required": ["title", "diagram_type", "nodes"],
+  "properties": {
+    "title": {"type": "string"},
+    "diagram_type": {"type": "string"},
+    "audience": {"type": "string"},
+    "detail_level": {"type": "string"},
+    "facts": {"type": "array", "items": {"type": "string"}},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": "string"},
+          "group": {"type": "string"},
+          "kind": {"type": "string"},
+          "description": {"type": "string"}
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": {"type": "string"},
+          "target": {"type": "string"},
+          "label": {"type": "string"},
+          "kind": {"type": "string"}
+        }
+      }
+    }
+  }
+}

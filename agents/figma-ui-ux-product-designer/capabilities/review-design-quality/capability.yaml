@@ -1,0 +1,14 @@
+id: figma-ui-ux-product-designer.review-design-quality
+kind: capability
+name: Review Design Quality
+version: 0.1.0
+status: draft
+purpose: Revisar qualidade de design, acessibilidade basica, cobertura de estados, design system e handoff.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [brief, source, figma_file_url, output_dir]
+outputs:
+  artifacts: [design-quality-report.md, open-design-questions.md]
+write_policy: read_only

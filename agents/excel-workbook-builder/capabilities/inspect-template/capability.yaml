@@ -3,13 +3,13 @@ kind: capability
 name: Inspect Template
 version: 0.1.0
 status: draft
-purpose: Inspect workbook sheets, tables, formulas, styles, and editable areas.
+purpose: Inspect workbook sheets, formulas, data validations, table references, and formula error markers.
 entrypoint:
   runner: runner.py
   workflow: workflow.md
 inputs:
-  required: [template_id]
-  optional: [template_version, templates_root]
+  required: []
+  optional: [template, workbook, output]
 outputs:
   artifacts: [template-inspection.md]
 write_policy: read_only

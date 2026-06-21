@@ -1,0 +1,23 @@
+id: data-scientist-analyst.monitor-model-drift
+kind: capability
+name: Monitor Model Drift
+version: 0.1.0
+status: draft
+purpose: >
+  Comparar referencia e dataset atual por deslocamento de media normalizado
+  pelo desvio padrao da referencia.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/monitor-model-drift.md
+  output_template: null
+inputs:
+  required: [reference_source, source]
+  optional: [columns, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/monitor-model-drift.yaml
+write_policy: read_only

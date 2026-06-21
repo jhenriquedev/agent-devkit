@@ -1,0 +1,10 @@
+id: aws-operations.plan-operational-action
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  runner_method: run_plan_action
+  type: dry-run
+  confirmation_required: false
+outputs:
+  type: operation-plan

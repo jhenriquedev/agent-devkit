@@ -1,0 +1,17 @@
+id: figma-ui-ux-product-designer.create-mobile-app-design
+kind: capability
+name: Create Mobile App Design
+version: 0.1.0
+status: draft
+purpose: Criar design mobile com telas, estados, navegacao e handoff, usando Figma direct ou plano executavel.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [brief, source, figma_file_url, target_audience, design_style, require_direct, output_dir]
+outputs:
+  artifacts: [design-brief.md, mobile-screen-map.md, design-system-spec.md, dev-handoff.md, design-quality-report.md]
+integration:
+  provider: figma
+  preferred_skills: [figma-use, figma-generate-design]
+write_policy: confirm

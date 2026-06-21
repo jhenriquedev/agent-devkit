@@ -1,0 +1,28 @@
+id: drawio-diagram-builder.style-presets
+version: 0.1.0
+
+presets:
+  default:
+    node_fill: "#dae8fc"
+    node_stroke: "#6c8ebf"
+    group_fill: "#f5f5f5"
+    group_stroke: "#666666"
+    edge_stroke: "#555555"
+  architecture:
+    node_fill: "#e1d5e7"
+    node_stroke: "#9673a6"
+    group_fill: "#f8f9fa"
+    group_stroke: "#7b8794"
+    edge_stroke: "#4b5563"
+  product:
+    node_fill: "#d5e8d4"
+    node_stroke: "#82b366"
+    group_fill: "#fff2cc"
+    group_stroke: "#d6b656"
+    edge_stroke: "#4d7c0f"
+  data:
+    node_fill: "#f8cecc"
+    node_stroke: "#b85450"
+    group_fill: "#f5f5f5"
+    group_stroke: "#666666"
+    edge_stroke: "#7f1d1d"

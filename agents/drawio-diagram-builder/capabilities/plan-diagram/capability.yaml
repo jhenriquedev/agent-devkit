@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.plan-diagram
+kind: capability
+name: Plan Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Criar plano de diagrama com escopo, audiencia, nivel de detalhe, fontes,
+  elementos, lacunas e quality gates antes da geracao Draw.io.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [brief, source_context, diagram_type, title, output]
+outputs:
+  artifacts: [diagram-plan.md]
+integration:
+  repository: null
+  methods: []
+write_policy: output_only

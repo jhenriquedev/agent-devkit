@@ -1,0 +1,17 @@
+id: aws-operations
+version: 0.1.0
+status: draft
+provider: aws
+repository:
+  language: python
+  path: aws_operations_repository.py
+  dependencies: aws-cli
+auth:
+  method: aws-default-credential-chain
+policy:
+  dry_run_default: true
+  execute_requires_confirmation: true
+  execute_requires_allowed_account: true
+  preflight_required: true
+  post_check_required: true
+  redact_sensitive_payloads: true

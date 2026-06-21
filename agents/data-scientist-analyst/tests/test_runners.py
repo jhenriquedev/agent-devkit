@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import importlib.util
+import inspect
 import subprocess
 import sys
 import tempfile
@@ -31,6 +33,28 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         if "stdout" in payload:
             return json.loads(payload["stdout"])
         return payload
+
+    def load_runner_support_module(self):
+        module_path = ROOT / "agents/data-scientist-analyst/capabilities/_shared/runner_support.py"
+        spec = importlib.util.spec_from_file_location("data_scientist_runner_support", module_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def load_dataset_module(self, module_name: str):
+        module_path = ROOT / f"agents/data-scientist-analyst/infra/integrations/file-dataset/{module_name}.py"
+        module_dir = str(module_path.parent)
+        if module_dir not in sys.path:
+            sys.path.insert(0, module_dir)
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        self.assertIsNotNone(spec, module_name)
+        self.assertIsNotNone(spec.loader, module_name)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        return module
 
     def write_customer_csv(self, root: Path) -> Path:
         source = root / "customers.csv"
@@ -104,6 +128,60 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         )
         return source
 
+    def write_modeling_csv(self, root: Path) -> Path:
+        source = root / "modeling.csv"
+        source.write_text(
+            "\n".join(
+                [
+                    "user_id,score,income,channel,converted,converted_copy,post_event_status",
+                    "1,10,100,email,0,0,rejected",
+                    "2,20,120,email,0,0,rejected",
+                    "3,30,140,branch,0,0,rejected",
+                    "4,40,300,branch,1,1,approved",
+                    "5,50,320,app,1,1,approved",
+                    "6,60,340,app,1,1,approved",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        return source
+
+    def test_data_repository_is_facade_over_domain_modules(self) -> None:
+        expected_exports = {
+            "dataset_models": ["Dataset", "DataScientistError"],
+            "dataset_io": ["read_csv", "read_json", "read_jsonl", "read_xlsx", "hash_file"],
+            "profiling": ["profile_column", "infer_type", "quality_score"],
+            "privacy": ["detect_sensitive", "mask_value", "mask_row"],
+            "statistics_tools": ["summarize_metric", "calculate_cohens_d", "explain_significance"],
+            "time_series_tools": ["aggregate_time_series", "parse_date_value", "time_series_data_quality"],
+            "modeling_tools": ["train_numeric_threshold_model", "classification_metrics", "detect_leakage_candidates"],
+            "reconciliation_tools": ["index_rows", "compare_rows", "normalize_key_value"],
+            "reporting": ["render_data_report", "render_reconciliation_report"],
+        }
+        for module_name, exports in expected_exports.items():
+            module = self.load_dataset_module(module_name)
+            for export in exports:
+                self.assertTrue(hasattr(module, export), f"{module_name}.{export} missing")
+
+        repository = self.load_dataset_module("data_repository")
+        repository_functions = {
+            name
+            for name, value in vars(repository).items()
+            if inspect.isfunction(value) and getattr(value, "__module__", "") == "data_repository"
+        }
+        self.assertFalse(
+            repository_functions
+            & {
+                "read_csv",
+                "profile_column",
+                "detect_sensitive",
+                "aggregate_time_series",
+                "train_numeric_threshold_model",
+                "index_rows",
+                "render_data_report",
+            }
+        )
+
     def test_agent_is_listed_with_mvp_capabilities(self) -> None:
         agents_result = self.run_cli("--json", "agents")
         self.assertEqual(agents_result.returncode, 0, agents_result.stderr)
@@ -145,6 +223,12 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
                 "calculate-sample-size",
                 "measure-effect-size",
                 "explain-statistical-result",
+                "prepare-modeling-dataset",
+                "baseline-predictive-model",
+                "evaluate-model",
+                "explain-model-results",
+                "detect-data-leakage",
+                "monitor-model-drift",
             },
         )
 
@@ -247,6 +331,28 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertIn("Linhas: 4", content)
         self.assertIn("Dados sensiveis", content)
 
+    def test_common_json_output_creates_parent_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = self.write_customer_csv(root)
+            output = root / "nested" / "results" / "profile.json"
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "profile-dataset",
+                "--source",
+                str(source),
+                "--output",
+                str(output),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(output.exists())
+            written = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(written["dataset"]["row_count"], 4)
+
     def test_detect_sensitive_data_does_not_classify_phone_as_cpf(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             source = Path(tmpdir) / "contacts.csv"
@@ -266,6 +372,62 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = self.parse_payload(result)
         self.assertEqual(payload["sensitive_data"]["columns"]["phone"], ["phone"])
+
+    def test_detect_sensitive_data_masks_names_and_preserves_phone_kind(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "people.csv"
+            source.write_text(
+                "\n".join(
+                    [
+                        "nome,phone,customer_id",
+                        "Ana Maria,+5511999998888,12345678901",
+                        "Bruno Lima,+5511888887777,abc-123",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "detect-sensitive-data",
+                "--source",
+                str(source),
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["sensitive_data"]["columns"]["nome"], ["person_name"])
+        self.assertEqual(payload["sensitive_data"]["masked_examples"]["nome"][0], "A***")
+        self.assertEqual(payload["sensitive_data"]["columns"]["phone"], ["phone"])
+        self.assertNotIn("customer_id", payload["sensitive_data"]["columns"])
+
+    def test_profile_dataset_applies_max_rows_and_reports_truncation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "large.csv"
+            source.write_text(
+                "\n".join(["id,value", *[f"{index},{index * 10}" for index in range(1, 8)]]),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "profile-dataset",
+                "--source",
+                str(source),
+                "--max-rows",
+                "3",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["dataset"]["row_count"], 3)
+        self.assertTrue(payload["dataset"]["truncated"])
+        self.assertEqual(payload["dataset"]["original_row_count"], 7)
+        self.assertTrue(payload["dataset"]["warnings"])
 
     def test_detect_outliers_reports_iqr_outlier(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -389,6 +551,41 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertEqual(payload["series"][2]["sum"], 116.0)
         self.assertEqual(payload["trend"]["direction"], "up")
 
+    def test_analyze_time_series_reports_invalid_date_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "events.csv"
+            source.write_text(
+                "\n".join(
+                    [
+                        "event_date,amount",
+                        "2026-01-01,10",
+                        "01/02/2026,20",
+                        "2026-03-01T10:20:30-03:00,30",
+                        "not-a-date,40",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "analyze-time-series",
+                "--source",
+                str(source),
+                "--date-column",
+                "event_date",
+                "--metric-column",
+                "amount",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["summary"]["period_count"], 3)
+        self.assertEqual(payload["data_quality"]["invalid_date_rows"], 1)
+        self.assertTrue(payload["warnings"])
+
     def test_compare_periods_reports_delta_between_date_ranges(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             source = self.write_time_series_csv(Path(tmpdir))
@@ -470,6 +667,39 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         periods = [item["period"] for item in payload["anomalies"]]
         self.assertIn("2026-01-03", periods)
 
+    def test_detect_anomalies_reports_quality_and_short_series_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "short_series.csv"
+            source.write_text(
+                "\n".join(
+                    [
+                        "event_date,amount",
+                        "2026-01-01,10",
+                        "2026-01-02,11",
+                        "invalid,12",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "detect-anomalies",
+                "--source",
+                str(source),
+                "--date-column",
+                "event_date",
+                "--metric-column",
+                "amount",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["data_quality"]["invalid_date_rows"], 1)
+        self.assertTrue(any(item["code"] == "short_time_series" for item in payload["validity_warnings"]))
+
     def test_forecast_series_projects_next_periods(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             source = self.write_time_series_csv(Path(tmpdir))
@@ -528,6 +758,50 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertTrue(payload["p_value"] < 0.01)
         self.assertTrue(payload["significant"])
 
+    def test_test_hypothesis_reports_assumptions_and_missing_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "experiment_missing.csv"
+            source.write_text(
+                "\n".join(
+                    [
+                        "variant,revenue",
+                        "control,10",
+                        "control,",
+                        "control,14",
+                        "treatment,18",
+                        "treatment,20",
+                        "treatment,",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "test-hypothesis",
+                "--source",
+                str(source),
+                "--test-type",
+                "mean-difference",
+                "--group-column",
+                "variant",
+                "--group-a",
+                "control",
+                "--group-b",
+                "treatment",
+                "--metric-column",
+                "revenue",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["data_quality"]["missing_metric_rows"], 2)
+        self.assertTrue(payload["assumptions"])
+        self.assertTrue(payload["validity_warnings"])
+        self.assertEqual(payload["recommended_next_test"], "welch_t_test_or_nonparametric_test")
+
     def test_calculate_confidence_intervals_reports_mean_interval(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             source = self.write_experiment_csv(Path(tmpdir))
@@ -549,8 +823,30 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertEqual(payload["metric_column"], "revenue")
         self.assertEqual(payload["mean"], 17.0)
         self.assertEqual(payload["sample_size"], 8)
-        self.assertAlmostEqual(payload["interval"]["lower"], 13.953, places=3)
-        self.assertAlmostEqual(payload["interval"]["upper"], 20.047, places=3)
+        self.assertAlmostEqual(payload["interval"]["lower"], 13.605, places=3)
+        self.assertAlmostEqual(payload["interval"]["upper"], 20.395, places=3)
+
+    def test_calculate_confidence_intervals_warns_for_small_sample_and_missing_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "small.csv"
+            source.write_text("revenue\n10\n \n12\n14\n", encoding="utf-8")
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "calculate-confidence-intervals",
+                "--source",
+                str(source),
+                "--metric-column",
+                "revenue",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["data_quality"]["missing_metric_rows"], 1)
+        self.assertTrue(any(item["code"] == "small_sample" for item in payload["validity_warnings"]))
+        self.assertTrue(payload["assumptions"])
 
     def test_calculate_sample_size_for_two_proportions(self) -> None:
         result = self.run_cli(
@@ -571,8 +867,8 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = self.parse_payload(result)
         self.assertEqual(payload["method"], "two_proportions_normal_approx")
-        self.assertEqual(payload["sample_size_per_group"], 385)
-        self.assertEqual(payload["total_sample_size"], 770)
+        self.assertEqual(payload["sample_size_per_group"], 393)
+        self.assertEqual(payload["total_sample_size"], 786)
 
     def test_measure_effect_size_reports_cohens_d(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -619,6 +915,209 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertTrue(payload["significant"])
         self.assertEqual(payload["effect_magnitude"], "large")
         self.assertIn("estatisticamente significativo", payload["executive_summary"])
+
+    def test_prepare_modeling_dataset_selects_features_and_splits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_modeling_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "prepare-modeling-dataset",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+                "--feature-columns",
+                "score,income,channel",
+                "--test-size",
+                "0.33",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["target"]["column"], "converted")
+        self.assertEqual(payload["target"]["type"], "classification")
+        self.assertEqual(payload["features"]["selected"], ["score", "income", "channel"])
+        self.assertEqual(payload["split"]["train_rows"], 4)
+        self.assertEqual(payload["split"]["test_rows"], 2)
+
+    def test_baseline_predictive_model_finds_numeric_threshold(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_modeling_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "baseline-predictive-model",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+                "--feature-columns",
+                "score,income",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["model"]["type"], "numeric_threshold")
+        self.assertEqual(payload["model"]["feature"], "score")
+        self.assertEqual(payload["evaluation_scope"], "holdout_baseline")
+        self.assertIn("train_metrics", payload)
+        self.assertIn("test_metrics", payload)
+        self.assertEqual(payload["metrics"], payload["test_metrics"])
+
+    def test_evaluate_model_reports_classification_metrics(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_modeling_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "evaluate-model",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+                "--feature-columns",
+                "score,income",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["evaluation_scope"], "holdout_baseline")
+        self.assertEqual(payload["metrics"], payload["test_metrics"])
+        self.assertIn("train_metrics", payload)
+        self.assertIn("confusion_matrix", payload["test_metrics"])
+
+    def test_evaluate_model_reports_class_balance_and_configurable_holdout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "imbalanced_modeling.csv"
+            source.write_text(
+                "\n".join(
+                    [
+                        "score,converted",
+                        "10,0",
+                        "20,0",
+                        "30,0",
+                        "40,0",
+                        "50,0",
+                        "60,0",
+                        "70,1",
+                        "80,0",
+                        "90,1",
+                        "100,0",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "evaluate-model",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+                "--feature-columns",
+                "score",
+                "--test-size",
+                "0.3",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["split"]["test_size"], 0.3)
+        self.assertEqual(payload["class_balance"]["total"]["0"], 8)
+        self.assertEqual(payload["class_balance"]["total"]["1"], 2)
+        self.assertTrue(any(item["code"] == "imbalanced_classes" for item in payload["validity_warnings"]))
+        self.assertIn("balanced_accuracy", payload["test_metrics"])
+
+    def test_analyze_sql_source_normalizes_tabular_rows(self) -> None:
+        module = self.load_runner_support_module()
+
+        result = module.normalize_sql_result(
+            {
+                "table": "customers",
+                "columns": ["id", "amount"],
+                "rows": [{"id": 1, "amount": 10.5}, {"id": 2, "amount": 20}],
+            }
+        )
+
+        self.assertEqual(result["kind"], "tabular_dataset")
+        self.assertEqual(result["dataset"]["row_count"], 2)
+        self.assertEqual(result["columns"], ["id", "amount"])
+        self.assertEqual(result["rows"][0]["amount"], "10.5")
+
+    def test_explain_model_results_describes_selected_driver(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_modeling_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "explain-model-results",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+                "--feature-columns",
+                "score,income",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["primary_driver"]["feature"], "score")
+        self.assertIn("score", payload["executive_summary"])
+        self.assertTrue(payload["limitations"])
+
+    def test_detect_data_leakage_flags_target_copy_and_post_event_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_modeling_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "detect-data-leakage",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        columns = {item["column"] for item in payload["leakage_candidates"]}
+        self.assertIn("converted_copy", columns)
+        self.assertIn("post_event_status", columns)
+
+    def test_monitor_model_drift_flags_shifted_numeric_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            reference = root / "reference.csv"
+            current = root / "current.csv"
+            reference.write_text("score,income\n10,100\n20,120\n30,140\n", encoding="utf-8")
+            current.write_text("score,income\n100,400\n110,420\n120,440\n", encoding="utf-8")
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "monitor-model-drift",
+                "--reference-source",
+                str(reference),
+                "--source",
+                str(current),
+                "--columns",
+                "score,income",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        drifted = {item["column"] for item in payload["drifted_columns"]}
+        self.assertIn("score", drifted)
+        self.assertIn("income", drifted)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,9 @@ DATASET_DIR = AGENT_DIR / "infra" / "integrations" / "file-dataset"
 
 sys.path.insert(0, str(DATASET_DIR))
 
+from artifacts import write_artifact  # pylint: disable=import-error
 from data_repository import DataRepository, DataScientistError  # pylint: disable=import-error
+from sql_result import normalize_sql_result  # pylint: disable=import-error
 
 
 def run_dataset_capability(capability: str) -> int:
@@ -30,7 +32,7 @@ def run_dataset_capability(capability: str) -> int:
         payload = execute(capability, args)
         content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
         if args.output and capability not in {"generate-data-report", "generate-reconciliation-report"}:
-            Path(args.output).expanduser().resolve().write_text(content, encoding="utf-8")
+            write_artifact(content, args.output)
         print(content, end="")
     except (DataScientistError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
@@ -73,7 +75,14 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--power", type=float, default=0.8)
     parser.add_argument("--p-value", type=float)
     parser.add_argument("--effect-size", type=float)
+    parser.add_argument("--feature-columns")
+    parser.add_argument("--test-size", type=float, default=0.2)
+    parser.add_argument("--model-type", default="auto")
+    parser.add_argument("--reference-source")
     parser.add_argument("--output")
+    parser.add_argument("--max-rows", type=int)
+    parser.add_argument("--sample-rows", type=int)
+    parser.add_argument("--max-file-mb", type=float)
     parser.add_argument("--database-agent", choices=["postgres-data-analyzer", "sqlserver-data-analyzer"])
     parser.add_argument("--database-capability", default="profile-table")
     parser.add_argument("--database")
@@ -85,7 +94,11 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
 
 
 def execute(capability: str, args: argparse.Namespace) -> dict[str, Any]:
-    repo = DataRepository()
+    repo = DataRepository(
+        max_rows=args.max_rows,
+        sample_rows=args.sample_rows,
+        max_file_mb=args.max_file_mb,
+    )
     if capability == "ingest-dataset":
         require(args.source, "--source")
         return repo.ingest_dataset(args.source)
@@ -245,6 +258,53 @@ def execute(capability: str, args: argparse.Namespace) -> dict[str, Any]:
             alpha=args.alpha,
             effect_size=args.effect_size,
         )
+    if capability == "prepare-modeling-dataset":
+        require(args.source, "--source")
+        require(args.target_column, "--target-column")
+        return repo.prepare_modeling_dataset(
+            source=args.source,
+            target_column=args.target_column,
+            feature_columns=parse_columns(args.feature_columns),
+            test_size=args.test_size,
+        )
+    if capability == "baseline-predictive-model":
+        require(args.source, "--source")
+        require(args.target_column, "--target-column")
+        return repo.baseline_predictive_model(
+            source=args.source,
+            target_column=args.target_column,
+            feature_columns=parse_columns(args.feature_columns),
+            test_size=args.test_size,
+        )
+    if capability == "evaluate-model":
+        require(args.source, "--source")
+        require(args.target_column, "--target-column")
+        return repo.evaluate_model(
+            source=args.source,
+            target_column=args.target_column,
+            feature_columns=parse_columns(args.feature_columns),
+            test_size=args.test_size,
+        )
+    if capability == "explain-model-results":
+        require(args.source, "--source")
+        require(args.target_column, "--target-column")
+        return repo.explain_model_results(
+            source=args.source,
+            target_column=args.target_column,
+            feature_columns=parse_columns(args.feature_columns),
+        )
+    if capability == "detect-data-leakage":
+        require(args.source, "--source")
+        require(args.target_column, "--target-column")
+        return repo.detect_data_leakage(source=args.source, target_column=args.target_column)
+    if capability == "monitor-model-drift":
+        require(args.reference_source, "--reference-source")
+        require(args.source, "--source")
+        return repo.monitor_model_drift(
+            reference_source=args.reference_source,
+            source=args.source,
+            columns=parse_columns(args.columns),
+        )
     if capability == "reconcile-spreadsheets":
         require(args.left, "--left")
         require(args.right, "--right")
@@ -314,7 +374,7 @@ def analyze_sql_source(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "delegated_to": args.database_agent,
         "database_capability": args.database_capability,
-        "result": result,
+        "result": normalize_sql_result(result),
     }
 
 

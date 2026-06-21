@@ -1,0 +1,14 @@
+id: figma-ui-ux-product-designer.conduct-design-interview
+kind: capability
+name: Conduct Design Interview
+version: 0.1.0
+status: draft
+purpose: Entrevistar usuario/stakeholder para levantar contexto, publico, escopo, plataforma, estilo e decisoes abertas de design.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [brief, source, platform, scope, target_audience, design_style, output_dir]
+outputs:
+  artifacts: [design-brief.md, open-design-questions.md, source-traceability.md]
+write_policy: ask_before_creating_output_directory

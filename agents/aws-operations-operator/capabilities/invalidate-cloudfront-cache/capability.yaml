@@ -13,7 +13,7 @@ inputs:
   required: [distribution_id, paths, environment]
   optional: [profile, region, execute, confirm_resource, output_dir, yes_create_dir, yes_overwrite]
 outputs:
-  artifacts: [operation-plan.md, operation-dry-run.json, operation-result.json, rollback-notes.md]
+  artifacts: [operation-plan.md, operation-dry-run.json, account-validation.json, preflight.json, post-check.json, operation-result.json, rollback-notes.md]
 integration:
   repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
   methods:

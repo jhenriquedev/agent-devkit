@@ -9,7 +9,9 @@
 ## Execution & Validation (Highest Priority)
 1. **[2026-06-20] Validate agent capabilities through `ai-devkit`**
    Do instead: when testing a capability, execute it through `./ai-devkit run <agent> <capability>` before using lower-level integration CLIs.
-2. **[2026-06-21] `unittest discover` does not find repo tests**
+2. **[2026-06-21] Excel artifact-tool Node scripts may keep handles alive**
+   Do instead: guard `run_node_script()` calls with timeouts and make successful JS runners call `process.exit(0)` after awaited saves.
+3. **[2026-06-21] `unittest discover` does not find repo tests**
    Do instead: run `python3 -m unittest $(rg --files -g 'test*.py' -g '!vendor/**')` for the project suite.
 
 ## Shell & Command Reliability

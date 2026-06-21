@@ -3,13 +3,12 @@ kind: capability
 name: Review Generated Workbook
 version: 0.1.0
 status: draft
-purpose: Review a generated workbook for basic structure and formula error indicators.
+purpose: Review a generated workbook for required sheets, formula error indicators, and strict quality gate failures.
 entrypoint:
   runner: runner.py
 inputs:
   required: [workbook]
-  optional: [output]
+  optional: [required_sheet, strict, output]
 outputs:
   artifacts: [review.md]
 write_policy: read_only
-

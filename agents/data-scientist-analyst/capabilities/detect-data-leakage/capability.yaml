@@ -1,0 +1,23 @@
+id: data-scientist-analyst.detect-data-leakage
+kind: capability
+name: Detect Data Leakage
+version: 0.1.0
+status: draft
+purpose: >
+  Detectar colunas suspeitas de leakage por copia exata do alvo ou nomes
+  indicativos de evento posterior.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-data-leakage.md
+  output_template: null
+inputs:
+  required: [source, target_column]
+  optional: [output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/detect-data-leakage.yaml
+write_policy: read_only

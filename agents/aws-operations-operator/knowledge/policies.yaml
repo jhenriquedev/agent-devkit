@@ -8,20 +8,34 @@ operation_policy:
   execute_requires_confirm_resource: true
   production_environment_value: prd
   destructive_operations_blocked_by_default: true
+  plan_operation_allowlist_required: true
 
 aws_policy:
   command_allowlist_required: true
   default_timeout_seconds: 60
+  execute_requires_sts_identity: true
+  execute_requires_allowed_account_for_environment: true
+  environment_account_env_prefix: AWS_OPERATIONS_ALLOWED_ACCOUNTS_
+  environment_region_env_prefix: AWS_OPERATIONS_DEFAULT_REGION_
 
 artifact_policy:
   operation_plan_required: true
   dry_run_artifact_required: true
   operation_result_required_when_execute: true
+  account_validation_required_when_execute: true
+  preflight_required_when_execute: true
+  post_check_required_when_execute: true
   rollback_notes_required: true
+  redact_sensitive_payloads: true
 
 quality_gates:
   - operation_has_explicit_resource
   - dry_run_before_execute
   - execute_requires_confirmation
+  - execute_validates_aws_account
+  - lambda_payload_is_redacted
+  - plan_operation_is_allowlisted
+  - preflight_before_execute
+  - post_check_after_execute
   - destructive_operations_blocked
   - operation_report_generated

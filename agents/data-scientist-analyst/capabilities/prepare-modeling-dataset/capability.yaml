@@ -1,0 +1,23 @@
+id: data-scientist-analyst.prepare-modeling-dataset
+kind: capability
+name: Prepare Modeling Dataset
+version: 0.1.0
+status: draft
+purpose: >
+  Preparar contrato de modelagem com alvo, features, tipo do problema, split
+  deterministico e alertas de leakage.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/prepare-modeling-dataset.md
+  output_template: null
+inputs:
+  required: [source, target_column]
+  optional: [feature_columns, test_size, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/prepare-modeling-dataset.yaml
+write_policy: read_only

@@ -1,0 +1,15 @@
+id: figma-ui-ux-product-designer.apply-design-feedback
+kind: capability
+name: Apply Design Feedback
+version: 0.1.0
+status: draft
+purpose: Aplicar ou planejar aplicacao de feedback em design existente, com confirmacao para escrita Figma.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [feedback]
+  optional: [figma_file_url, require_direct, output_dir]
+outputs:
+  artifacts: [feedback-triage.md, figma-action-plan.md, design-quality-report.md]
+write_policy: confirm

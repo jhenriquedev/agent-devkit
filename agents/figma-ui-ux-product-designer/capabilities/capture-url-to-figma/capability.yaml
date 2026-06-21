@@ -1,0 +1,18 @@
+id: figma-ui-ux-product-designer.capture-url-to-figma
+kind: capability
+name: Capture Url To Figma
+version: 0.1.0
+status: draft
+purpose: Capturar URL, localhost ou web app autorizado para Figma ou gerar plano de captura quando direct mode nao existir.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [url]
+  optional: [figma_file_url, require_direct, output_dir]
+outputs:
+  artifacts: [figma-action-plan.md, facelift-plan.md, source-traceability.md]
+integration:
+  provider: figma
+  tool: generate_figma_design
+write_policy: confirm

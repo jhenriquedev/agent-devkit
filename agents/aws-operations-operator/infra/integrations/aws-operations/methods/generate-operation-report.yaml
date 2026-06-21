@@ -1,0 +1,10 @@
+id: aws-operations.generate-operation-report
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: render_operation_report
+  type: read
+  confirmation_required: false
+outputs:
+  type: operation-report

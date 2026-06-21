@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.generate-flow-diagram
+kind: capability
+name: Generate Flow Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Gerar fluxogramas Draw.io para jornadas de usuario, produto, processos,
+  runbooks, incidentes, decisoes, estados e excecoes.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [brief, text, file, directory, title, output, yes_overwrite]
+outputs:
+  artifacts: [flow.drawio, diagram-spec.json]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: output_only

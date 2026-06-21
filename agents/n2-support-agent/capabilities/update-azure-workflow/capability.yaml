@@ -9,7 +9,7 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/update-azure-workflow.md
 inputs:
-  optional: [project, card, n1_contract, codebase_path, fixture, execute, format]
+  optional: [project, card, n1_contract, codebase_path, fixture, target_state, target_column, assign_to, execute, format]
 outputs:
   artifacts: [n2-azure-actions.json]
 write_policy: confirm

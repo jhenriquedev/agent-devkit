@@ -4,7 +4,7 @@ name: Excel Workbook Builder
 version: 0.1.0
 status: draft
 owner: ai-devkit
-phase: 1
+phase: 3
 purpose: >
   Criar, versionar, preencher, reconciliar, revisar e exportar planilhas Excel
   com base em templates, dados recebidos e fontes delegadas a outros agentes.
@@ -15,4 +15,3 @@ knowledge:
 capabilities_dir: capabilities
 templates_dir: templates
 infra_dir: infra
-

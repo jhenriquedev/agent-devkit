@@ -10,6 +10,7 @@ from typing import Any
 
 from workbook_support import (
     apply_formula_plan,
+    fill_workbook_from_dataset,
     generate_workbook_from_dataset,
     inspect_xlsx,
     load_tabular_file,
@@ -239,17 +240,18 @@ def refresh_workbook_data(operation: str) -> int:
     parser.add_argument("--workbook", required=True)
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--sheet", default="Data")
     parser.add_argument("--title", default="Workbook Atualizado")
     args = parser.parse_args()
     workbook = Path(args.workbook).expanduser().resolve()
     if not workbook.exists():
         raise ValueError(f"workbook not found: {workbook}")
     dataset = load_tabular_file(Path(args.input).expanduser().resolve())
-    generate_workbook_from_dataset(
+    fill_workbook_from_dataset(
+        workbook,
         dataset,
         Path(args.output).expanduser().resolve(),
-        title=args.title,
-        summary={"operation": operation, "source_workbook": str(workbook)},
+        data_sheet=args.sheet,
     )
     print(f"Workbook gerado: {Path(args.output).expanduser().resolve()}")
     return 0

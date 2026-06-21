@@ -12,6 +12,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from azure_workflow import build_azure_action_specs
+from specialist_orchestration import execute_specialist_validations
+
 
 ROOT = Path(__file__).resolve().parents[4]
 CLI = ROOT / "ai-devkit"
@@ -143,9 +146,10 @@ def analyze_codebase(codebase_path: str | None, context: dict[str, Any]) -> dict
 
     tokens = relevant_tokens(context)
     candidates = []
-    methods = []
     for path in iter_code_files(root):
         rel = str(path.relative_to(root))
+        if path.stat().st_size > 500_000:
+            continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         score = score_text(text, tokens) + score_text(rel, tokens)
         if score <= 0:
@@ -163,17 +167,22 @@ def analyze_codebase(codebase_path: str | None, context: dict[str, Any]) -> dict
                     }
                 )[:8],
                 "summary": summarize_code_file(text),
+                "_methods": extract_methods(rel, text),
             }
         )
-        methods.extend(extract_methods(rel, text))
     findings = sorted(candidates, key=finding_sort_key)[:12]
     files = [item["file"] for item in findings]
+    methods = []
+    public_findings = []
+    for item in findings:
+        methods.extend(item.pop("_methods", []))
+        public_findings.append(item)
 
     return {
         "filesInspected": files,
         "relevantMethods": methods[:20],
-        "businessRulesFound": [item["summary"] for item in findings if item["summary"]],
-        "technicalFindings": findings,
+        "businessRulesFound": [item["summary"] for item in public_findings if item["summary"]],
+        "technicalFindings": public_findings,
         "status": "completed" if files else "no_direct_match",
         "reason": "Relevant code files found" if files else "No code file matched the support context tokens",
     }
@@ -188,21 +197,25 @@ def classify_root_cause(context: dict[str, Any], code_analysis: dict[str, Any]) 
             json.dumps(code_analysis.get("technicalFindings") or [], ensure_ascii=False),
         ]
     ).lower()
-    if code_analysis.get("filesInspected") and any(term in text for term in ("exception", "erro", "bug", "backend", "handler", "service", "job")):
-        category = "backend_bug"
-        confidence = 0.78
-    elif any(term in text for term in ("pendente", "pending", "documento", "document")):
-        category = "external_provider_issue" if "bpo" in text else "customer_pending_action"
-        confidence = 0.72
-    elif any(term in text for term in ("inconsisten", "diverg", "status")):
+    has_files = bool(code_analysis.get("filesInspected"))
+    external_signal = any(term in text for term in ("bpo", "topdesk", "provider", "fornecedor", "pendente", "pending", "documento", "document"))
+    data_signal = any(term in text for term in ("inconsisten", "diverg", "database", "banco"))
+    backend_signal = has_files and any(term in text for term in ("exception", "erro", "error", "bug", "backend", "falha", "failure", "stacktrace"))
+    if data_signal:
         category = "data_inconsistency"
         confidence = 0.74
-    elif not code_analysis.get("filesInspected"):
+    elif external_signal and not backend_signal:
+        category = "external_provider_issue" if "bpo" in text or "provider" in text or "fornecedor" in text else "customer_pending_action"
+        confidence = 0.72
+    elif backend_signal:
+        category = "backend_bug"
+        confidence = 0.78
+    elif not has_files:
         category = "insufficient_evidence"
         confidence = 0.52
     else:
-        category = "backend_bug"
-        confidence = 0.68
+        category = "insufficient_evidence"
+        confidence = 0.60
     return {
         "category": category,
         "confidence": confidence,
@@ -237,7 +250,7 @@ def build_patch_plan_contract(
             "project": project,
             "card": card,
             "fileName": DEFAULT_PATCH_FILE,
-            "attached": bool(execute and project and card and not output),
+            "attached": bool(execute and project and card),
             "requiresExecute": bool(project and card and not execute),
         } if project and card else None,
         "blockingQuestions": blocking,
@@ -484,6 +497,7 @@ def build_contract(args: Any, *, write_patch_plan: bool = True) -> tuple[dict[st
         "rootCause": root_cause,
         "resolutionPlan": build_resolution_plan(root_cause, patch_plan),
         "patchPlan": patch_plan,
+        "workflowStatus": azure_workflow_status(azure_actions, bool(getattr(args, "execute", False))),
         "azureActions": azure_actions,
         "artifacts": {
             "azureInternalComment": render_card_comment(root_cause, patch_plan),
@@ -510,74 +524,32 @@ def build_azure_actions(
     if not (project and card):
         return []
     execute = bool(getattr(args, "execute", False))
-    action_specs = [
-        (
-            "add-n2-tag",
-            "update-card-tags",
-            [
-                "--project",
-                project,
-                "--id",
-                str(card),
-                "--add-tag",
-                DEFAULT_N2_TAG,
-                "--reason",
-                "N2 analysis started",
-            ],
-            f"Add tag {DEFAULT_N2_TAG}",
-        ),
-        (
-            "comment-card",
-            "comment-card",
-            [
-                "--project",
-                project,
-                "--id",
-                str(card),
-                "--comment",
-                render_card_comment(root_cause, patch_plan),
-            ],
-            render_card_comment(root_cause, patch_plan),
-        ),
-    ]
-    if attachment_path:
-        action_specs.append(
-            (
-                "attach-patch-plan",
-                "attach-file",
-                [
-                    "--project",
-                    project,
-                    "--id",
-                    str(card),
-                    "--file",
-                    attachment_path,
-                    "--comment",
-                    "N2 patch_plan.md",
-                ],
-                f"Attach {patch_plan.get('fileName') or DEFAULT_PATCH_FILE} to card {card}",
-            )
-        )
-    else:
-        action_specs.append(
-            (
-                "attach-patch-plan",
-                "attach-file",
-                [],
-                f"Attach {patch_plan.get('fileName') or DEFAULT_PATCH_FILE} to card {card}",
-            )
-        )
+    action_specs = build_azure_action_specs(
+        project=project,
+        card=card,
+        card_comment=render_card_comment(root_cause, patch_plan),
+        patch_file_name=patch_plan.get("fileName") or DEFAULT_PATCH_FILE,
+        attachment_path=attachment_path,
+        target_state=getattr(args, "target_state", None),
+        target_column=getattr(args, "target_column", None),
+        assign_to=getattr(args, "assign_to", None),
+    )
 
     actions = []
-    for action_id, capability, command_args, summary in action_specs:
+    for spec in action_specs:
+        action_id = spec["id"]
+        capability = spec["capability"]
+        command_args = spec.get("commandArgs") or []
         action = {
             "id": action_id,
             "agent": "azure-devops-orchestrator",
             "capability": capability,
             "mode": "executed" if execute else "dry_run",
-            "status": "planned" if not execute else "completed",
-            "summary": summary,
+            "status": spec.get("status") or ("planned" if not execute else "completed"),
+            "summary": spec.get("summary"),
         }
+        if command_args:
+            action["commandPreview"] = "./ai-devkit run azure-devops-orchestrator " + capability + " " + " ".join(command_args)
         if execute and command_args:
             command = ["run", "azure-devops-orchestrator", capability, *command_args, "--execute"]
             if getattr(args, "fixture", None):
@@ -589,6 +561,16 @@ def build_azure_actions(
                 action["error"] = value_or_dash(exc)
         actions.append(action)
     return actions
+
+
+def azure_workflow_status(actions: list[dict[str, Any]], execute: bool) -> str:
+    if not actions:
+        return "not_requested"
+    if any(item.get("status") == "failed" for item in actions):
+        return "failed"
+    if any(item.get("status") == "skipped" for item in actions):
+        return "blocked"
+    return "executed" if execute else "planned"
 
 
 def render_contract_markdown(contract: dict[str, Any]) -> str:
@@ -734,7 +716,7 @@ def relevant_tokens(context: dict[str, Any]) -> list[str]:
         ]
     ).lower()
     candidates = re.findall(r"[a-zA-Z_][a-zA-Z0-9_]{3,}", text)
-    preferred = ["onboarding", "proposal", "proposta", "document", "documento", "bpo", "card", "service", "handler", "job"]
+    preferred = ["onboarding", "proposal", "proposta", "document", "documento", "bpo", "cpf", "contract", "contrato"]
     return list(dict.fromkeys([*preferred, *candidates]))[:60]
 
 
@@ -806,10 +788,16 @@ def blocking_questions(
     questions = []
     if not output and not (project and card):
         questions.append("Informe --output /path/patch_plan.md ou --project + --card para entregar o patch_plan.md.")
+    if not context.get("azureCardLoaded") and not context.get("n1ContractLoaded"):
+        questions.append("Informe um card Azure carregado ou contrato N1 para sustentar a analise N2.")
     if root_cause.get("category") == "insufficient_evidence":
         questions.append("Qual fluxo/arquivo/projeto deve ser analisado para confirmar a causa raiz?")
     if code_analysis.get("status") == "unavailable":
         questions.append(code_analysis.get("reason") or "codebase_path indisponivel.")
+    if not code_analysis.get("filesInspected"):
+        questions.append("Nenhum arquivo de codigo foi selecionado para patch.")
+    if root_cause.get("confidence", 0) < 0.65:
+        questions.append("Confianca da causa raiz abaixo do minimo recomendado para implementacao.")
     return questions
 
 
@@ -925,16 +913,23 @@ def select_specialist_checks(context: dict[str, Any], root_cause: dict[str, Any]
 
 
 def execute_specialist_validation_payload(context: dict[str, Any], root_cause: dict[str, Any]) -> dict[str, Any]:
-    validations = []
-    for check in select_specialist_checks(context, root_cause)["selectedChecks"]:
-        validations.append(
-            {
-                **check,
-                "status": "planned",
-                "resultSummary": "Validacao especialista planejada; execucao real deve usar agente indicado com parametros do contrato N2.",
-            }
-        )
-    return {"validations": validations}
+    return execute_specialist_validations(
+        context=context,
+        selected_checks=select_specialist_checks(context, root_cause)["selectedChecks"],
+        execute=False,
+        fixture=None,
+        run_command=run_ai_devkit,
+    )
+
+
+def execute_specialist_validation_payload_from_args(args: Any, context: dict[str, Any], root_cause: dict[str, Any]) -> dict[str, Any]:
+    return execute_specialist_validations(
+        context=context,
+        selected_checks=select_specialist_checks(context, root_cause)["selectedChecks"],
+        execute=bool(getattr(args, "execute", False)),
+        fixture=getattr(args, "fixture", None),
+        run_command=run_ai_devkit,
+    )
 
 
 def rank_code_findings_payload(code_analysis: dict[str, Any]) -> dict[str, Any]:
@@ -962,12 +957,17 @@ def build_reproduction_strategy_payload(context: dict[str, Any], code_analysis: 
 def review_patch_plan_readiness_payload(patch_plan: dict[str, Any], root_cause: dict[str, Any], code_analysis: dict[str, Any]) -> dict[str, Any]:
     blockers = list(patch_plan.get("blockingQuestions") or [])
     if not code_analysis.get("filesInspected"):
-        blockers.append("Nenhum arquivo de codigo foi selecionado para patch.")
+        add_unique(blockers, "Nenhum arquivo de codigo foi selecionado para patch.")
     if root_cause.get("confidence", 0) < 0.65:
-        blockers.append("Confianca da causa raiz abaixo do minimo recomendado para implementacao.")
+        add_unique(blockers, "Confianca da causa raiz abaixo do minimo recomendado para implementacao.")
     return {
         "readyForImplementation": bool(patch_plan.get("readyForImplementation")) and not blockers,
         "blockers": blockers,
         "rootCauseCategory": root_cause.get("category"),
         "confidence": root_cause.get("confidence"),
     }
+
+
+def add_unique(values: list[str], value: str) -> None:
+    if value not in values:
+        values.append(value)

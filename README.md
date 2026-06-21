@@ -126,6 +126,10 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`database-change-operator`](agents/database-change-operator/):
   especialista em mudancas controladas em PostgreSQL, incluindo migrations,
   rollback, scripts de escrita, upserts e updates com dry-run por padrao.
+- [`drawio-diagram-builder`](agents/drawio-diagram-builder/): especialista em
+  criar, revisar e refinar diagramas Draw.io editaveis a partir de briefings,
+  documentos, pastas, cards Azure, especificacoes, inventarios tecnicos e
+  feedback iterativo.
 - [`postgres-data-analyzer`](agents/postgres-data-analyzer/):
   especialista em PostgreSQL read-only para descoberta de databases, schemas,
   tabelas, relacionamentos, joins, queries assistidas, perfilamento, qualidade
@@ -174,6 +178,7 @@ Use o executavel da raiz para descobrir agentes e capabilities:
 ./ai-devkit run software-specification-analyst conduct-requirements-interview --input demanda.md --analysis-dir specifications/contexto --output-dir specifications/entrevista --yes-create-dir
 ./ai-devkit run software-specification-analyst create-final-spec-from-analysis --analysis-dir specifications/refinada --output-dir specifications/final --yes-create-dir
 ./ai-devkit run software-specification-analyst create-complete-spec --input demanda.md
+./ai-devkit run drawio-diagram-builder execute-diagram-delivery --file specifications/final/software-specification.md --diagram-type user_journey --output-dir diagrams --yes-create-dir
 ./ai-devkit run technical-integration-analyst extract-integration-contract --file api.md
 ./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
@@ -228,6 +233,10 @@ a partir de analise refinada.
 O `presentation-deck-builder` possui runners iniciais para registrar templates
 versionados, listar templates/versoes e gerar arquivos de entrada
 `input-schema.xlsx` e `input-schema.md`.
+
+O `drawio-diagram-builder` possui runners para entrevista, ingestao de fontes,
+leitura delegada de cards Azure, analise de contexto, planejamento, geracao,
+revisao, refinamento e entrega orquestrada de diagramas `.drawio`.
 
 ## Por onde comecar
 

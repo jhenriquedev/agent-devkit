@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.review-drawio-diagram
+kind: capability
+name: Review Drawio Diagram
+version: 0.1.0
+status: draft
+purpose: >
+  Revisar `.drawio` para validar XML, labels, conectores, geometria, legenda,
+  lacunas e qualidade visual.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [diagram]
+  optional: [spec, output]
+outputs:
+  artifacts: [diagram-review.md]
+integration:
+  repository: ../../infra/integrations/drawio/validators.py
+  methods: []
+write_policy: read_only

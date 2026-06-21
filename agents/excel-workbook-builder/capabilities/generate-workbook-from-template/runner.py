@@ -13,14 +13,12 @@ SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
 sys.path.insert(0, str(SHARED_DIR))
 
 from workbook_support import (  # noqa: E402
-    generate_workbook_from_dataset,
+    fill_workbook_from_dataset,
     normalize_dataset,
-    parse_template_manifest,
     resolve_templates_root,
     slugify,
-    template_dir,
-    version_dir,
 )
+from template_binding import resolve_template_version  # noqa: E402
 
 
 def main() -> int:
@@ -36,16 +34,7 @@ def main() -> int:
     try:
         root = resolve_templates_root(args.templates_root)
         template_id = slugify(args.template_id)
-        manifest_path = template_dir(root, template_id) / "template.yaml"
-        if not manifest_path.exists():
-            raise ValueError(f"template not found: {template_id}")
-        manifest = parse_template_manifest(manifest_path)
-        version = args.template_version or str(manifest.get("current_version") or "")
-        if not version:
-            versions = manifest.get("versions", [])
-            version = versions[-1]["version"] if versions else ""
-        if not version_dir(root, template_id, version).exists():
-            raise ValueError(f"template version not found: {template_id} {version}")
+        version, source_template = resolve_template_version(root, template_id, args.template_version)
 
         input_path = Path(args.input).expanduser().resolve()
         data = json.loads(input_path.read_text(encoding="utf-8"))
@@ -55,12 +44,11 @@ def main() -> int:
             if args.output
             else Path.cwd() / "docs" / "generated" / "excel-workbook-builder" / f"{template_id}.xlsx"
         )
-        title = args.title or str(manifest.get("name") or template_id)
-        generate_workbook_from_dataset(
+        fill_workbook_from_dataset(
+            source_template,
             dataset,
             output,
-            title=title,
-            summary={"template_id": template_id, "template_version": version},
+            data_sheet="Data",
         )
         print(f"Workbook gerado: {output}")
         print(f"Template: {template_id} {version}")
@@ -72,4 +60,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

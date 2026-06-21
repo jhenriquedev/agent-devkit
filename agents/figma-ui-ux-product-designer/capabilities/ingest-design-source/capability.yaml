@@ -1,0 +1,15 @@
+id: figma-ui-ux-product-designer.ingest-design-source
+kind: capability
+name: Ingest Design Source
+version: 0.1.0
+status: draft
+purpose: Ler documentos, arquivos e pastas para extrair contexto de UI/UX, inventario de telas e perguntas abertas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [source]
+  optional: [brief, depth, output_dir]
+outputs:
+  artifacts: [design-brief.md, screen-inventory.md, source-traceability.md, open-design-questions.md]
+write_policy: ask_before_creating_output_directory

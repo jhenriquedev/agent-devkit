@@ -1,0 +1,17 @@
+id: figma-ui-ux-product-designer.create-design-system-foundation
+kind: capability
+name: Create Design System Foundation
+version: 0.1.0
+status: draft
+purpose: Criar ou planejar foundations e componentes base de design system para web/mobile.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [brief, figma_file_url, platform, design_style, require_direct, output_dir]
+outputs:
+  artifacts: [design-system-spec.md, figma-action-plan.md, design-quality-report.md]
+integration:
+  provider: figma
+  preferred_skills: [figma-use, figma-generate-library]
+write_policy: confirm

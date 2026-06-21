@@ -1,0 +1,4 @@
+id: baseline-predictive-model
+repository: data_repository.py
+method: baseline_predictive_model
+side_effects: none

@@ -1,0 +1,5 @@
+id: figma.create-screen
+purpose: Create a screen/frame in Figma.
+tool: use_figma
+requires_skill: figma-use
+confirmation_required: true

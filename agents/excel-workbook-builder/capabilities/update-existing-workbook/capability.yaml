@@ -3,12 +3,13 @@ kind: capability
 name: Update Existing Workbook
 version: 0.1.0
 status: draft
-purpose: Update an existing workbook while preserving structure and formatting.
+purpose: Update a target data sheet in an existing workbook while preserving structure and formatting outside that sheet.
 entrypoint:
   runner: runner.py
   workflow: workflow.md
 inputs:
   required: [workbook, input]
+  optional: [sheet, output]
 outputs:
   artifacts: [workbook.xlsx]
 write_policy: output_only

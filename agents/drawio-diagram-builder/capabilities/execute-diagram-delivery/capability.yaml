@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.execute-diagram-delivery
+kind: capability
+name: Execute Diagram Delivery
+version: 0.1.0
+status: draft
+purpose: >
+  Orquestrar ingestao, analise, geracao, revisao e artefatos finais de diagrama
+  Draw.io a partir de fontes reais.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [text, file, directory, url, azure_project, azure_card, diagram_type, title, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [source-context.json, diagram-plan.md, diagram-spec.json, diagram.drawio, diagram-review.md, open-questions.md]
+integration:
+  repository: ../../infra/integrations/drawio/drawio_renderer.py
+  methods: []
+write_policy: ask_before_creating_output_directory

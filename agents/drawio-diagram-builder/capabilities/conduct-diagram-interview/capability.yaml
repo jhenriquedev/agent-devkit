@@ -1,0 +1,21 @@
+id: drawio-diagram-builder.conduct-diagram-interview
+kind: capability
+name: Conduct Diagram Interview
+version: 0.1.0
+status: draft
+purpose: >
+  Fazer perguntas objetivas para entender objetivo, audiencia, escopo, fontes,
+  tipo de diagrama, nivel de detalhe, elementos obrigatorios e lacunas antes da
+  geracao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [brief, diagram_type, audience, detail_level, output]
+outputs:
+  artifacts: [diagram-interview.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

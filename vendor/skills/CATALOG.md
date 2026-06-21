@@ -2,7 +2,7 @@
 
 > Gerado automaticamente. Skills carregam **sob demanda** quando a tarefa casa com a `description`. O `napkin` é a exceção (sempre ativo, ver AGENTS.md).
 
-**Total: 41 skills**
+**Total: 42 skills**
 
 
 ## andrej-karpathy-skills (1)
@@ -22,6 +22,12 @@
 | Skill | Descrição | Caminho |
 |---|---|---|
 | `book-to-skill` | Converts books and documents (PDF, EPUB, DOCX, HTML, Markdown, plain text, RTF, MOBI/AZW with Calibre) into structured agent skills, extracting frameworks, mental models, princi... | `vendor/skills/book-to-skill` |
+
+## drawio-diagramming (1)
+
+| Skill | Descrição | Caminho |
+|---|---|---|
+| `drawio-diagramming` | Create, inspect, validate, and refine editable Draw.io/diagrams.net `.drawio` files from source material, diagram specs, architecture notes, product journeys, ERDs, process flows, Azure card context, and other AI DevKit artifacts. | `vendor/skills/drawio-diagramming` |
 
 ## ecc (37)
 

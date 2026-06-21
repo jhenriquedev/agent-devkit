@@ -3,12 +3,13 @@ kind: capability
 name: Request Database Data
 version: 0.1.0
 status: draft
-purpose: Build a delegated data request for database or Azure agents.
+purpose: Build a delegated data request, or execute an allowed delegated agent when explicitly requested.
 entrypoint:
   runner: runner.py
   workflow: workflow.md
 inputs:
   required: [agent_id, capability_id, request, expected_schema]
+  optional: [execute, ai_devkit, result_output, output]
 outputs:
   artifacts: [delegation-request.md]
 write_policy: read_only

@@ -1,0 +1,4 @@
+id: figma.export-review-context
+purpose: Export metadata, screenshots and node references for design review.
+tools: [get_metadata, get_screenshot]
+confirmation_required: false

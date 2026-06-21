@@ -1,0 +1,14 @@
+id: figma-ui-ux-product-designer.facelift-existing-product
+kind: capability
+name: Facelift Existing Product
+version: 0.1.0
+status: draft
+purpose: Fazer facelift de produto existente com comparativo antes/depois, preservando regras e melhorando UX/UI.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  optional: [source, url, figma_file_url, brief, design_style, require_direct, output_dir]
+outputs:
+  artifacts: [design-brief.md, facelift-plan.md, design-system-spec.md, dev-handoff.md, design-quality-report.md]
+write_policy: confirm

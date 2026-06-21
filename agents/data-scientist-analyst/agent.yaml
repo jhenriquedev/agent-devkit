@@ -38,6 +38,12 @@ capabilities:
   - calculate-sample-size
   - measure-effect-size
   - explain-statistical-result
+  - prepare-modeling-dataset
+  - baseline-predictive-model
+  - evaluate-model
+  - explain-model-results
+  - detect-data-leakage
+  - monitor-model-drift
   - reconcile-spreadsheets
   - generate-reconciliation-report
   - generate-data-report
@@ -74,6 +80,12 @@ agent_surface:
     - infra/integrations/file-dataset/methods/calculate-sample-size.yaml
     - infra/integrations/file-dataset/methods/measure-effect-size.yaml
     - infra/integrations/file-dataset/methods/explain-statistical-result.yaml
+    - infra/integrations/file-dataset/methods/prepare-modeling-dataset.yaml
+    - infra/integrations/file-dataset/methods/baseline-predictive-model.yaml
+    - infra/integrations/file-dataset/methods/evaluate-model.yaml
+    - infra/integrations/file-dataset/methods/explain-model-results.yaml
+    - infra/integrations/file-dataset/methods/detect-data-leakage.yaml
+    - infra/integrations/file-dataset/methods/monitor-model-drift.yaml
     - infra/integrations/file-dataset/methods/reconcile-spreadsheets.yaml
     - infra/integrations/file-dataset/methods/generate-reconciliation-report.yaml
     - infra/integrations/file-dataset/methods/generate-data-report.yaml

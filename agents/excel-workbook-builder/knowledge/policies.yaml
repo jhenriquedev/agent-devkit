@@ -1,5 +1,5 @@
 id: excel-workbook-builder.policies
-phase: 1
+phase: 3
 template_policy:
   save_requires_confirmation: true
   never_overwrite_validated_template: true
@@ -16,9 +16,15 @@ delegation_policy:
     - postgres-data-analyzer
     - azure-devops-orchestrator
 quality_gates:
-  - workbook_saved
-  - formula_error_scan
-  - key_range_inspection
-  - visual_preview_for_generated_workbooks
-  - source_traceability
-
+  workbook_saved:
+    capability: review-generated-workbook
+  formula_error_scan:
+    capability: scan-formula-errors
+  required_sheet_check:
+    capability: review-generated-workbook
+  key_range_inspection:
+    capability: inspect-template
+  visual_preview_for_generated_workbooks:
+    capability: render-workbook-preview
+  source_traceability:
+    capability: review-generated-workbook

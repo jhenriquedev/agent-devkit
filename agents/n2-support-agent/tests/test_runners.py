@@ -214,6 +214,112 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                     payload = json.loads(result.stdout)
                     self.assertIn(expected_key, payload)
 
+    def test_execute_specialist_validation_executes_selected_agent_when_requested(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture = {
+                "n1_contract": {
+                    "entities": {"proposalNumber": "987654"},
+                    "checks": [{"id": "bpo-proposal", "status": "pending"}],
+                    "decision": {"status": "pending_n2"},
+                },
+                "supportContext": {
+                    "symptom": "Proposta 987654 com pendencia BPO em documentos.",
+                    "evidence": ["BPO retornou pendencia documental para proposta 987654."],
+                },
+                "proposal": {"numeroProposta": "987654"},
+                "documents": {"files": []},
+                "facts": {"proposal_number": "987654", "situation": "Pendente"},
+                "inferences": {"attention_points": ["Pendente de documento."]},
+            }
+
+            result = run_capability(
+                "execute-specialist-validation",
+                fixture,
+                [
+                    "--project",
+                    "Sustentacao",
+                    "--card",
+                    "8804",
+                    "--codebase-path",
+                    str(create_codebase(Path(tmpdir))),
+                    "--execute",
+                    "--format",
+                    "json",
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            bpo_validation = next(item for item in payload["validations"] if item["agent"] == "bpo-analyser")
+            self.assertEqual(bpo_validation["status"], "executed")
+            self.assertIn("commandPreview", bpo_validation)
+            self.assertIn("resultSummary", bpo_validation)
+
+    def test_update_n2_card_workflow_includes_move_and_assign_actions(self) -> None:
+        fixture = {
+            "work_item": {
+                "id": 8805,
+                "title": "Card em N2",
+                "state": "New",
+                "board_column": "Triagem",
+                "assigned_to": None,
+            },
+            "users": [{"unique_name": "ana@example.com", "display_name": "Ana"}],
+        }
+
+        result = run_capability(
+            "update-n2-card-workflow",
+            fixture,
+            [
+                "--project",
+                "Sustentacao",
+                "--card",
+                "8805",
+                "--target-state",
+                "Active",
+                "--target-column",
+                "Analise N2",
+                "--assign-to",
+                "ana@example.com",
+                "--format",
+                "json",
+            ],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["capability"] for item in payload["azureActions"]}
+        self.assertIn("move-card", capabilities)
+        self.assertIn("assign-card", capabilities)
+
+    def test_patch_plan_not_ready_without_card_or_n1_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "patch_plan.md"
+            result = run_capability(
+                "generate-patch-plan",
+                {
+                    "supportContext": {
+                        "symptom": "Erro ao avancar onboarding.",
+                        "evidence": ["Falha sem contrato N1 e sem card Azure carregado."],
+                    }
+                },
+                [
+                    "--codebase-path",
+                    str(create_codebase(Path(tmpdir))),
+                    "--output",
+                    str(output),
+                    "--format",
+                    "json",
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertFalse(payload["patchPlan"]["readyForImplementation"])
+            self.assertTrue(
+                any("N1" in item or "Azure" in item for item in payload["patchPlan"]["blockingQuestions"])
+            )
+
 
 def create_codebase(tmpdir: Path) -> Path:
     codebase = tmpdir / "sample-app"

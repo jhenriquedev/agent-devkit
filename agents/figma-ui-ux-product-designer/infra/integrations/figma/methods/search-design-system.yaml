@@ -1,0 +1,4 @@
+id: figma.search-design-system
+purpose: Find components, variables and styles before drawing primitives.
+tool: search_design_system
+confirmation_required: false

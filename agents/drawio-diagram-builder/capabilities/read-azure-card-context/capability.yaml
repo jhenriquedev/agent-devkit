@@ -1,0 +1,20 @@
+id: drawio-diagram-builder.read-azure-card-context
+kind: capability
+name: Read Azure Card Context
+version: 0.1.0
+status: draft
+purpose: >
+  Ler contexto de um card Azure DevOps por delegacao read-only ao agente
+  azure-devops-orchestrator, preparando material para diagramacao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [id]
+  optional: [project, include_comments, output]
+outputs:
+  artifacts: [azure-card-context.md]
+integration:
+  repository: null
+  methods: []
+write_policy: delegated_read_only
