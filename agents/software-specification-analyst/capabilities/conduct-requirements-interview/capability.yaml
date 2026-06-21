@@ -8,14 +8,18 @@ purpose: >
   demand size and grouping questions by business, functional, technical, data,
   security, and QA concerns.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/conduct-requirements-interview.md
   output_template: ../../templates/interview-guide-output.md
 inputs:
   required: [input]
-  optional: [depth, audience, project_context]
+  optional: [analysis_dir, output_dir, depth, audience, yes_create_dir, yes_overwrite]
 outputs:
-  artifacts: [interview-guide.md]
+  artifacts:
+    - interview-guide.md
+    - stakeholder-questions.md
+    - missing-decisions.md
 integration:
   repository: null
   methods: []

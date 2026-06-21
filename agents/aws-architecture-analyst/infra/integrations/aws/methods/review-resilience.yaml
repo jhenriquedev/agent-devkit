@@ -1,0 +1,10 @@
+id: aws-architecture.review-resilience
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: review_resilience
+  type: read
+  confirmation_required: false
+outputs:
+  type: resilience-review

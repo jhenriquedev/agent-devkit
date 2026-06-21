@@ -1,0 +1,18 @@
+data_handling:
+  redact_sensitive_output:
+    - password
+    - token
+    - cpf
+    - file_base64
+    - raw_soap
+  include_document_content_by_default: false
+
+integration_rules:
+  direct_bpo_only: true
+  forbidden_targets:
+    - /api/v1/self-hire
+  default_timeout_seconds: 30
+
+write_policy:
+  read_operations: auto
+  mutation_operations: unsupported

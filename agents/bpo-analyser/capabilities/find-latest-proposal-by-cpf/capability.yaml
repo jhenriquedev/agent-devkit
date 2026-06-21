@@ -1,0 +1,23 @@
+id: bpo-analyser.find-latest-proposal-by-cpf
+kind: capability
+name: Find Latest BPO Proposal By CPF
+version: 0.1.0
+status: draft
+purpose: >
+  Encontrar a proposta BPO mais recente/elegivel de um CPF com base nas regras
+  usadas pelo Core.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/find-latest-proposal-by-cpf.md
+  output_template: ../../templates/find-latest-proposal-by-cpf-output.md
+inputs:
+  required: [cpf]
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [bpo-latest-proposal-by-cpf.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/find-latest-proposal-by-cpf.yaml
+write_policy: read_only

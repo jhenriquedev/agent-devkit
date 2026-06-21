@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.generate-erd-report
+kind: capability
+name: Generate ERD Report
+version: 0.1.0
+status: draft
+purpose: >
+  Generate a Markdown ERD-style relationship report.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-erd-report.md
+  output_template: ../../templates/generate-erd-report-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, left_schema, left_table, right_schema, right_table, column, columns, query, pattern, key_column, key_value, limit, fixture, output]
+outputs:
+  artifacts: [generate-erd-report-output.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/generate-erd-report.yaml
+write_policy: read_only

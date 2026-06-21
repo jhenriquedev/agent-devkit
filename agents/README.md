@@ -39,9 +39,16 @@ agents/<agent-id>/
 
 - `azure-devops-orchestrator`: especialista em Azure DevOps Boards.
 - `aws-cloudwatch-log-analyzer`: especialista em AWS CloudWatch Logs.
+- `bpo-analyser`: especialista em consulta direta a BPO para analisar propostas
+  por CPF ou numero e documentos anexados sem usar API SelfHire.
 - `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
+- `n1-support-agent`: especialista N1 para runbooks operacionais a partir de
+  cards Azure DevOps.
 - `database-change-operator`: especialista em mudancas controladas em Postgres.
-- `postgres-data-analyzer`: especialista em analise read-only de dados Postgres.
+- `presentation-deck-builder`: especialista em templates versionados e geracao
+  de apresentacoes PowerPoint.
+- `postgres-data-analyzer`: especialista em analise read-only forte de dados
+  Postgres.
 - `sqlserver-data-analyzer`: especialista em analise read-only de dados SQL
   Server.
 - `sqlserver-change-operator`: especialista em mudancas controladas em SQL

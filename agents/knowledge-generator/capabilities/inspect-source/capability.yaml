@@ -1,0 +1,23 @@
+id: knowledge-generator.inspect-source
+kind: capability
+name: Inspect Source
+version: 0.1.0
+status: draft
+purpose: >
+  Inspecionar arquivo ou pasta, detectar tipos de conteudo e recomendar um
+  profile de knowledge sem gerar artefatos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/inspect-source.md
+  output_template: null
+inputs:
+  required: [source]
+  optional: [profile, project_id]
+outputs:
+  artifacts: []
+integration:
+  repository: ../../infra/integrations/local-source/knowledge_repository.py
+  methods:
+    - ../../infra/integrations/local-source/methods/inspect-source.yaml
+write_policy: read_only

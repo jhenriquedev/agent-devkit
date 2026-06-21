@@ -1,0 +1,14 @@
+id: excel-workbook-builder.explain-reconciliation-differences
+kind: capability
+name: Explain Reconciliation Differences
+version: 0.1.0
+status: draft
+purpose: Explain reconciliation differences by class and likely cause.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [reconciliation_summary]
+outputs:
+  artifacts: [difference-explanation.md]
+write_policy: read_only

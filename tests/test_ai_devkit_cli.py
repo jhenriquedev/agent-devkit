@@ -31,14 +31,1254 @@ class AiDevKitCliTest(unittest.TestCase):
         agents = {item["id"] for item in payload["items"]}
         self.assertIn("azure-devops-orchestrator", agents)
         self.assertIn("aws-cloudwatch-log-analyzer", agents)
+        self.assertIn("bpo-analyser", agents)
         self.assertIn("database-change-operator", agents)
         self.assertIn("elasticsearch-log-analyzer", agents)
+        self.assertIn("excel-workbook-builder", agents)
+        self.assertIn("n1-support-agent", agents)
+        self.assertIn("n2-support-agent", agents)
         self.assertIn("postgres-data-analyzer", agents)
+        self.assertIn("presentation-deck-builder", agents)
         self.assertIn("sqlserver-data-analyzer", agents)
         self.assertIn("sqlserver-change-operator", agents)
         self.assertIn("software-specification-analyst", agents)
         self.assertIn("technical-integration-analyst", agents)
         self.assertIn("topdesk-orchestrator", agents)
+
+    def test_lists_all_presentation_deck_builder_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "presentation-deck-builder",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "compare-template-versions",
+                "create-template",
+                "create-template-version",
+                "deprecate-template-version",
+                "generate-deck-from-template",
+                "generate-template-input-file",
+                "ingest-source-document",
+                "inspect-template",
+                "list-template-versions",
+                "list-templates",
+                "plan-deck",
+                "promote-template-version",
+                "refine-generated-deck",
+                "refine-template",
+                "register-template",
+                "review-generated-deck",
+            },
+        )
+
+    def test_register_template_creates_versioned_template_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "status-template.pptx"
+            templates_root = Path(tmpdir) / "templates"
+            template_path.write_bytes(b"fake pptx content")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "register-template",
+                    "--template",
+                    str(template_path),
+                    "--template-id",
+                    "status-report",
+                    "--name",
+                    "Status Report Executivo",
+                    "--version",
+                    "0.1.0",
+                    "--status",
+                    "validated",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-save",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            template_dir = templates_root / "status-report"
+            version_dir = template_dir / "versions" / "0.1.0"
+            self.assertTrue((template_dir / "template.yaml").exists())
+            self.assertTrue((template_dir / "changelog.md").exists())
+            self.assertTrue((version_dir / "template.pptx").exists())
+            self.assertTrue((version_dir / "input-schema.xlsx").exists())
+            self.assertTrue((version_dir / "input-schema.md").exists())
+            self.assertTrue((version_dir / "slide-map.yaml").exists())
+            manifest = (template_dir / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("current_version: 0.1.0", manifest)
+            self.assertIn("status: validated", manifest)
+            self.assertIn("versions/0.1.0/template.pptx", manifest)
+
+    def test_list_template_versions_reports_registered_versions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "status-template.pptx"
+            templates_root = Path(tmpdir) / "templates"
+            template_path.write_bytes(b"fake pptx content")
+            register = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "register-template",
+                    "--template",
+                    str(template_path),
+                    "--template-id",
+                    "status-report",
+                    "--version",
+                    "0.1.0",
+                    "--status",
+                    "validated",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-save",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(register.returncode, 0, register.stderr)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "list-template-versions",
+                    "--template-id",
+                    "status-report",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("status-report", result.stdout)
+            self.assertIn("0.1.0", result.stdout)
+            self.assertIn("validated", result.stdout)
+
+    def test_generate_deck_from_template_creates_pptx(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "kpis-template.pptx"
+            templates_root = Path(tmpdir) / "templates"
+            input_path = Path(tmpdir) / "kpis.json"
+            output_path = Path(tmpdir) / "kpis.pptx"
+            template_path.write_bytes(b"fake pptx content")
+            input_path.write_text(
+                json.dumps(
+                    {
+                        "title": "KPIs Sustentação - Azure DevOps",
+                        "subtitle": "Amostra dos últimos cards alterados",
+                        "metrics": [
+                            {"label": "Cards analisados", "value": "20"},
+                            {"label": "Em andamento", "value": "10"},
+                            {"label": "Sem responsável", "value": "10"},
+                            {"label": "Com anexos", "value": "13"},
+                        ],
+                        "state_breakdown": {"Doing": 10, "Done": 5, "To Do": 5},
+                        "highlights": [
+                            "A consulta atingiu o limite configurado.",
+                            "Todos os cards analisados estão sem critérios de aceite.",
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            register = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "register-template",
+                    "--template",
+                    str(template_path),
+                    "--template-id",
+                    "azure-kpis",
+                    "--version",
+                    "0.1.0",
+                    "--status",
+                    "validated",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-save",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(register.returncode, 0, register.stderr)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "generate-deck-from-template",
+                    "--template-id",
+                    "azure-kpis",
+                    "--input",
+                    str(input_path),
+                    "--output",
+                    str(output_path),
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(output_path.exists())
+            self.assertGreater(output_path.stat().st_size, 0)
+            self.assertEqual(output_path.read_bytes()[:2], b"PK")
+            self.assertIn("Deck gerado:", result.stdout)
+
+    def test_lists_all_excel_workbook_builder_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "excel-workbook-builder",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "add-formulas-and-validations",
+                "compare-template-versions",
+                "create-adjustment-suggestions",
+                "create-pivot-summary",
+                "create-summary-dashboard",
+                "create-template",
+                "create-template-version",
+                "deprecate-template-version",
+                "explain-reconciliation-differences",
+                "export-workbook-artifacts",
+                "generate-reconciliation-report",
+                "generate-template-input-file",
+                "generate-workbook-from-data",
+                "generate-workbook-from-template",
+                "ingest-source-document",
+                "ingest-workbook-data",
+                "inspect-template",
+                "list-template-versions",
+                "list-templates",
+                "map-source-to-template",
+                "normalize-tabular-data",
+                "plan-workbook",
+                "promote-template-version",
+                "reconcile-datasets",
+                "refine-generated-workbook",
+                "refine-template",
+                "refresh-workbook-data",
+                "register-template",
+                "render-workbook-preview",
+                "request-database-data",
+                "review-generated-workbook",
+                "run-workbook-operation",
+                "scan-formula-errors",
+                "update-existing-workbook",
+                "validate-reconciliation-rules",
+                "validate-source-data",
+            },
+        )
+
+    def test_excel_register_template_creates_versioned_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_path = Path(tmpdir) / "conciliation-template.xlsx"
+            templates_root = Path(tmpdir) / "templates"
+            template_path.write_bytes(b"fake xlsx content")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "register-template",
+                    "--template",
+                    str(template_path),
+                    "--template-id",
+                    "conciliation-report",
+                    "--name",
+                    "Relatorio de Conciliacao",
+                    "--version",
+                    "0.1.0",
+                    "--status",
+                    "validated",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-save",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            template_dir = templates_root / "conciliation-report"
+            version_dir = template_dir / "versions" / "0.1.0"
+            self.assertTrue((template_dir / "template.yaml").exists())
+            self.assertTrue((template_dir / "changelog.md").exists())
+            self.assertTrue((version_dir / "template.xlsx").exists())
+            self.assertTrue((version_dir / "input-schema.xlsx").exists())
+            self.assertTrue((version_dir / "input-schema.md").exists())
+            self.assertTrue((version_dir / "sheet-map.yaml").exists())
+            manifest = (template_dir / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("current_version: 0.1.0", manifest)
+            self.assertIn("status: validated", manifest)
+
+    def test_excel_ingests_csv_and_generates_workbook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "tickets.csv"
+            extracted_path = Path(tmpdir) / "tickets.json"
+            output_path = Path(tmpdir) / "tickets.xlsx"
+            source_path.write_text(
+                "id,status,valor\n1,Aberto,10.5\n2,Fechado,7\n",
+                encoding="utf-8",
+            )
+
+            ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-source-document",
+                    "--source",
+                    str(source_path),
+                    "--output",
+                    str(extracted_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(ingest.returncode, 0, ingest.stderr)
+            payload = json.loads(extracted_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["row_count"], 2)
+            self.assertEqual(payload["columns"], ["id", "status", "valor"])
+
+            generated = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "generate-workbook-from-data",
+                    "--input",
+                    str(extracted_path),
+                    "--output",
+                    str(output_path),
+                    "--title",
+                    "Tickets",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+            self.assertTrue(output_path.exists())
+            self.assertGreater(output_path.stat().st_size, 0)
+            self.assertEqual(output_path.read_bytes()[:2], b"PK")
+            self.assertIn("Workbook gerado:", generated.stdout)
+
+    def test_excel_reconcile_datasets_creates_workbook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            left_path = Path(tmpdir) / "left.csv"
+            right_path = Path(tmpdir) / "right.csv"
+            output_path = Path(tmpdir) / "reconciliation.xlsx"
+            summary_path = Path(tmpdir) / "reconciliation.json"
+            left_path.write_text("id,amount\n1,100\n2,50\n3,20\n", encoding="utf-8")
+            right_path.write_text("id,amount\n1,100\n2,45\n4,10\n", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "reconcile-datasets",
+                    "--left",
+                    str(left_path),
+                    "--right",
+                    str(right_path),
+                    "--key",
+                    "id",
+                    "--compare-column",
+                    "amount",
+                    "--output",
+                    str(output_path),
+                    "--summary-output",
+                    str(summary_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(output_path.exists())
+            self.assertEqual(output_path.read_bytes()[:2], b"PK")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            self.assertEqual(summary["matched"], 1)
+            self.assertEqual(summary["different"], 1)
+            self.assertEqual(summary["left_only"], 1)
+            self.assertEqual(summary["right_only"], 1)
+
+    def test_excel_phase_2_inspects_renders_and_ingests_workbook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "tickets.csv"
+            extracted_path = Path(tmpdir) / "tickets.json"
+            workbook_path = Path(tmpdir) / "tickets.xlsx"
+            preview_path = Path(tmpdir) / "tickets.png"
+            ingested_path = Path(tmpdir) / "tickets-from-workbook.json"
+            review_path = Path(tmpdir) / "inspect.md"
+            source_path.write_text(
+                "id,status,valor\n1,Aberto,10.5\n2,Fechado,7\n",
+                encoding="utf-8",
+            )
+            ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-source-document",
+                    "--source",
+                    str(source_path),
+                    "--output",
+                    str(extracted_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(ingest.returncode, 0, ingest.stderr)
+            generated = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "generate-workbook-from-data",
+                    "--input",
+                    str(extracted_path),
+                    "--output",
+                    str(workbook_path),
+                    "--title",
+                    "Tickets",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+
+            rendered = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "render-workbook-preview",
+                    "--workbook",
+                    str(workbook_path),
+                    "--sheet",
+                    "Summary",
+                    "--output",
+                    str(preview_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(rendered.returncode, 0, rendered.stderr)
+            self.assertTrue(preview_path.exists())
+            self.assertGreater(preview_path.stat().st_size, 0)
+
+            workbook_ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-workbook-data",
+                    "--workbook",
+                    str(workbook_path),
+                    "--sheet",
+                    "Data",
+                    "--output",
+                    str(ingested_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(workbook_ingest.returncode, 0, workbook_ingest.stderr)
+            payload = json.loads(ingested_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["row_count"], 2)
+            self.assertEqual(payload["columns"], ["id", "status", "valor"])
+
+            inspected = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "inspect-template",
+                    "--template",
+                    str(workbook_path),
+                    "--output",
+                    str(review_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(inspected.returncode, 0, inspected.stderr)
+            review = review_path.read_text(encoding="utf-8")
+            self.assertIn("Workbook Inspection", review)
+            self.assertIn("Worksheets", review)
+
+    def test_excel_phase_2_normalizes_validates_maps_and_delegates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "clientes.csv"
+            normalized_path = Path(tmpdir) / "clientes-normalized.json"
+            schema_path = Path(tmpdir) / "schema.json"
+            validation_path = Path(tmpdir) / "validation.md"
+            mapping_path = Path(tmpdir) / "mapping.yaml"
+            delegation_path = Path(tmpdir) / "delegation.md"
+            source_path.write_text(
+                "Cliente ID,Valor Total,Data Base\n1,10.5,2026-06-21\n2,7,2026-06-22\n",
+                encoding="utf-8",
+            )
+            schema_path.write_text(
+                json.dumps(
+                    {
+                        "required_columns": ["cliente_id", "valor_total"],
+                        "types": {"cliente_id": "number", "valor_total": "number"},
+                        "unique": ["cliente_id"],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            normalized = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "normalize-tabular-data",
+                    "--input",
+                    str(source_path),
+                    "--output",
+                    str(normalized_path),
+                    "--slug-columns",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(normalized.returncode, 0, normalized.stderr)
+            payload = json.loads(normalized_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["columns"], ["cliente_id", "valor_total", "data_base"])
+
+            validated = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "validate-source-data",
+                    "--input",
+                    str(normalized_path),
+                    "--schema",
+                    str(schema_path),
+                    "--output",
+                    str(validation_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(validated.returncode, 0, validated.stderr)
+            self.assertIn("Status: pass", validation_path.read_text(encoding="utf-8"))
+
+            mapped = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "map-source-to-template",
+                    "--source-schema",
+                    str(normalized_path),
+                    "--template-id",
+                    "cliente-report",
+                    "--field",
+                    "cliente_id=Inputs!A2",
+                    "--field",
+                    "valor_total=Inputs!B2",
+                    "--output",
+                    str(mapping_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(mapped.returncode, 0, mapped.stderr)
+            self.assertIn("cliente_id", mapping_path.read_text(encoding="utf-8"))
+
+            delegated = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "request-database-data",
+                    "--agent-id",
+                    "postgres-data-analyzer",
+                    "--capability-id",
+                    "run-readonly-query",
+                    "--request",
+                    "listar clientes ativos",
+                    "--expected-schema",
+                    "cliente_id,valor_total",
+                    "--output",
+                    str(delegation_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(delegated.returncode, 0, delegated.stderr)
+            delegation = delegation_path.read_text(encoding="utf-8")
+            self.assertIn("postgres-data-analyzer", delegation)
+            self.assertIn("run-readonly-query", delegation)
+
+    def test_excel_phase_3_reconciles_composite_keys_and_multi_columns(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            left_path = Path(tmpdir) / "left.csv"
+            right_path = Path(tmpdir) / "right.csv"
+            output_path = Path(tmpdir) / "reconciliation.xlsx"
+            summary_path = Path(tmpdir) / "reconciliation.json"
+            left_path.write_text(
+                "tenant,id,amount,status\nA,1,100,ok\nA,2,50,ok\nB,3,20,pending\n",
+                encoding="utf-8",
+            )
+            right_path.write_text(
+                "tenant,id,amount,status\nA,1,100,ok\nA,2,45,ok\nB,3,20,closed\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "reconcile-datasets",
+                    "--left",
+                    str(left_path),
+                    "--right",
+                    str(right_path),
+                    "--key",
+                    "tenant,id",
+                    "--compare-column",
+                    "amount",
+                    "--compare-column",
+                    "status",
+                    "--output",
+                    str(output_path),
+                    "--summary-output",
+                    str(summary_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(output_path.read_bytes()[:2], b"PK")
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            self.assertEqual(summary["matched"], 1)
+            self.assertEqual(summary["different"], 2)
+            self.assertEqual(summary["left_only"], 0)
+            self.assertEqual(summary["right_only"], 0)
+            self.assertEqual(summary["keys"], ["tenant", "id"])
+            self.assertEqual(summary["compare_columns"], ["amount", "status"])
+
+    def test_excel_phase_3_refreshes_workbook_with_new_data(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            initial_csv = Path(tmpdir) / "initial.csv"
+            refresh_csv = Path(tmpdir) / "refresh.csv"
+            initial_json = Path(tmpdir) / "initial.json"
+            workbook_path = Path(tmpdir) / "initial.xlsx"
+            refreshed_path = Path(tmpdir) / "refreshed.xlsx"
+            ingested_path = Path(tmpdir) / "refreshed.json"
+            initial_csv.write_text("id,status,valor\n1,Aberto,10\n", encoding="utf-8")
+            refresh_csv.write_text("id,status,valor\n1,Fechado,15\n2,Aberto,7\n", encoding="utf-8")
+
+            ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-source-document",
+                    "--source",
+                    str(initial_csv),
+                    "--output",
+                    str(initial_json),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(ingest.returncode, 0, ingest.stderr)
+            generated = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "generate-workbook-from-data",
+                    "--input",
+                    str(initial_json),
+                    "--output",
+                    str(workbook_path),
+                    "--title",
+                    "Refresh Test",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+
+            refreshed = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "refresh-workbook-data",
+                    "--workbook",
+                    str(workbook_path),
+                    "--input",
+                    str(refresh_csv),
+                    "--output",
+                    str(refreshed_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(refreshed.returncode, 0, refreshed.stderr)
+            self.assertEqual(refreshed_path.read_bytes()[:2], b"PK")
+
+            workbook_ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-workbook-data",
+                    "--workbook",
+                    str(refreshed_path),
+                    "--sheet",
+                    "Data",
+                    "--output",
+                    str(ingested_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(workbook_ingest.returncode, 0, workbook_ingest.stderr)
+            payload = json.loads(ingested_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["row_count"], 2)
+            self.assertEqual(payload["rows"][0]["status"], "Fechado")
+
+    def test_excel_phase_3_runs_aggregate_operation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "tickets.csv"
+            output_path = Path(tmpdir) / "aggregate.xlsx"
+            ingested_path = Path(tmpdir) / "aggregate.json"
+            source_path.write_text(
+                "status,valor\nAberto,10\nAberto,7\nFechado,3\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "run-workbook-operation",
+                    "--input",
+                    str(source_path),
+                    "--operation",
+                    "aggregate",
+                    "--group-by",
+                    "status",
+                    "--value",
+                    "valor",
+                    "--output",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(output_path.read_bytes()[:2], b"PK")
+
+            workbook_ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-workbook-data",
+                    "--workbook",
+                    str(output_path),
+                    "--sheet",
+                    "Data",
+                    "--output",
+                    str(ingested_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(workbook_ingest.returncode, 0, workbook_ingest.stderr)
+            payload = json.loads(ingested_path.read_text(encoding="utf-8"))
+            rows_by_status = {row["status"]: row for row in payload["rows"]}
+            self.assertEqual(rows_by_status["Aberto"]["sum_valor"], 17)
+            self.assertEqual(rows_by_status["Fechado"]["sum_valor"], 3)
+
+    def test_excel_phase_3_adds_formula_sheet(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source_path = Path(tmpdir) / "tickets.csv"
+            extracted_path = Path(tmpdir) / "tickets.json"
+            workbook_path = Path(tmpdir) / "tickets.xlsx"
+            formula_plan = Path(tmpdir) / "formula-plan.json"
+            output_path = Path(tmpdir) / "tickets-formulas.xlsx"
+            ingested_path = Path(tmpdir) / "calculations.json"
+            source_path.write_text("id,valor\n1,10\n2,7\n", encoding="utf-8")
+            formula_plan.write_text(
+                json.dumps(
+                    {
+                        "sheet": "Calculations",
+                        "cells": [
+                            {"cell": "A1", "label": "Total"},
+                            {"cell": "B1", "formula": "=SUM(Data!B2:B3)"},
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-source-document",
+                    "--source",
+                    str(source_path),
+                    "--output",
+                    str(extracted_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(ingest.returncode, 0, ingest.stderr)
+            generated = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "generate-workbook-from-data",
+                    "--input",
+                    str(extracted_path),
+                    "--output",
+                    str(workbook_path),
+                    "--title",
+                    "Formula Test",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(generated.returncode, 0, generated.stderr)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "add-formulas-and-validations",
+                    "--workbook",
+                    str(workbook_path),
+                    "--formula-plan",
+                    str(formula_plan),
+                    "--output",
+                    str(output_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(output_path.read_bytes()[:2], b"PK")
+
+            workbook_ingest = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "excel-workbook-builder",
+                    "ingest-workbook-data",
+                    "--workbook",
+                    str(output_path),
+                    "--sheet",
+                    "Calculations",
+                    "--output",
+                    str(ingested_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(workbook_ingest.returncode, 0, workbook_ingest.stderr)
+            payload = json.loads(ingested_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["columns"], ["Total", "17"])
+
+    def test_lists_all_bpo_analyser_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "bpo-analyser",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "analyze-cpf-proposals",
+                "analyze-proposal",
+                "consult-attached-documents",
+                "consult-proposal",
+                "find-latest-proposal-by-cpf",
+                "list-proposals-by-cpf",
+                "test-connection",
+            },
+        )
+
+    def test_all_bpo_analyser_capabilities_have_runner(self) -> None:
+        for capability in (
+            "analyze-cpf-proposals",
+            "analyze-proposal",
+            "consult-attached-documents",
+            "consult-proposal",
+            "find-latest-proposal-by-cpf",
+            "list-proposals-by-cpf",
+            "test-connection",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "bpo-analyser",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
+
+    def test_lists_all_n1_support_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "n1-support-agent",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "analyze-bpo-proposal",
+                "analyze-cognito-user",
+                "analyze-onboarding-status",
+                "analyze-proposal-status",
+                "analyze-restrictive-base",
+                "collect-customer-logs",
+                "decide-n1-outcome",
+                "execute-n1-card-runbook",
+                "extract-card-entities",
+                "generate-n1-artifacts",
+                "route-customer-symptom",
+                "update-azure-card",
+            },
+        )
+
+    def test_all_n1_support_capabilities_have_runner(self) -> None:
+        for capability in (
+            "analyze-bpo-proposal",
+            "analyze-cognito-user",
+            "analyze-onboarding-status",
+            "analyze-proposal-status",
+            "analyze-restrictive-base",
+            "collect-customer-logs",
+            "decide-n1-outcome",
+            "execute-n1-card-runbook",
+            "extract-card-entities",
+            "generate-n1-artifacts",
+            "route-customer-symptom",
+            "update-azure-card",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "n1-support-agent",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
+
+    def test_lists_all_n2_support_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "n2-support-agent",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "analyze-code-root-cause",
+                "build-reproduction-strategy",
+                "classify-root-cause",
+                "correlate-runtime-evidence",
+                "execute-specialist-validation",
+                "execute-n2-investigation",
+                "generate-card-comment",
+                "generate-patch-plan",
+                "load-support-context",
+                "rank-code-findings",
+                "review-patch-plan-readiness",
+                "select-specialist-checks",
+                "update-azure-workflow",
+                "update-n2-card-workflow",
+                "validate-n1-handoff",
+            },
+        )
+
+    def test_all_n2_support_capabilities_have_runner(self) -> None:
+        for capability in (
+            "analyze-code-root-cause",
+            "build-reproduction-strategy",
+            "classify-root-cause",
+            "correlate-runtime-evidence",
+            "execute-specialist-validation",
+            "execute-n2-investigation",
+            "generate-card-comment",
+            "generate-patch-plan",
+            "load-support-context",
+            "rank-code-findings",
+            "review-patch-plan-readiness",
+            "select-specialist-checks",
+            "update-azure-workflow",
+            "update-n2-card-workflow",
+            "validate-n1-handoff",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "n2-support-agent",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
 
     def test_lists_all_software_specification_capabilities(self) -> None:
         result = subprocess.run(
@@ -125,6 +1365,34 @@ class AiDevKitCliTest(unittest.TestCase):
         runner = payload["capability"]["entrypoint"]["runner"]
         self.assertTrue(runner["exists"])
 
+    def test_software_specification_analysis_flow_capabilities_have_runners(self) -> None:
+        for capability in (
+            "conduct-requirements-interview",
+            "refine-analysis-with-feedback",
+            "create-final-spec-from-analysis",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "software-specification-analyst",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
+
     def test_run_analyze_project_context_creates_analysis_documents(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir) / "sample-app"
@@ -175,6 +1443,169 @@ class AiDevKitCliTest(unittest.TestCase):
             self.assertIn("sample-app", analysis)
             self.assertIn("package.json", analysis)
             self.assertIn("solicitacoes", questions)
+
+    def test_run_analyze_project_context_infers_depth_and_applies_focus(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir) / "sample-app"
+            (project_dir / "src" / "auth").mkdir(parents=True)
+            (project_dir / "src" / "tickets").mkdir(parents=True)
+            (project_dir / "migrations").mkdir()
+            (project_dir / "README.md").write_text(
+                "# Sample App\n\nSistema de solicitacoes com login e permissoes.",
+                encoding="utf-8",
+            )
+            (project_dir / ".env.example").write_text("AUTH_SECRET=\nDATABASE_URL=\n", encoding="utf-8")
+            (project_dir / "src" / "auth" / "permissions.ts").write_text(
+                "export function canOpenTicket(role: string) { return role === 'attendant'; }",
+                encoding="utf-8",
+            )
+            (project_dir / "src" / "tickets" / "requests.ts").write_text(
+                "export function openSolicitacao(userId: string, status: string) { return { userId, status }; }",
+                encoding="utf-8",
+            )
+            (project_dir / "migrations" / "001_create_tickets.sql").write_text(
+                "create table tickets (id int, user_id int, status varchar(20));",
+                encoding="utf-8",
+            )
+            output_dir = Path(tmpdir) / "analysis-output"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "software-specification-analyst",
+                    "analyze-project-context",
+                    "--project",
+                    str(project_dir),
+                    "--output-dir",
+                    str(output_dir),
+                    "--yes-create-dir",
+                    "--focus",
+                    "abertura de solicitacoes",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            analysis = (output_dir / "analysis-context.md").read_text(encoding="utf-8")
+            questions = (output_dir / "business-questions.md").read_text(encoding="utf-8")
+            impact = (output_dir / "technical-impact-analysis.md").read_text(encoding="utf-8")
+            self.assertIn("Profundidade: `deep`", analysis)
+            self.assertIn("Justificativa Da Profundidade", analysis)
+            self.assertIn("Foco Da Analise", questions)
+            self.assertIn("abertura de solicitacoes", questions)
+            self.assertIn("src/tickets/requests.ts", impact)
+
+    def test_run_interview_refine_and_final_spec_flow(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "demanda.md"
+            input_path.write_text(
+                "# Portal de atendimento\n\nPermitir abertura e acompanhamento de solicitacoes.",
+                encoding="utf-8",
+            )
+            analysis_dir = Path(tmpdir) / "analysis"
+            analysis_dir.mkdir()
+            (analysis_dir / "analysis-context.md").write_text(
+                "# Contexto\n\nTermos observados: solicitacoes, atendimento, status.",
+                encoding="utf-8",
+            )
+            (analysis_dir / "business-questions.md").write_text(
+                "# Perguntas\n\n- Quem pode abrir solicitacoes?\n- Quais status existem?",
+                encoding="utf-8",
+            )
+            interview_dir = Path(tmpdir) / "interview"
+
+            interview = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "software-specification-analyst",
+                    "conduct-requirements-interview",
+                    "--input",
+                    str(input_path),
+                    "--analysis-dir",
+                    str(analysis_dir),
+                    "--output-dir",
+                    str(interview_dir),
+                    "--yes-create-dir",
+                    "--depth",
+                    "medium",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(interview.returncode, 0, interview.stderr)
+            self.assertTrue((interview_dir / "interview-guide.md").exists())
+            self.assertTrue((interview_dir / "stakeholder-questions.md").exists())
+
+            feedback_path = Path(tmpdir) / "respostas.md"
+            feedback_path.write_text(
+                "# Portal de atendimento\n\n- Atendentes e clientes podem abrir solicitacoes.\n- Status: aberto, em atendimento, concluido.",
+                encoding="utf-8",
+            )
+            refined_dir = Path(tmpdir) / "refined"
+            refine = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "software-specification-analyst",
+                    "refine-analysis-with-feedback",
+                    "--analysis-dir",
+                    str(analysis_dir),
+                    "--feedback",
+                    str(feedback_path),
+                    "--output-dir",
+                    str(refined_dir),
+                    "--yes-create-dir",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(refine.returncode, 0, refine.stderr)
+            self.assertTrue((refined_dir / "refined-analysis.md").exists())
+            self.assertTrue((refined_dir / "decision-log.md").exists())
+
+            final_dir = Path(tmpdir) / "final"
+            final = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "software-specification-analyst",
+                    "create-final-spec-from-analysis",
+                    "--analysis-dir",
+                    str(refined_dir),
+                    "--output-dir",
+                    str(final_dir),
+                    "--yes-create-dir",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(final.returncode, 0, final.stderr)
+            spec = (final_dir / "software-specification.md").read_text(encoding="utf-8")
+            self.assertIn("Portal de atendimento", spec)
+            self.assertIn("Atendentes e clientes", spec)
+            self.assertTrue((final_dir / "requirements-traceability.md").exists())
 
     def test_run_create_complete_spec_with_explicit_output_dir(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -396,28 +1827,60 @@ class AiDevKitCliTest(unittest.TestCase):
             capabilities,
             {
                 "analyze-cpf-column",
+                "analyze-query-result",
+                "build-analysis-query",
+                "compare-tables",
                 "describe-table",
+                "detect-data-quality-issues",
                 "detect-sensitive-columns",
+                "estimate-table-size",
+                "explain-query-plan",
+                "explore-database-domain",
                 "generate-data-report",
+                "generate-erd-report",
+                "list-databases",
+                "list-relationships",
                 "list-schemas",
                 "list-tables",
                 "profile-table",
                 "run-readonly-query",
+                "sample-table",
+                "search-columns",
+                "search-tables",
+                "suggest-joins",
                 "test-connection",
+                "trace-record",
+                "validate-readonly-query",
             },
         )
 
     def test_all_postgres_capabilities_have_runner(self) -> None:
         for capability in (
             "analyze-cpf-column",
+            "analyze-query-result",
+            "build-analysis-query",
+            "compare-tables",
             "describe-table",
+            "detect-data-quality-issues",
             "detect-sensitive-columns",
+            "estimate-table-size",
+            "explain-query-plan",
+            "explore-database-domain",
             "generate-data-report",
+            "generate-erd-report",
+            "list-databases",
+            "list-relationships",
             "list-schemas",
             "list-tables",
             "profile-table",
             "run-readonly-query",
+            "sample-table",
+            "search-columns",
+            "search-tables",
+            "suggest-joins",
             "test-connection",
+            "trace-record",
+            "validate-readonly-query",
         ):
             with self.subTest(capability=capability):
                 result = subprocess.run(
@@ -656,6 +2119,7 @@ class AiDevKitCliTest(unittest.TestCase):
             capabilities,
             {
                 "update-card-tags",
+                "attach-file",
                 "assign-card",
                 "comment-card",
                 "generate-cards-report",
@@ -669,6 +2133,7 @@ class AiDevKitCliTest(unittest.TestCase):
     def test_all_azure_devops_capabilities_have_runner(self) -> None:
         for capability in (
             "update-card-tags",
+            "attach-file",
             "assign-card",
             "comment-card",
             "generate-cards-report",

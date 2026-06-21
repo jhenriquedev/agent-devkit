@@ -1,0 +1,23 @@
+id: data-scientist-analyst.analyze-correlation
+kind: capability
+name: Analyze Correlation
+version: 0.1.0
+status: draft
+purpose: >
+  Calcular correlacoes de Pearson entre colunas numericas e priorizar relacoes
+  com uma coluna alvo opcional.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-correlation.md
+  output_template: null
+inputs:
+  required: [source]
+  optional: [columns, target_column, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/analyze-correlation.yaml
+write_policy: read_only

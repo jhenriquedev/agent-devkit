@@ -1,0 +1,23 @@
+id: aws-architecture-analyst.review-networking
+kind: capability
+name: Review Networking
+version: 0.1.0
+status: draft
+purpose: >
+  Revisar topologia de rede, subnets, load balancers e security groups em modo
+  read-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/review-networking.md
+  output_template: ../../templates/networking-review-output.md
+inputs:
+  required: [inventory]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [networking-review.md, networking-findings.json]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/review-networking.yaml
+write_policy: read_only

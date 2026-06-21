@@ -1,0 +1,21 @@
+id: aws-operations-operator.purge-sqs-queue-plan
+kind: capability
+name: Purge SQS Queue Plan
+version: 0.1.0
+status: draft
+purpose: Gerar plano de purge de SQS sem executar.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/purge-sqs-queue-plan.md
+  output_template: ../../templates/operation-plan-output.md
+inputs:
+  required: [queue_url, environment]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-plan.md, operation-dry-run.json, rollback-notes.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/purge-sqs-queue-plan.yaml
+write_policy: blocked_by_default

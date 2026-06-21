@@ -1,0 +1,15 @@
+id: n2-support-agent.classify-root-cause
+kind: capability
+name: Classify Root Cause
+version: 0.1.0
+status: draft
+purpose: Classify the support issue into the fixed N2 root-cause taxonomy.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/classify-root-cause.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-root-cause.json]
+write_policy: read_only

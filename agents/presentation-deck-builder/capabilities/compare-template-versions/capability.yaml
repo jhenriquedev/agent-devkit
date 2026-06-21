@@ -1,0 +1,18 @@
+id: presentation-deck-builder.compare-template-versions
+kind: capability
+name: Compare Template Versions
+version: 0.1.0
+status: draft
+purpose: Compare two template versions and summarize differences in files, schema, and notes.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/compare-template-versions.md
+inputs:
+  required: [template_id, from_version, to_version]
+  optional: []
+outputs:
+  artifacts: [template-version-comparison.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

@@ -1,0 +1,15 @@
+id: excel-workbook-builder.export-workbook-artifacts
+kind: capability
+name: Export Workbook Artifacts
+version: 0.1.0
+status: draft
+purpose: Package final workbook and requested supporting artifacts.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [workbook]
+  optional: [include_preview, include_review]
+outputs:
+  artifacts: [workbook.xlsx]
+write_policy: output_only

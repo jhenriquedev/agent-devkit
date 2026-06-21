@@ -1,0 +1,4 @@
+id: calculate-sample-size
+repository: data_repository.py
+method: calculate_sample_size
+side_effects: none

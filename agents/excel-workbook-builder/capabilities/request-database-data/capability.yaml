@@ -1,0 +1,14 @@
+id: excel-workbook-builder.request-database-data
+kind: capability
+name: Request Database Data
+version: 0.1.0
+status: draft
+purpose: Build a delegated data request for database or Azure agents.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [agent_id, capability_id, request, expected_schema]
+outputs:
+  artifacts: [delegation-request.md]
+write_policy: read_only

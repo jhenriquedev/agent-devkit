@@ -1,0 +1,62 @@
+id: aws-security-governance-auditor
+kind: specialist-agent
+name: AWS Security Governance Auditor
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Auditar seguranca e governanca AWS em modo read-only, identificando riscos em
+  IAM, exposicao publica, security groups, S3, secrets, encryption, CloudTrail e
+  AWS Config, e gerando relatorios e planos de remediacao sem aplicar mudancas.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional:
+    - AWS_PROFILE
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+
+capabilities:
+  - audit-iam-principals
+  - audit-public-exposure
+  - audit-security-groups
+  - audit-s3-buckets
+  - audit-secrets-usage
+  - audit-encryption
+  - audit-cloudtrail-config
+  - audit-config-guardrails
+  - generate-security-report
+  - generate-remediation-plan
+
+agent_surface:
+  repositories:
+    - infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - infra/integrations/aws-security/methods/audit-iam-principals.yaml
+    - infra/integrations/aws-security/methods/audit-public-exposure.yaml
+    - infra/integrations/aws-security/methods/audit-security-groups.yaml
+    - infra/integrations/aws-security/methods/audit-s3-buckets.yaml
+    - infra/integrations/aws-security/methods/audit-secrets-usage.yaml
+    - infra/integrations/aws-security/methods/audit-encryption.yaml
+    - infra/integrations/aws-security/methods/audit-cloudtrail-config.yaml
+    - infra/integrations/aws-security/methods/audit-config-guardrails.yaml
+    - infra/integrations/aws-security/methods/generate-security-report.yaml
+    - infra/integrations/aws-security/methods/generate-remediation-plan.yaml
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+
+write_policy:
+  read_operations: auto
+  artifact_generation: auto
+  remediation_execution: unsupported
+  aws_mutations: unsupported
+  external_side_effects: unsupported

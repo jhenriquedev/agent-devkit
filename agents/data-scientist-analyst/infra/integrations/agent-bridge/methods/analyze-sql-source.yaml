@@ -1,0 +1,4 @@
+id: analyze-sql-source
+repository: cli-agent-bridge
+method: ai-devkit-run
+side_effects: delegated_read_only

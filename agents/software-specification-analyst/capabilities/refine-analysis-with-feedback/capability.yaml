@@ -7,14 +7,19 @@ purpose: >
   Incorporate stakeholder feedback, corrections, and answers into analysis
   documents before final specification.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/refine-analysis-with-feedback.md
   output_template: ../../templates/refined-analysis-output.md
 inputs:
-  required: [analysis, feedback]
-  optional: [strictness]
+  required: [analysis_dir, feedback]
+  optional: [output_dir, strictness, yes_create_dir, yes_overwrite]
 outputs:
-  artifacts: [refined-analysis.md]
+  artifacts:
+    - refined-analysis.md
+    - resolved-questions.md
+    - remaining-open-questions.md
+    - decision-log.md
 integration:
   repository: null
   methods: []

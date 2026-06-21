@@ -1,0 +1,4 @@
+id: generate-reconciliation-report
+repository: data_repository.py
+method: generate_reconciliation_report
+side_effects: writes_output_artifact_only

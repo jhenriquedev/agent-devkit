@@ -1,0 +1,18 @@
+id: presentation-deck-builder.create-template
+kind: capability
+name: Create Template
+version: 0.1.0
+status: draft
+purpose: Create a new presentation template when the user does not provide one.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-template.md
+inputs:
+  required: [brief]
+  optional: [template_id, audience, style]
+outputs:
+  artifacts: [template.pptx, template.yaml, input-schema.xlsx]
+integration:
+  repository: null
+  methods: []
+write_policy: ask_before_write

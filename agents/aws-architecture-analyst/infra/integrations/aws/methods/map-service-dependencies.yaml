@@ -1,0 +1,10 @@
+id: aws-architecture.map-service-dependencies
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: build_dependency_map
+  type: read
+  confirmation_required: false
+outputs:
+  type: aws-dependency-map

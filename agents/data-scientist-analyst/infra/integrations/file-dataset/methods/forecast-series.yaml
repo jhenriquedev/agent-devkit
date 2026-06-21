@@ -1,0 +1,4 @@
+id: forecast-series
+repository: data_repository.py
+method: forecast_series
+side_effects: none

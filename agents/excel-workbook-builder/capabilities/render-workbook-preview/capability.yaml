@@ -1,0 +1,15 @@
+id: excel-workbook-builder.render-workbook-preview
+kind: capability
+name: Render Workbook Preview
+version: 0.1.0
+status: draft
+purpose: Render critical workbook sheets or ranges for visual validation.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [workbook]
+  optional: [sheet, range]
+outputs:
+  artifacts: [preview.png]
+write_policy: read_only

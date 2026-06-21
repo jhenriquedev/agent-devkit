@@ -1,0 +1,10 @@
+id: aws-security.audit-config-guardrails
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: audit_config_guardrails
+  type: read
+  confirmation_required: false
+outputs:
+  type: security-audit

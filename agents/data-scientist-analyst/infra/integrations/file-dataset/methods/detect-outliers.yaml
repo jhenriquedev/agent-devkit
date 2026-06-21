@@ -1,0 +1,4 @@
+id: detect-outliers
+repository: data_repository.py
+method: detect_outliers
+side_effects: none

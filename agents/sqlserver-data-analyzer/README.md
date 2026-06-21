@@ -29,6 +29,7 @@ Agente especialista para analise read-only de dados em Microsoft SQL Server.
 ./ai-devkit run sqlserver-data-analyzer list-tables --schema dbo
 ./ai-devkit run sqlserver-data-analyzer describe-table --schema dbo --table Customers
 ./ai-devkit run sqlserver-data-analyzer run-readonly-query --query "select * from dbo.Customers" --limit 50
+./ai-devkit run sqlserver-data-analyzer run-readonly-query --query "select * from dbo.Customers" --format json
 ./ai-devkit run sqlserver-data-analyzer suggest-joins --schema dbo
 ```
 

@@ -1,0 +1,4 @@
+id: detect-anomalies
+repository: data_repository.py
+method: detect_anomalies
+side_effects: none

@@ -1,0 +1,10 @@
+id: aws-security.audit-iam-principals
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: audit_iam_principals
+  type: read
+  confirmation_required: false
+outputs:
+  type: security-audit

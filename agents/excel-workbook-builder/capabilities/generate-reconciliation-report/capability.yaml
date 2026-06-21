@@ -1,0 +1,14 @@
+id: excel-workbook-builder.generate-reconciliation-report
+kind: capability
+name: Generate Reconciliation Report
+version: 0.1.0
+status: draft
+purpose: Generate a full reconciliation workbook and narrative report.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [reconciliation_data]
+outputs:
+  artifacts: [reconciliation.xlsx, reconciliation-report.md]
+write_policy: output_only

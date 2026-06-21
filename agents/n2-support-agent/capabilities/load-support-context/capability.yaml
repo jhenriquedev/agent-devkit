@@ -1,0 +1,15 @@
+id: n2-support-agent.load-support-context
+kind: capability
+name: Load Support Context
+version: 0.1.0
+status: draft
+purpose: Load N1 handoff, Azure card context, entities, evidence, and gaps without repeating N1 triage.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/load-support-context.md
+inputs:
+  optional: [project, card, n1_contract, fixture, output, format]
+outputs:
+  artifacts: [n2-support-context.json]
+write_policy: read_only

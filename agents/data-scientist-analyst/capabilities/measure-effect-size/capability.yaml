@@ -1,0 +1,23 @@
+id: data-scientist-analyst.measure-effect-size
+kind: capability
+name: Measure Effect Size
+version: 0.1.0
+status: draft
+purpose: >
+  Medir tamanho de efeito entre dois grupos por Cohen's d e classificar
+  magnitude pratica.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/measure-effect-size.md
+  output_template: null
+inputs:
+  required: [source, group_column, group_a, group_b, metric_column]
+  optional: [output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/measure-effect-size.yaml
+write_policy: read_only

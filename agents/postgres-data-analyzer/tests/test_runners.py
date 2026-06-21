@@ -132,6 +132,65 @@ class PostgresRunnerSmokeTest(unittest.TestCase):
         self.assertIn("# Postgres Data Report", result.stdout)
         self.assertIn("Sensitive Columns", result.stdout)
 
+    def test_suggest_joins_from_fixture(self) -> None:
+        result = run_capability(
+            "suggest-joins",
+            {
+                "suggestions": [
+                    {
+                        "left_table": "sales.orders",
+                        "left_column": "customer_id",
+                        "right_table": "crm.customers",
+                        "right_column": "id",
+                        "confidence": "high",
+                    }
+                ]
+            },
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Join Suggestions", result.stdout)
+        self.assertIn("sales.orders", result.stdout)
+        self.assertIn("crm.customers", result.stdout)
+
+    def test_generate_erd_report_from_fixture(self) -> None:
+        result = run_capability(
+            "generate-erd-report",
+            {
+                "relationships": [
+                    {
+                        "relationship_name": "orders_customer_id_fkey",
+                        "parent_table": "sales.orders",
+                        "parent_column": "customer_id",
+                        "referenced_table": "crm.customers",
+                        "referenced_column": "id",
+                    }
+                ]
+            },
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres ERD Report", result.stdout)
+        self.assertIn("erDiagram", result.stdout)
+
+    def test_validate_readonly_query_blocks_write_without_connection(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "run",
+                "postgres-data-analyzer",
+                "validate-readonly-query",
+                "--query",
+                "delete from public.users",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("blocked SQL keyword", result.stderr)
+
 
 def run_capability(capability: str, fixture: dict, extra_args: list[str] | None = None) -> subprocess.CompletedProcess[str]:
     with tempfile.TemporaryDirectory() as tmpdir:

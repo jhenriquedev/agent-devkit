@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.detect-data-quality-issues
+kind: capability
+name: Detect Data Quality Issues
+version: 0.1.0
+status: draft
+purpose: >
+  Detect null, duplicate, constant, and format quality issues.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-data-quality-issues.md
+  output_template: ../../templates/detect-data-quality-issues-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, left_schema, left_table, right_schema, right_table, column, columns, query, pattern, key_column, key_value, limit, fixture, output]
+outputs:
+  artifacts: [detect-data-quality-issues-output.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/detect-data-quality-issues.yaml
+write_policy: read_only

@@ -1,0 +1,62 @@
+id: aws-operations-operator
+kind: specialist-agent
+name: AWS Operations Operator
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Executar operacoes AWS controladas com dry-run por padrao, plano antes de
+  execucao, confirmacao explicita de recurso, ambiente explicito e relatorio
+  operacional.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional:
+    - AWS_PROFILE
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+
+capabilities:
+  - plan-operational-action
+  - restart-ecs-service
+  - force-ecs-deployment
+  - invoke-lambda
+  - redrive-sqs-dlq
+  - purge-sqs-queue-plan
+  - invalidate-cloudfront-cache
+  - scale-autoscaling-group
+  - toggle-eventbridge-rule
+  - generate-operation-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - infra/integrations/aws-operations/methods/plan-operational-action.yaml
+    - infra/integrations/aws-operations/methods/restart-ecs-service.yaml
+    - infra/integrations/aws-operations/methods/force-ecs-deployment.yaml
+    - infra/integrations/aws-operations/methods/invoke-lambda.yaml
+    - infra/integrations/aws-operations/methods/redrive-sqs-dlq.yaml
+    - infra/integrations/aws-operations/methods/purge-sqs-queue-plan.yaml
+    - infra/integrations/aws-operations/methods/invalidate-cloudfront-cache.yaml
+    - infra/integrations/aws-operations/methods/scale-autoscaling-group.yaml
+    - infra/integrations/aws-operations/methods/toggle-eventbridge-rule.yaml
+    - infra/integrations/aws-operations/methods/generate-operation-report.yaml
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+
+write_policy:
+  read_operations: auto
+  dry_run: default
+  execute_operations: requires_execute
+  production_operations: requires_explicit_environment
+  destructive_operations: blocked_by_default

@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-encryption
+kind: capability
+name: Audit Encryption
+version: 0.1.0
+status: draft
+purpose: Auditar sinais de encryption em S3 e demais recursos coletados.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-encryption.md
+  output_template: ../../templates/encryption-audit-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [encryption-audit.json, encryption-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-encryption.yaml
+write_policy: read_only

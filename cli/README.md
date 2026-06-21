@@ -23,10 +23,16 @@ python ai-devkit <comando>
 ./ai-devkit inspect azure-devops-orchestrator read-card
 ./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
 ./ai-devkit run database-change-operator plan-migration --path migrations/202606211200_create_table.up.sql
+./ai-devkit run bpo-analyser analyze-cpf-proposals --cpf 12345678901
+./ai-devkit run bpo-analyser analyze-proposal --proposal-number 123456
+./ai-devkit run presentation-deck-builder register-template --template status.pptx --template-id status-report --version 0.1.0 --yes-save
 ./ai-devkit run postgres-data-analyzer list-tables --database outro_banco --schema public
 ./ai-devkit run sqlserver-data-analyzer list-tables --schema dbo
 ./ai-devkit run sqlserver-change-operator plan-migration --path migrations/001_create_table.up.sql
 ./ai-devkit run software-specification-analyst analyze-project-context --project . --output-dir specifications/contexto --yes-create-dir
+./ai-devkit run software-specification-analyst conduct-requirements-interview --input demanda.md --analysis-dir specifications/contexto --output-dir specifications/entrevista --yes-create-dir
+./ai-devkit run software-specification-analyst refine-analysis-with-feedback --analysis-dir specifications/contexto --feedback respostas.md --output-dir specifications/refinada --yes-create-dir
+./ai-devkit run software-specification-analyst create-final-spec-from-analysis --analysis-dir specifications/refinada --output-dir specifications/final --yes-create-dir
 ./ai-devkit run software-specification-analyst create-complete-spec --input demanda.md
 ./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
@@ -86,17 +92,56 @@ No `elasticsearch-log-analyzer`, as capabilities executaveis atuais sao:
 - `generate-log-report`
 - `correlate-azure-card-logs`
 
+No `bpo-analyser`, as capabilities executaveis atuais sao:
+
+- `test-connection`
+- `list-proposals-by-cpf`
+- `analyze-cpf-proposals`
+- `find-latest-proposal-by-cpf`
+- `consult-proposal`
+- `consult-attached-documents`
+- `analyze-proposal`
+
 No `postgres-data-analyzer`, as capabilities executaveis atuais sao:
 
 - `test-connection`
+- `list-databases`
 - `list-schemas`
 - `list-tables`
 - `describe-table`
+- `list-relationships`
+- `suggest-joins`
+- `search-tables`
+- `search-columns`
+- `explore-database-domain`
+- `generate-erd-report`
 - `run-readonly-query`
+- `validate-readonly-query`
+- `build-analysis-query`
+- `explain-query-plan`
+- `sample-table`
 - `profile-table`
+- `analyze-query-result`
 - `detect-sensitive-columns`
+- `detect-data-quality-issues`
 - `analyze-cpf-column`
+- `estimate-table-size`
+- `compare-tables`
+- `trace-record`
 - `generate-data-report`
+
+No `n1-support-agent`, as capabilities executaveis atuais sao:
+
+- `execute-n1-card-runbook`
+- `extract-card-entities`
+- `analyze-restrictive-base`
+- `analyze-cognito-user`
+- `analyze-onboarding-status`
+- `analyze-proposal-status`
+- `collect-customer-logs`
+- `decide-n1-outcome`
+- `generate-n1-artifacts`
+- `update-azure-card`
 
 No `database-change-operator`, as capabilities executaveis atuais sao:
 
@@ -166,7 +211,17 @@ No `technical-integration-analyst`, as capabilities executaveis atuais sao:
 No `software-specification-analyst`, as capabilities executaveis atuais sao:
 
 - `analyze-project-context`
+- `conduct-requirements-interview`
+- `refine-analysis-with-feedback`
+- `create-final-spec-from-analysis`
 - `create-complete-spec`
+
+No `presentation-deck-builder`, as capabilities executaveis iniciais sao:
+
+- `register-template`
+- `list-templates`
+- `list-template-versions`
+- `generate-template-input-file`
 
 No `topdesk-orchestrator`, as capabilities executaveis atuais sao:
 
@@ -224,11 +279,15 @@ Exemplo com Software Specification Analyst:
 
 ```bash
 ./ai-devkit run software-specification-analyst analyze-project-context --project . --output-dir specifications/contexto --yes-create-dir
+./ai-devkit run software-specification-analyst conduct-requirements-interview --input demanda.md --analysis-dir specifications/contexto --output-dir specifications/entrevista --yes-create-dir
+./ai-devkit run software-specification-analyst refine-analysis-with-feedback --analysis-dir specifications/contexto --feedback respostas.md --output-dir specifications/refinada --yes-create-dir
+./ai-devkit run software-specification-analyst create-final-spec-from-analysis --analysis-dir specifications/refinada --output-dir specifications/final --yes-create-dir
 ./ai-devkit run software-specification-analyst create-complete-spec --input demanda.md
 ```
 
 Os runners propoem criar pastas em `specifications/<slug>/` no projeto atual e
-perguntam antes de criar a pasta. Para automacao revisada, use
+perguntam antes de criar a pasta. O fluxo recomendado e analise, entrevista,
+refinamento com feedback e especificacao final. Para automacao revisada, use
 `--yes-create-dir`.
 
 Exemplo multibanco com a mesma connection string base:

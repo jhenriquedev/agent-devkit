@@ -1,0 +1,14 @@
+id: excel-workbook-builder.list-templates
+kind: capability
+name: List Templates
+version: 0.1.0
+status: draft
+purpose: List registered Excel workbook templates.
+entrypoint:
+  runner: runner.py
+inputs:
+  optional: [templates_root]
+outputs:
+  artifacts: [template_list]
+write_policy: read_only
+

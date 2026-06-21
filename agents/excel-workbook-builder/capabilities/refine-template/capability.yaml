@@ -1,0 +1,15 @@
+id: excel-workbook-builder.refine-template
+kind: capability
+name: Refine Template
+version: 0.1.0
+status: draft
+purpose: Refine a template by creating a new version.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [template_id, feedback]
+  optional: [base_version]
+outputs:
+  artifacts: [template.xlsx]
+write_policy: create_new_version

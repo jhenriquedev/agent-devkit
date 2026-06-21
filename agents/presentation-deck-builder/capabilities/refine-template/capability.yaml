@@ -1,0 +1,18 @@
+id: presentation-deck-builder.refine-template
+kind: capability
+name: Refine Template
+version: 0.1.0
+status: draft
+purpose: Refine an existing template by creating a new version instead of overwriting a validated one.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/refine-template.md
+inputs:
+  required: [template_id, change_request]
+  optional: [base_version, new_version]
+outputs:
+  artifacts: [template.pptx, changelog.md]
+integration:
+  repository: null
+  methods: []
+write_policy: create_new_version

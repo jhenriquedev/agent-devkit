@@ -1,0 +1,19 @@
+id: n1-support-agent.analyze-restrictive-base
+kind: capability
+name: Analyze Restrictive Base
+version: 0.1.0
+status: draft
+purpose: Check CPF against SQL Server restrictive base using sqlserver-data-analyzer.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-restrictive-base.md
+inputs:
+  optional: [cpf, database, schema, table, cpf-column, limit, fixture, output, format]
+outputs:
+  artifacts: [n1-restrictive-base-check.json]
+integration:
+  orchestrated_agents:
+    - sqlserver-data-analyzer/search-columns
+    - sqlserver-data-analyzer/run-readonly-query
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: aws-operations-operator.redrive-sqs-dlq
+kind: capability
+name: Redrive SQS DLQ
+version: 0.1.0
+status: draft
+purpose: Gerar plano de redrive de DLQ; execucao real bloqueada no MVP.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/redrive-sqs-dlq.md
+  output_template: ../../templates/operation-plan-output.md
+inputs:
+  required: [source_arn, destination_arn, environment]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-plan.md, operation-dry-run.json, rollback-notes.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/redrive-sqs-dlq.yaml
+write_policy: blocked_by_default

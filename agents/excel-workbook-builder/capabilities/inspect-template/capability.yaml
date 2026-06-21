@@ -1,0 +1,15 @@
+id: excel-workbook-builder.inspect-template
+kind: capability
+name: Inspect Template
+version: 0.1.0
+status: draft
+purpose: Inspect workbook sheets, tables, formulas, styles, and editable areas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [template_id]
+  optional: [template_version, templates_root]
+outputs:
+  artifacts: [template-inspection.md]
+write_policy: read_only

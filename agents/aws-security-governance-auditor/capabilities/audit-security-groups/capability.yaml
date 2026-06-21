@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-security-groups
+kind: capability
+name: Audit Security Groups
+version: 0.1.0
+status: draft
+purpose: Auditar regras de Security Groups com exposicao ampla.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-security-groups.md
+  output_template: ../../templates/security-groups-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [security-groups-audit.json, security-groups-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-security-groups.yaml
+write_policy: read_only

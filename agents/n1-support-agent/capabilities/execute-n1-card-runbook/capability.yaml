@@ -1,0 +1,25 @@
+id: n1-support-agent.execute-n1-card-runbook
+kind: capability
+name: Execute N1 Card Runbook
+version: 0.1.0
+status: draft
+purpose: >
+  Read an Azure DevOps card, start N1 analysis, plan or apply Azure tag and
+  movement, extract entities, build checks, decide next action, and render the
+  fixed N1 output contract.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/execute-n1-card-runbook.md
+  output_template: ../../templates/n1-card-runbook-output.md
+inputs:
+  required: [project, card]
+  optional: [analysis_tag, target_state, target_column, reason, execute, fixture, output, format]
+outputs:
+  artifacts: [n1-card-runbook.md, n1-card-runbook.json]
+integration:
+  orchestrated_agents:
+    - azure-devops-orchestrator/read-card
+    - azure-devops-orchestrator/update-card-tags
+    - azure-devops-orchestrator/move-card
+write_policy: confirm

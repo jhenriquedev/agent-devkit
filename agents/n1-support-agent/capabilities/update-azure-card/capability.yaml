@@ -1,0 +1,19 @@
+id: n1-support-agent.update-azure-card
+kind: capability
+name: Update Azure Card
+version: 0.1.0
+status: draft
+purpose: Plan or apply N1 Azure DevOps card tag and movement through azure-devops-orchestrator.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/update-azure-card.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-azure-update.md]
+integration:
+  orchestrated_agents:
+    - azure-devops-orchestrator/update-card-tags
+    - azure-devops-orchestrator/move-card
+write_policy: confirm

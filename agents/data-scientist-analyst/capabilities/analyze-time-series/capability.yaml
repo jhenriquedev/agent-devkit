@@ -1,0 +1,23 @@
+id: data-scientist-analyst.analyze-time-series
+kind: capability
+name: Analyze Time Series
+version: 0.1.0
+status: draft
+purpose: >
+  Agregar uma metrica por periodos diarios, semanais ou mensais e resumir
+  tendencia temporal baseline.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-time-series.md
+  output_template: null
+inputs:
+  required: [source, date_column, metric_column]
+  optional: [granularity, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/analyze-time-series.yaml
+write_policy: read_only

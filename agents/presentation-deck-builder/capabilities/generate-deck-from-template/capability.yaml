@@ -1,0 +1,19 @@
+id: presentation-deck-builder.generate-deck-from-template
+kind: capability
+name: Generate Deck From Template
+version: 0.1.0
+status: draft
+purpose: Generate a PowerPoint deck from a validated template version and structured input.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-deck-from-template.md
+inputs:
+  required: [template_id, input]
+  optional: [template_version, output]
+outputs:
+  artifacts: [deck.pptx]
+integration:
+  repository: ../../infra/integrations/presentation-renderer
+  methods: []
+write_policy: output_only

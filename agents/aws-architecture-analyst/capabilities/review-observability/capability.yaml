@@ -1,0 +1,22 @@
+id: aws-architecture-analyst.review-observability
+kind: capability
+name: Review Observability
+version: 0.1.0
+status: draft
+purpose: >
+  Revisar logs, alarms e sinais operacionais de recursos AWS.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/review-observability.md
+  output_template: ../../templates/observability-review-output.md
+inputs:
+  required: [inventory]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [observability-review.md, observability-findings.json]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/review-observability.yaml
+write_policy: read_only

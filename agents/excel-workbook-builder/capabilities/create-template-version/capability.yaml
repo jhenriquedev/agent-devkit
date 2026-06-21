@@ -1,0 +1,15 @@
+id: excel-workbook-builder.create-template-version
+kind: capability
+name: Create Template Version
+version: 0.1.0
+status: draft
+purpose: Create a new template version from a base version or uploaded file.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [template_id]
+  optional: [base_version, template]
+outputs:
+  artifacts: [template.xlsx]
+write_policy: create_new_version

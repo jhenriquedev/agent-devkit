@@ -1,0 +1,5 @@
+id: bpo.consult-proposal
+transport: soap-http
+service: ServicoAPI
+operation: consultarPropostaPorNumeroProposta
+write_policy: read_only

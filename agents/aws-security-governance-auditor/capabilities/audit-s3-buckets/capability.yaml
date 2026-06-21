@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-s3-buckets
+kind: capability
+name: Audit S3 Buckets
+version: 0.1.0
+status: draft
+purpose: Auditar public access block e encryption de buckets S3.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-s3-buckets.md
+  output_template: ../../templates/s3-buckets-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [s3-buckets-audit.json, s3-buckets-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-s3-buckets.yaml
+write_policy: read_only

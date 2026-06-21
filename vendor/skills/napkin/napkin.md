@@ -19,6 +19,10 @@
 ## Domain Behavior Guardrails
 1. **[2026-06-20] Azure card descriptions may include sensitive production log data**
    Do instead: retrieve the complete card for validation, but summarize PII-heavy log payloads in user-facing responses unless raw content is explicitly required.
+2. **[2026-06-21] N1 restrictive-base uses a scoped SQL Server override**
+   Do instead: when the N1 agent checks the restrictive base, prefer `DB_RESTRICTIVE_CONN_STRING` only in the subprocess environment for `sqlserver-data-analyzer`, without changing the global SQL Server analyzer default.
+3. **[2026-06-21] BPO analyser production config comes from Core PRD secret**
+   Do instead: map BPO production env from AWS Secrets Manager `CORE-PRD` in `us-east-1` using profile `access-to-vscode`; use `BPO_USER`, `BPO_PASSWORD`, `BpoPropostaUrl`, `MCC_BPOCONSIG_SERVICOAPI_ENDPOINT`, `MCC_BPOCONSIG_FORMALIZACAO_ENDPOINT`, and `MCC_BPOCONSIG_CONSIGNACAO_ENDPOINT`.
 
 ## User Directives
 1. **[2026-06-20] Keep generated docs out of final project versioning**

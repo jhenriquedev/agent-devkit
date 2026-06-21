@@ -1,0 +1,10 @@
+id: aws-security.audit-public-exposure
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: audit_public_exposure
+  type: read
+  confirmation_required: false
+outputs:
+  type: security-audit

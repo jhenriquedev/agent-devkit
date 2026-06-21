@@ -1,0 +1,14 @@
+id: excel-workbook-builder.map-source-to-template
+kind: capability
+name: Map Source To Template
+version: 0.1.0
+status: draft
+purpose: Map incoming source columns to template sheets, ranges, and fields.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [source_schema, template_id]
+outputs:
+  artifacts: [mapping.yaml]
+write_policy: read_only

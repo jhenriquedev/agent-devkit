@@ -1,0 +1,23 @@
+id: aws-architecture-analyst.discover-account-inventory
+kind: capability
+name: Discover Account Inventory
+version: 0.1.0
+status: draft
+purpose: >
+  Descobrir recursos AWS read-only por profile e region, gerando inventario
+  normalizado e resumo da coleta.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/discover-account-inventory.md
+  output_template: ../../templates/inventory-summary-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [inventory.json, inventory-summary.md, collection-metadata.json]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/discover-account-inventory.yaml
+write_policy: read_only

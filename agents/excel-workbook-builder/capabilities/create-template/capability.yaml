@@ -1,0 +1,15 @@
+id: excel-workbook-builder.create-template
+kind: capability
+name: Create Template
+version: 0.1.0
+status: draft
+purpose: Create a new Excel template when the user does not provide one.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [brief]
+  optional: [template_id, output]
+outputs:
+  artifacts: [template.xlsx]
+write_policy: ask_before_write

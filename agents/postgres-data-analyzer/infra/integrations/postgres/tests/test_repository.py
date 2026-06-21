@@ -13,9 +13,11 @@ sys.path.insert(0, str(POSTGRES_DIR))
 
 from postgres_repository import (  # noqa: E402
     PostgresRepositoryError,
+    analyze_rows,
     connection_database,
     connection_env,
     enforce_limit,
+    heuristic_join_suggestions,
     validate_readonly_query,
     validate_database_name,
     sensitive_kind,
@@ -60,6 +62,26 @@ class PostgresRepositoryHelperTest(unittest.TestCase):
 
     def test_sensitive_kind_detects_cpf(self) -> None:
         self.assertEqual(sensitive_kind("customer_cpf"), "cpf")
+
+    def test_sensitive_kind_detects_token(self) -> None:
+        self.assertEqual(sensitive_kind("access_token"), "token")
+
+    def test_analyze_rows_summarizes_columns(self) -> None:
+        summary = analyze_rows([{"cpf": "12345678909", "name": "Ana"}, {"cpf": None, "name": "Bia"}])
+
+        self.assertEqual(summary["row_count"], 2)
+        self.assertEqual(summary["columns"][0]["column_name"], "cpf")
+        self.assertEqual(summary["columns"][0]["sensitive_kind"], "cpf")
+
+    def test_heuristic_join_suggestions_matches_id_columns(self) -> None:
+        suggestions = heuristic_join_suggestions(
+            [
+                {"table_schema": "sales", "table_name": "orders", "column_name": "customer_id"},
+                {"table_schema": "crm", "table_name": "customers", "column_name": "customer_id"},
+            ]
+        )
+
+        self.assertEqual(suggestions[0]["confidence"], "medium")
 
 
 if __name__ == "__main__":

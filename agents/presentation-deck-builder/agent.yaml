@@ -1,0 +1,53 @@
+id: presentation-deck-builder
+kind: specialist-agent
+name: Presentation Deck Builder
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Criar, registrar, versionar, refinar e reutilizar templates de apresentacao
+  para gerar decks PowerPoint a partir de documentos ou arquivos estruturados,
+  perguntando ao usuario quando houver ambiguidade e preservando templates
+  validados.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+  - knowledge/template-catalog.yaml
+
+env:
+  required: []
+  optional: []
+
+capabilities:
+  - register-template
+  - inspect-template
+  - create-template
+  - refine-template
+  - generate-template-input-file
+  - ingest-source-document
+  - plan-deck
+  - generate-deck-from-template
+  - review-generated-deck
+  - refine-generated-deck
+  - list-templates
+  - list-template-versions
+  - create-template-version
+  - promote-template-version
+  - deprecate-template-version
+  - compare-template-versions
+
+agent_surface:
+  repositories: []
+  methods: []
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+
+write_policy:
+  template_registration: ask_before_write
+  template_overwrite: prohibited_for_validated_versions
+  deck_generation: output_only
+  external_side_effects: unsupported

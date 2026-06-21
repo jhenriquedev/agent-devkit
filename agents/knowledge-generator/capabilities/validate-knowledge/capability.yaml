@@ -1,0 +1,23 @@
+id: knowledge-generator.validate-knowledge
+kind: capability
+name: Validate Knowledge
+version: 0.1.0
+status: draft
+purpose: >
+  Validar uma pasta knowledge gerada, verificando JSON, profile, artefatos
+  obrigatorios e lacunas explicitas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/validate-knowledge.md
+  output_template: null
+inputs:
+  required: [knowledge_dir]
+  optional: []
+outputs:
+  artifacts: []
+integration:
+  repository: ../../infra/integrations/local-source/knowledge_repository.py
+  methods:
+    - ../../infra/integrations/local-source/methods/validate-knowledge.yaml
+write_policy: read_only

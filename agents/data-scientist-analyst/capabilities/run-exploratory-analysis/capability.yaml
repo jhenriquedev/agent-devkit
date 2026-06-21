@@ -1,0 +1,23 @@
+id: data-scientist-analyst.run-exploratory-analysis
+kind: capability
+name: Run Exploratory Analysis
+version: 0.1.0
+status: draft
+purpose: >
+  Executar analise exploratoria consolidada com perfil, qualidade, outliers,
+  correlacoes, segmentacao opcional, hipoteses e limitacoes.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-exploratory-analysis.md
+  output_template: null
+inputs:
+  required: [source]
+  optional: [target_column, segment_column, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/run-exploratory-analysis.yaml
+write_policy: read_only

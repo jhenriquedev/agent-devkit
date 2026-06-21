@@ -1,0 +1,4 @@
+id: bpo.test-connection
+transport: soap-http
+operation: config-and-wsdl-check
+write_policy: read_only

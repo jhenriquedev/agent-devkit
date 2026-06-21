@@ -1,0 +1,21 @@
+id: aws-operations-operator.plan-operational-action
+kind: capability
+name: Plan Operational Action
+version: 0.1.0
+status: draft
+purpose: Planejar uma operacao AWS sem executar mutacao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/plan-operational-action.md
+  output_template: ../../templates/operation-plan-output.md
+inputs:
+  required: [operation, resource_id, environment]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-plan.md, operation-dry-run.json, rollback-notes.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/plan-operational-action.yaml
+write_policy: dry_run

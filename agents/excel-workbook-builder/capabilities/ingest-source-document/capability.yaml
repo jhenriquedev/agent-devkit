@@ -1,0 +1,15 @@
+id: excel-workbook-builder.ingest-source-document
+kind: capability
+name: Ingest Source Document
+version: 0.1.0
+status: draft
+purpose: Read a source file and extract normalized tabular data for workbook generation.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [source]
+  optional: [output]
+outputs:
+  artifacts: [extracted-data.json]
+write_policy: output_only
+

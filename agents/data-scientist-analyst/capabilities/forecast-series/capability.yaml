@@ -1,0 +1,23 @@
+id: data-scientist-analyst.forecast-series
+kind: capability
+name: Forecast Series
+version: 0.1.0
+status: draft
+purpose: >
+  Projetar proximos periodos de uma serie temporal com forecast baseline por
+  media movel.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/forecast-series.md
+  output_template: null
+inputs:
+  required: [source, date_column, metric_column]
+  optional: [granularity, periods, window, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/forecast-series.yaml
+write_policy: read_only

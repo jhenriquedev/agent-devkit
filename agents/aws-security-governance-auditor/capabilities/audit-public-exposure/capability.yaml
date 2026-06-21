@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-public-exposure
+kind: capability
+name: Audit Public Exposure
+version: 0.1.0
+status: draft
+purpose: Auditar exposicao publica por Security Groups e S3.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-public-exposure.md
+  output_template: ../../templates/public-exposure-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [public-exposure.json, public-exposure.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-public-exposure.yaml
+write_policy: read_only

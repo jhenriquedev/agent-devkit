@@ -1,0 +1,10 @@
+id: aws-architecture.analyze-workload-architecture
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: analyze_workload
+  type: read
+  confirmation_required: false
+outputs:
+  type: workload-architecture

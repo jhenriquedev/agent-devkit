@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.trace-record
+kind: capability
+name: Trace Record
+version: 0.1.0
+status: draft
+purpose: >
+  Trace a record through related tables using keys.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/trace-record.md
+  output_template: ../../templates/trace-record-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, left_schema, left_table, right_schema, right_table, column, columns, query, pattern, key_column, key_value, limit, fixture, output]
+outputs:
+  artifacts: [trace-record-output.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/trace-record.yaml
+write_policy: read_only

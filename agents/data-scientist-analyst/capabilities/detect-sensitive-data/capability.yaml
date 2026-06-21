@@ -1,0 +1,23 @@
+id: data-scientist-analyst.detect-sensitive-data
+kind: capability
+name: Detect Sensitive Data
+version: 0.1.0
+status: draft
+purpose: >
+  Detectar colunas e amostras mascaradas de CPF, CNPJ, e-mail, telefone e nomes
+  em dataset tabular.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-sensitive-data.md
+  output_template: null
+inputs:
+  required: [source]
+  optional: [output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/detect-sensitive-data.yaml
+write_policy: read_only

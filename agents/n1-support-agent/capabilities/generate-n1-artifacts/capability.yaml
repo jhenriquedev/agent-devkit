@@ -1,0 +1,15 @@
+id: n1-support-agent.generate-n1-artifacts
+kind: capability
+name: Generate N1 Artifacts
+version: 0.1.0
+status: draft
+purpose: Generate customer reply, internal Azure comment and N2 escalation package.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-n1-artifacts.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-artifacts.md]
+write_policy: read_only

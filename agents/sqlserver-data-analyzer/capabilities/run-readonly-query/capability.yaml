@@ -12,7 +12,7 @@ entrypoint:
   output_template: ../../templates/run-readonly-query-output.md
 inputs:
   required: []
-  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output, format]
 outputs:
   artifacts: [run-readonly-query-output.md]
 integration:

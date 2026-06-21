@@ -1,0 +1,4 @@
+id: reconcile-spreadsheets
+repository: data_repository.py
+method: reconcile_spreadsheets
+side_effects: none

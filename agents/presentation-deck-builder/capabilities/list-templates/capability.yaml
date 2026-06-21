@@ -1,0 +1,20 @@
+id: presentation-deck-builder.list-templates
+kind: capability
+name: List Templates
+version: 0.1.0
+status: draft
+purpose: >
+  List registered presentation templates with current version and status.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-templates.md
+inputs:
+  required: []
+  optional: [templates_root]
+outputs:
+  artifacts: []
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

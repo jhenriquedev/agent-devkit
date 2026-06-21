@@ -1,0 +1,15 @@
+id: n2-support-agent.update-n2-card-workflow
+kind: capability
+name: Update N2 Card Workflow
+version: 0.1.0
+status: draft
+purpose: Plan or execute explicit N2 Azure workflow actions with target state, column, and assignee metadata.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/update-n2-card-workflow.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, target_state, target_column, assign_to, execute, output, format]
+outputs:
+  artifacts: [n2-card-workflow-actions.json]
+write_policy: confirm

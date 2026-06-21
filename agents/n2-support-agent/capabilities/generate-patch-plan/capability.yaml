@@ -1,0 +1,17 @@
+id: n2-support-agent.generate-patch-plan
+kind: capability
+name: Generate Patch Plan
+version: 0.1.0
+status: draft
+purpose: >
+  Generate patch_plan.md with root-cause context, TDD plan, activities,
+  changed files, acceptance criteria, migrations, risks, and rollback.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-patch-plan.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, output, fixture, execute, format]
+outputs:
+  artifacts: [patch_plan.md, patch-plan-contract.json]
+write_policy: confirm

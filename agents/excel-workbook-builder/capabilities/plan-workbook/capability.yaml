@@ -1,0 +1,15 @@
+id: excel-workbook-builder.plan-workbook
+kind: capability
+name: Plan Workbook
+version: 0.1.0
+status: draft
+purpose: Plan sheets, tables, formulas, charts, validations, and outputs.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [brief]
+  optional: [template_id, data_schema]
+outputs:
+  artifacts: [workbook-plan.md]
+write_policy: read_only

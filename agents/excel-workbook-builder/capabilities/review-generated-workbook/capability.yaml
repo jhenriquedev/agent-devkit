@@ -1,0 +1,15 @@
+id: excel-workbook-builder.review-generated-workbook
+kind: capability
+name: Review Generated Workbook
+version: 0.1.0
+status: draft
+purpose: Review a generated workbook for basic structure and formula error indicators.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [workbook]
+  optional: [output]
+outputs:
+  artifacts: [review.md]
+write_policy: read_only
+

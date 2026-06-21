@@ -1,0 +1,5 @@
+id: knowledge-generator.local-source.validate-knowledge
+kind: method
+name: validate_knowledge
+read_only: true
+description: Validate generated knowledge directory.

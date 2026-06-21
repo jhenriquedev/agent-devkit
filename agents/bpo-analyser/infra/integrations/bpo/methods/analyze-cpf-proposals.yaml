@@ -1,0 +1,5 @@
+id: bpo.analyze-cpf-proposals
+transport: soap-http
+service: ServicoAPI
+operation: listarPropostasPorCpf
+write_policy: read_only

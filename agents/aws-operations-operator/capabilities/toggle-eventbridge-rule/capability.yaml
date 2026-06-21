@@ -1,0 +1,21 @@
+id: aws-operations-operator.toggle-eventbridge-rule
+kind: capability
+name: Toggle EventBridge Rule
+version: 0.1.0
+status: draft
+purpose: Habilitar ou desabilitar rule EventBridge com dry-run por padrao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/toggle-eventbridge-rule.md
+  output_template: ../../templates/operation-plan-output.md
+inputs:
+  required: [rule_name, action, environment]
+  optional: [profile, region, execute, confirm_resource, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-plan.md, operation-dry-run.json, operation-result.json, rollback-notes.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/toggle-eventbridge-rule.yaml
+write_policy: confirm

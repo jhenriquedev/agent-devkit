@@ -1,0 +1,32 @@
+id: aws-architecture-analyst.policies
+version: 0.1.0
+status: draft
+
+aws_policy:
+  read_only: true
+  require_region_for_regional_services: true
+  do_not_scan_all_regions_by_default: true
+  command_allowlist_required: true
+  mutations_unsupported: true
+
+security_policy:
+  mask_secrets: true
+  do_not_print:
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+    - access keys
+    - secret values
+    - full environment variables
+    - raw IAM policies in human reports
+
+artifact_policy:
+  local_artifacts_allowed: true
+  ask_before_creating_output_directory: true
+  overwrite_existing_files: ask
+
+quality_gates:
+  - aws_scope_recorded
+  - read_only_allowlist_enforced
+  - inventory_json_valid
+  - dependency_confidence_recorded
+  - facts_inferences_and_gaps_separated

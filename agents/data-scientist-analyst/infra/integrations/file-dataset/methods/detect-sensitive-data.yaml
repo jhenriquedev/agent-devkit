@@ -1,0 +1,4 @@
+id: detect-sensitive-data
+repository: data_repository.py
+method: detect_sensitive_data
+side_effects: none

@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-secrets-usage
+kind: capability
+name: Audit Secrets Usage
+version: 0.1.0
+status: draft
+purpose: Auditar metadados de secrets sem ler valores secretos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-secrets-usage.md
+  output_template: ../../templates/secrets-usage-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [secrets-usage-audit.json, secrets-usage-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-secrets-usage.yaml
+write_policy: read_only

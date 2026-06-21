@@ -1,0 +1,15 @@
+id: excel-workbook-builder.reconcile-datasets
+kind: capability
+name: Reconcile Datasets
+version: 0.1.0
+status: draft
+purpose: Reconcile two datasets by key and optional comparison column.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [left, right, key]
+  optional: [compare_column, tolerance, output, summary_output]
+outputs:
+  artifacts: [reconciliation.xlsx, reconciliation-summary.json]
+write_policy: output_only
+

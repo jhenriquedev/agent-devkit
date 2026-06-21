@@ -1,0 +1,43 @@
+id: n2-support-agent.policies
+version: 0.1.0
+status: draft
+
+input_policy:
+  preferred:
+    - n1_contract
+    - project
+    - card
+    - codebase_path
+    - output
+
+runbook_policy:
+  deterministic_order:
+    - load_support_context
+    - validate_handoff
+    - select_specialist_checks
+    - execute_specialist_validation
+    - analyze_code_root_cause
+    - rank_code_findings
+    - correlate_runtime_evidence
+    - classify_root_cause
+    - build_reproduction_strategy
+    - generate_patch_plan
+    - review_patch_plan_readiness
+    - generate_card_comment
+    - update_n2_card_workflow
+
+patch_plan_policy:
+  default_filename: patch_plan.md
+  require_output_or_azure_card: true
+  include_tdd: true
+  include_acceptance_criteria: true
+  include_migrations_when_needed: true
+  include_blocking_questions: true
+
+privacy:
+  mask_cpf_by_default: true
+  avoid_raw_personal_data_dumps: true
+
+write_policy:
+  azure_requires_execute: true
+  local_file_write_allowed_when_output_present: true

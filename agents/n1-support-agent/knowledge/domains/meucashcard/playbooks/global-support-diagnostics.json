@@ -1,0 +1,28 @@
+{
+  "id": "meucashcard-global-support-diagnostics",
+  "version": "0.1.0",
+  "purpose": "Transformar chamado em raio-x tecnico com evidencias, regra aplicada e encaminhamento objetivo.",
+  "operatingPrinciples": [
+    "O agente deve esclarecer o problema, nao transferir duvida sem executar evidencias minimas.",
+    "O titulo do card e apenas sinal inicial; diagnostico deve vir de evidencias.",
+    "CPF/documento e a chave primaria de investigacao de cliente sempre que disponivel.",
+    "Banco responde estado; logs respondem comportamento no tempo; codigo/knowledge responde regra; sistemas externos respondem integracao.",
+    "Quando nao houver ferramenta para uma evidencia necessaria, registrar diagnosticGap com fonte e motivo."
+  ],
+  "workflow": [
+    "extract_entities",
+    "route_symptom",
+    "run_minimum_evidence",
+    "apply_business_rules",
+    "validate_human_comprehension",
+    "write_support_comment"
+  ],
+  "mustAnswer": [
+    "Qual e o problema concreto do cliente?",
+    "Qual estado atual foi encontrado no banco?",
+    "Qual regra de negocio explica ou nao explica esse estado?",
+    "Houve erro em log no periodo?",
+    "Alguma integracao externa participa do sintoma?",
+    "O proximo agente conseguiria agir sem refazer o raio-x?"
+  ]
+}

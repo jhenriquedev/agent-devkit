@@ -31,7 +31,12 @@ def run_capability(capability: str) -> int:
     args = parser.parse_args()
     try:
         payload = load_fixture(args.fixture) if args.fixture else execute(capability, args)
-        write_output(render(capability, payload), args.output)
+        content = (
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+            if args.format == "json"
+            else render(capability, payload)
+        )
+        write_output(content, args.output)
     except Exception as exc:
         return print_error(exc)
     return 0
@@ -55,6 +60,7 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--fixture")
     parser.add_argument("--output")
+    parser.add_argument("--format", choices=["markdown", "json"], default="markdown")
 
 
 def execute(capability: str, args: argparse.Namespace) -> dict[str, Any]:

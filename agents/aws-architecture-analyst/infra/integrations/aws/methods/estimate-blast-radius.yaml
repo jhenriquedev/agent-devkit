@@ -1,0 +1,10 @@
+id: aws-architecture.estimate-blast-radius
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: estimate_blast_radius
+  type: read
+  confirmation_required: false
+outputs:
+  type: blast-radius

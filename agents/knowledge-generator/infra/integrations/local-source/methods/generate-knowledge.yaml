@@ -1,0 +1,5 @@
+id: knowledge-generator.local-source.generate-knowledge
+kind: method
+name: generate_knowledge
+read_only: false
+description: Generate profile-driven knowledge artifacts from a local source.

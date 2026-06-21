@@ -1,0 +1,27 @@
+id: aws-operations-operator.policies
+version: 0.1.0
+status: draft
+
+operation_policy:
+  dry_run_default: true
+  execute_requires_execute_flag: true
+  execute_requires_confirm_resource: true
+  production_environment_value: prd
+  destructive_operations_blocked_by_default: true
+
+aws_policy:
+  command_allowlist_required: true
+  default_timeout_seconds: 60
+
+artifact_policy:
+  operation_plan_required: true
+  dry_run_artifact_required: true
+  operation_result_required_when_execute: true
+  rollback_notes_required: true
+
+quality_gates:
+  - operation_has_explicit_resource
+  - dry_run_before_execute
+  - execute_requires_confirmation
+  - destructive_operations_blocked
+  - operation_report_generated

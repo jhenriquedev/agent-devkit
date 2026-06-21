@@ -1,0 +1,44 @@
+id: knowledge-generator
+kind: specialist-agent
+name: Knowledge Generator
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Gerar knowledge versionavel a partir de arquivos, pastas, projetos de codigo,
+  documentacoes e conjuntos mistos, escolhendo profiles de saida adequados ao
+  tipo de fonte e mantendo rastreabilidade, validacao e lacunas explicitas.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional: []
+
+capabilities:
+  - list-knowledge-profiles
+  - inspect-source
+  - generate-knowledge
+  - validate-knowledge
+
+agent_surface:
+  repositories:
+    - infra/integrations/local-source/knowledge_repository.py
+  methods:
+    - infra/integrations/local-source/methods/list-profiles.yaml
+    - infra/integrations/local-source/methods/inspect-source.yaml
+    - infra/integrations/local-source/methods/generate-knowledge.yaml
+    - infra/integrations/local-source/methods/validate-knowledge.yaml
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+
+write_policy:
+  read_operations: auto
+  knowledge_generation: ask_before_creating_output_directory
+  overwrite_operations: confirm
+  external_side_effects: unsupported

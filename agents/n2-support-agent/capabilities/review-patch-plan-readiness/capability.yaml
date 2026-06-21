@@ -1,0 +1,15 @@
+id: n2-support-agent.review-patch-plan-readiness
+kind: capability
+name: Review Patch Plan Readiness
+version: 0.1.0
+status: draft
+purpose: Review whether the generated patch plan is ready for implementation or still blocked.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/review-patch-plan-readiness.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, output, fixture, format]
+outputs:
+  artifacts: [n2-patch-plan-readiness.json]
+write_policy: read_only

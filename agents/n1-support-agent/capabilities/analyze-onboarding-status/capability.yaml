@@ -1,0 +1,15 @@
+id: n1-support-agent.analyze-onboarding-status
+kind: capability
+name: Analyze Onboarding Status
+version: 0.1.0
+status: draft
+purpose: Check customer onboarding state using available data analyzers.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-onboarding-status.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-onboarding-check.json]
+write_policy: read_only

@@ -6,9 +6,11 @@ status: draft
 owner: jhss
 
 purpose: >
-  Analyze PostgreSQL data in read-only mode, including schema discovery, table
-  descriptions, bounded queries, data profiling, sensitive-column detection,
-  CPF validation, and operational data reports.
+  Analyze PostgreSQL data in read-only mode, including database discovery,
+  schemas, tables, relationships, join suggestions, bounded queries, assisted
+  query building, table sampling, profiling, sensitive-column detection,
+  data-quality analysis, CPF validation, query plan explanation, ERD reports,
+  record tracing, table comparison, and operational data reports.
 
 default_context:
   - knowledge/context.md
@@ -19,6 +21,7 @@ env:
     - POSTGRES_DB_CONN_STRING
   optional:
     - POSTGRES_STATEMENT_TIMEOUT
+    - POSTGRES_QUERY_LIMIT
 
 runtime_inputs:
   optional:
@@ -26,13 +29,29 @@ runtime_inputs:
 
 capabilities:
   - test-connection
+  - list-databases
   - list-schemas
   - list-tables
   - describe-table
+  - list-relationships
+  - suggest-joins
+  - search-tables
+  - search-columns
+  - explore-database-domain
+  - generate-erd-report
   - run-readonly-query
+  - validate-readonly-query
+  - build-analysis-query
+  - explain-query-plan
+  - sample-table
   - profile-table
+  - analyze-query-result
   - detect-sensitive-columns
+  - detect-data-quality-issues
   - analyze-cpf-column
+  - estimate-table-size
+  - compare-tables
+  - trace-record
   - generate-data-report
 
 agent_surface:
@@ -40,13 +59,29 @@ agent_surface:
     - infra/integrations/postgres/postgres_repository.py
   methods:
     - infra/integrations/postgres/methods/test-connection.yaml
+    - infra/integrations/postgres/methods/list-databases.yaml
     - infra/integrations/postgres/methods/list-schemas.yaml
     - infra/integrations/postgres/methods/list-tables.yaml
     - infra/integrations/postgres/methods/describe-table.yaml
+    - infra/integrations/postgres/methods/list-relationships.yaml
+    - infra/integrations/postgres/methods/suggest-joins.yaml
+    - infra/integrations/postgres/methods/search-tables.yaml
+    - infra/integrations/postgres/methods/search-columns.yaml
+    - infra/integrations/postgres/methods/explore-database-domain.yaml
+    - infra/integrations/postgres/methods/generate-erd-report.yaml
     - infra/integrations/postgres/methods/run-readonly-query.yaml
+    - infra/integrations/postgres/methods/validate-readonly-query.yaml
+    - infra/integrations/postgres/methods/build-analysis-query.yaml
+    - infra/integrations/postgres/methods/explain-query-plan.yaml
+    - infra/integrations/postgres/methods/sample-table.yaml
     - infra/integrations/postgres/methods/profile-table.yaml
+    - infra/integrations/postgres/methods/analyze-query-result.yaml
     - infra/integrations/postgres/methods/detect-sensitive-columns.yaml
+    - infra/integrations/postgres/methods/detect-data-quality-issues.yaml
     - infra/integrations/postgres/methods/analyze-cpf-column.yaml
+    - infra/integrations/postgres/methods/estimate-table-size.yaml
+    - infra/integrations/postgres/methods/compare-tables.yaml
+    - infra/integrations/postgres/methods/trace-record.yaml
   policies:
     - knowledge/policies.yaml
 

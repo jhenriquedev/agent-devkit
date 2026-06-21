@@ -1,0 +1,5 @@
+id: knowledge-generator.local-source.inspect-source
+kind: method
+name: inspect_source
+read_only: true
+description: Inspect a local file or directory and recommend a knowledge profile.

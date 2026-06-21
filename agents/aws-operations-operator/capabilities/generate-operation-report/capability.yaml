@@ -1,0 +1,21 @@
+id: aws-operations-operator.generate-operation-report
+kind: capability
+name: Generate Operation Report
+version: 0.1.0
+status: draft
+purpose: Gerar relatorio a partir de artefatos de operacao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-operation-report.md
+  output_template: ../../templates/operation-report-output.md
+inputs:
+  required: [operation_dir]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-report.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/generate-operation-report.yaml
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: presentation-deck-builder.list-template-versions
+kind: capability
+name: List Template Versions
+version: 0.1.0
+status: draft
+purpose: >
+  List versions registered for one template, including status, current version,
+  paths, and notes.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-template-versions.md
+inputs:
+  required: [template_id]
+  optional: [templates_root]
+outputs:
+  artifacts: []
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

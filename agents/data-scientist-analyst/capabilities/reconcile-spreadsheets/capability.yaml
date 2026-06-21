@@ -1,0 +1,23 @@
+id: data-scientist-analyst.reconcile-spreadsheets
+kind: capability
+name: Reconcile Spreadsheets
+version: 0.1.0
+status: draft
+purpose: >
+  Conciliar duas bases tabulares por chave simples ou composta, explicando
+  registros conciliados, ausentes, divergentes e duplicados.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/reconcile-spreadsheets.md
+  output_template: null
+inputs:
+  required: [left, right, key]
+  optional: [compare_columns, numeric_tolerance, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/reconcile-spreadsheets.yaml
+write_policy: read_only

@@ -1,0 +1,10 @@
+id: aws-security.audit-s3-buckets
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: audit_s3_buckets
+  type: read
+  confirmation_required: false
+outputs:
+  type: security-audit

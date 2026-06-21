@@ -1,0 +1,15 @@
+id: n2-support-agent.update-azure-workflow
+kind: capability
+name: Update Azure Workflow
+version: 0.1.0
+status: draft
+purpose: Plan or execute Azure DevOps tag, comment, move, and patch_plan attachment actions for N2.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/update-azure-workflow.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, execute, format]
+outputs:
+  artifacts: [n2-azure-actions.json]
+write_policy: confirm

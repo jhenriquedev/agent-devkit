@@ -1,0 +1,18 @@
+id: presentation-deck-builder.plan-deck
+kind: capability
+name: Plan Deck
+version: 0.1.0
+status: draft
+purpose: Create a slide-by-slide plan from extracted content and template constraints.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/plan-deck.md
+inputs:
+  required: [input]
+  optional: [template_id, template_version]
+outputs:
+  artifacts: [deck-plan.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

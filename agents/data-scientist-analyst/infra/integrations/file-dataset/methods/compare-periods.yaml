@@ -1,0 +1,4 @@
+id: compare-periods
+repository: data_repository.py
+method: compare_periods
+side_effects: none

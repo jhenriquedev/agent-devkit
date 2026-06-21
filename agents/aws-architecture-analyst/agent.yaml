@@ -1,0 +1,57 @@
+id: aws-architecture-analyst
+kind: specialist-agent
+name: AWS Architecture Analyst
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analisar ambientes AWS em modo read-only, identificando recursos, topologia,
+  dependencias, riscos arquiteturais, pontos de falha, lacunas de
+  observabilidade e perguntas abertas para revisao tecnica.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional:
+    - AWS_PROFILE
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+
+capabilities:
+  - discover-account-inventory
+  - map-service-dependencies
+  - analyze-workload-architecture
+  - review-resilience
+  - review-observability
+  - review-networking
+  - estimate-blast-radius
+  - generate-architecture-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/aws/aws_repository.py
+  methods:
+    - infra/integrations/aws/methods/discover-account-inventory.yaml
+    - infra/integrations/aws/methods/map-service-dependencies.yaml
+    - infra/integrations/aws/methods/analyze-workload-architecture.yaml
+    - infra/integrations/aws/methods/review-resilience.yaml
+    - infra/integrations/aws/methods/review-observability.yaml
+    - infra/integrations/aws/methods/review-networking.yaml
+    - infra/integrations/aws/methods/estimate-blast-radius.yaml
+    - infra/integrations/aws/methods/generate-architecture-report.yaml
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+
+write_policy:
+  read_operations: auto
+  artifact_generation: auto
+  aws_mutations: unsupported
+  external_side_effects: unsupported

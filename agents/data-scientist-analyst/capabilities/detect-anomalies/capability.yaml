@@ -1,0 +1,22 @@
+id: data-scientist-analyst.detect-anomalies
+kind: capability
+name: Detect Anomalies
+version: 0.1.0
+status: draft
+purpose: >
+  Detectar picos e quedas em serie temporal agregada usando z-score simples.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-anomalies.md
+  output_template: null
+inputs:
+  required: [source, date_column, metric_column]
+  optional: [granularity, threshold, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/detect-anomalies.yaml
+write_policy: read_only

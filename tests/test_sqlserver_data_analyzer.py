@@ -74,6 +74,18 @@ class SqlServerDataAnalyzerCliTest(unittest.TestCase):
         self.assertIn("# SQL Server Read-Only Query", result.stdout)
         self.assertIn("123.***.***-09", result.stdout)
 
+    def test_run_readonly_query_can_render_json_from_fixture(self) -> None:
+        result = run_capability(
+            "run-readonly-query",
+            {"row_count": 1, "limit": 100, "rows": [{"cpf": "12345678909", "name": "Ana"}]},
+            ["--format", "json"],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["row_count"], 1)
+        self.assertEqual(payload["rows"][0]["cpf"], "12345678909")
+
     def test_suggest_joins_from_fixture(self) -> None:
         result = run_capability(
             "suggest-joins",

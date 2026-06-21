@@ -68,6 +68,18 @@ class PostgresRepository:
         )
         return {"database": self.database, "count": len(rows), "schemas": rows}
 
+    def list_databases(self, *, limit: int = 200) -> dict[str, Any]:
+        rows = self._query_json(
+            f"""
+            select datname as database_name, pg_catalog.pg_get_userbyid(datdba) as owner_name
+            from pg_database
+            where datallowconn
+            order by datname
+            limit {int(limit)}
+            """
+        )
+        return {"database": self.database, "count": len(rows), "databases": rows}
+
     def list_tables(self, *, schema: str | None = None, limit: int = 200) -> dict[str, Any]:
         where = "and table_schema = " + sql_literal(schema) if schema else ""
         rows = self._query_json(
@@ -122,10 +134,103 @@ class PostgresRepository:
             "constraints": constraints,
         }
 
+    def list_relationships(self, *, schema: str | None = None, limit: int = 500) -> dict[str, Any]:
+        where = "and ns.nspname = " + sql_literal(schema) if schema else ""
+        rows = self._query_json(
+            f"""
+            select
+              con.conname as relationship_name,
+              ns.nspname || '.' || tbl.relname as parent_table,
+              att.attname as parent_column,
+              ref_ns.nspname || '.' || ref_tbl.relname as referenced_table,
+              ref_att.attname as referenced_column
+            from pg_constraint con
+            join pg_class tbl on tbl.oid = con.conrelid
+            join pg_namespace ns on ns.oid = tbl.relnamespace
+            join pg_class ref_tbl on ref_tbl.oid = con.confrelid
+            join pg_namespace ref_ns on ref_ns.oid = ref_tbl.relnamespace
+            join unnest(con.conkey) with ordinality as ck(attnum, ord) on true
+            join unnest(con.confkey) with ordinality as fk(attnum, ord) on fk.ord = ck.ord
+            join pg_attribute att on att.attrelid = tbl.oid and att.attnum = ck.attnum
+            join pg_attribute ref_att on ref_att.attrelid = ref_tbl.oid and ref_att.attnum = fk.attnum
+            where con.contype = 'f'
+              {where}
+            order by parent_table, referenced_table
+            limit {int(limit)}
+            """
+        )
+        return {"database": self.database, "schema": schema, "count": len(rows), "relationships": rows}
+
+    def suggest_joins(self, *, schema: str | None = None) -> dict[str, Any]:
+        relationships = self.list_relationships(schema=schema)["relationships"]
+        suggestions = [
+            {
+                "left_table": row["parent_table"],
+                "left_column": row["parent_column"],
+                "right_table": row["referenced_table"],
+                "right_column": row["referenced_column"],
+                "confidence": "high",
+            }
+            for row in relationships
+        ]
+        if not suggestions:
+            suggestions = heuristic_join_suggestions(self.search_columns(pattern="id", schema=schema, limit=500)["columns"])
+        return {"database": self.database, "schema": schema, "count": len(suggestions), "suggestions": suggestions}
+
+    def search_tables(self, *, pattern: str, limit: int = 100) -> dict[str, Any]:
+        rows = self._query_json(
+            f"""
+            select table_schema, table_name, table_type
+            from information_schema.tables
+            where table_schema not like 'pg_%'
+              and table_schema <> 'information_schema'
+              and (table_name ilike {sql_like(pattern)} or table_schema ilike {sql_like(pattern)})
+            order by table_schema, table_name
+            limit {int(limit)}
+            """
+        )
+        return {"database": self.database, "pattern": pattern, "count": len(rows), "tables": rows}
+
+    def search_columns(self, *, pattern: str, schema: str | None = None, limit: int = 200) -> dict[str, Any]:
+        schema_where = "and table_schema = " + sql_literal(schema) if schema else ""
+        rows = self._query_json(
+            f"""
+            select table_schema, table_name, column_name, data_type
+            from information_schema.columns
+            where table_schema not like 'pg_%'
+              and table_schema <> 'information_schema'
+              and (column_name ilike {sql_like(pattern)} or data_type ilike {sql_like(pattern)})
+              {schema_where}
+            order by table_schema, table_name, ordinal_position
+            limit {int(limit)}
+            """
+        )
+        return {"database": self.database, "pattern": pattern, "schema": schema, "count": len(rows), "columns": rows}
+
     def run_readonly_query(self, *, query: str, limit: int = 100) -> dict[str, Any]:
         safe_query = enforce_limit(validate_readonly_query(query), limit)
         rows = self._query_json(safe_query)
         return {"database": self.database, "limit": limit, "row_count": len(rows), "rows": rows, "query": safe_query}
+
+    def validate_readonly_query(self, *, query: str, limit: int = 100) -> dict[str, Any]:
+        safe_query = enforce_limit(validate_readonly_query(query), limit)
+        return {"database": self.database, "valid": True, "query": safe_query, "limit": limit}
+
+    def build_analysis_query(self, *, schema: str, table: str, columns: list[str] | None = None, limit: int = 100) -> dict[str, Any]:
+        validate_identifier(schema, "schema")
+        validate_identifier(table, "table")
+        selected = ", ".join(quote_ident(column) for column in columns) if columns else "*"
+        query = f"select {selected} from {qualified_name(schema, table)} limit {int(limit)}"
+        return {"database": self.database, "query": query, "notes": ["Review filters before execution."]}
+
+    def explain_query_plan(self, *, query: str) -> dict[str, Any]:
+        safe_query = validate_readonly_query(query)
+        rows = self._query_json(f"explain (format json) {safe_query}")
+        return {"database": self.database, "query": safe_query, "plan": rows}
+
+    def sample_table(self, *, schema: str, table: str, limit: int = 20) -> dict[str, Any]:
+        rows = self._query_json(f"select * from {qualified_name(schema, table)} limit {int(limit)}")
+        return {"database": self.database, "schema": schema, "table": table, "row_count": len(rows), "rows": rows}
 
     def profile_table(self, *, schema: str, table: str, limit_columns: int = 30) -> dict[str, Any]:
         description = self.describe_table(schema=schema, table=table)
@@ -149,6 +254,9 @@ class PostgresRepository:
             profiles.append({**column, **stats})
         return {"database": self.database, "schema": schema, "table": table, "row_count": row_count, "columns": profiles}
 
+    def analyze_query_result(self, *, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"database": self.database, **analyze_rows(rows)}
+
     def detect_sensitive_columns(self, *, schema: str | None = None) -> dict[str, Any]:
         where = "and table_schema = " + sql_literal(schema) if schema else ""
         rows = self._query_json(
@@ -167,6 +275,19 @@ class PostgresRepository:
             if kind:
                 findings.append({**row, "sensitive_kind": kind})
         return {"database": self.database, "schema": schema, "count": len(findings), "columns": findings}
+
+    def detect_data_quality_issues(self, *, schema: str, table: str) -> dict[str, Any]:
+        profile = self.profile_table(schema=schema, table=table)
+        issues = []
+        for column in profile["columns"]:
+            total = int(column.get("total_rows") or 0)
+            nulls = int(column.get("null_count") or 0)
+            distinct = int(column.get("distinct_count") or 0)
+            if total and nulls == total:
+                issues.append({"column_name": column["column_name"], "issue": "all_null"})
+            if total > 1 and distinct == 1:
+                issues.append({"column_name": column["column_name"], "issue": "constant_value"})
+        return {"database": self.database, "schema": schema, "table": table, "issues": issues}
 
     def analyze_cpf_column(self, *, schema: str, table: str, column: str) -> dict[str, Any]:
         validate_identifier(schema, "schema")
@@ -233,6 +354,58 @@ class PostgresRepository:
         )[0]
         return {"database": self.database, "schema": schema, "table": table, "column": column, **rows}
 
+    def estimate_table_size(self, *, schema: str | None = None, limit: int = 200) -> dict[str, Any]:
+        where = "and n.nspname = " + sql_literal(schema) if schema else ""
+        rows = self._query_json(
+            f"""
+            select
+              n.nspname as table_schema,
+              c.relname as table_name,
+              c.reltuples::bigint as estimated_rows,
+              pg_total_relation_size(c.oid)::bigint as total_bytes,
+              pg_size_pretty(pg_total_relation_size(c.oid)) as total_size
+            from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace
+            where c.relkind in ('r', 'p')
+              and n.nspname not like 'pg_%'
+              and n.nspname <> 'information_schema'
+              {where}
+            order by pg_total_relation_size(c.oid) desc
+            limit {int(limit)}
+            """
+        )
+        return {"database": self.database, "schema": schema, "count": len(rows), "tables": rows}
+
+    def compare_tables(self, *, left_schema: str, left_table: str, right_schema: str, right_table: str) -> dict[str, Any]:
+        left = self.describe_table(schema=left_schema, table=left_table)
+        right = self.describe_table(schema=right_schema, table=right_table)
+        left_cols = {column["column_name"]: column["data_type"] for column in left["columns"]}
+        right_cols = {column["column_name"]: column["data_type"] for column in right["columns"]}
+        return {
+            "database": self.database,
+            "left": f"{left_schema}.{left_table}",
+            "right": f"{right_schema}.{right_table}",
+            "common_columns": sorted(set(left_cols) & set(right_cols)),
+            "left_only": sorted(set(left_cols) - set(right_cols)),
+            "right_only": sorted(set(right_cols) - set(left_cols)),
+        }
+
+    def trace_record(self, *, schema: str, table: str, key_column: str, key_value: str) -> dict[str, Any]:
+        validate_identifier(key_column, "key_column")
+        base = self.run_readonly_query(
+            query=f"select * from {qualified_name(schema, table)} where {quote_ident(key_column)} = {sql_literal(key_value)}",
+            limit=20,
+        )
+        relationships = self.list_relationships(schema=schema)["relationships"]
+        return {
+            "database": self.database,
+            "schema": schema,
+            "table": table,
+            "key_column": key_column,
+            "base_rows": base["rows"],
+            "relationships": relationships,
+        }
+
     def _query_json(self, query: str) -> list[dict[str, Any]]:
         sql = f"""
         set statement_timeout = {int(self.config.statement_timeout_ms)};
@@ -278,10 +451,10 @@ BLOCKED_SQL = re.compile(r"\b(insert|update|delete|drop|alter|truncate|create|gr
 def validate_readonly_query(query: str) -> str:
     text = query.strip().rstrip(";")
     lowered = text.lower()
-    if not (lowered.startswith("select") or lowered.startswith("with") or lowered.startswith("explain")):
-        raise PostgresRepositoryError("only SELECT, WITH, or EXPLAIN queries are allowed")
     if BLOCKED_SQL.search(text):
         raise PostgresRepositoryError("query contains blocked SQL keyword")
+    if not (lowered.startswith("select") or lowered.startswith("with") or lowered.startswith("explain")):
+        raise PostgresRepositoryError("only SELECT, WITH, or EXPLAIN queries are allowed")
     return text
 
 
@@ -354,20 +527,66 @@ def sql_literal(value: str | None) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+def sql_like(value: str) -> str:
+    return sql_literal(f"%{value}%")
+
+
 def sensitive_kind(column_name: str) -> str | None:
     lowered = column_name.lower()
     patterns = {
         "cpf": ["cpf", "documento", "tax_id"],
         "cnpj": ["cnpj"],
-        "email": ["email", "e_mail"],
+        "email": ["email", "e_mail", "mail"],
         "phone": ["telefone", "phone", "celular", "mobile"],
         "name": ["nome", "name", "full_name"],
         "address": ["endereco", "address", "cep", "zipcode"],
+        "password": ["password", "senha", "passwd"],
+        "token": ["token", "secret", "api_key", "apikey"],
     }
     for kind, terms in patterns.items():
         if any(term in lowered for term in terms):
             return kind
     return None
+
+
+def heuristic_join_suggestions(columns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_name: dict[str, list[dict[str, Any]]] = {}
+    for column in columns:
+        normalized = re.sub(r"(^id$|_?id$)", "", column.get("column_name", "").lower())
+        if normalized:
+            by_name.setdefault(normalized, []).append(column)
+    suggestions = []
+    for items in by_name.values():
+        if len(items) < 2:
+            continue
+        left, right = items[0], items[1]
+        suggestions.append(
+            {
+                "left_table": f"{left['table_schema']}.{left['table_name']}",
+                "left_column": left["column_name"],
+                "right_table": f"{right['table_schema']}.{right['table_name']}",
+                "right_column": right["column_name"],
+                "confidence": "medium",
+            }
+        )
+    return suggestions
+
+
+def analyze_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if not rows:
+        return {"row_count": 0, "columns": []}
+    columns = []
+    for key in rows[0].keys():
+        values = [row.get(key) for row in rows]
+        columns.append(
+            {
+                "column_name": key,
+                "null_count": sum(value is None for value in values),
+                "distinct_count": len({str(value) for value in values if value is not None}),
+                "sensitive_kind": sensitive_kind(key),
+            }
+        )
+    return {"row_count": len(rows), "columns": columns}
 
 
 def load_dotenv() -> None:

@@ -1,0 +1,15 @@
+id: n1-support-agent.analyze-proposal-status
+kind: capability
+name: Analyze Proposal Status
+version: 0.1.0
+status: draft
+purpose: Check proposal and contract status for N1 triage.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-proposal-status.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-proposal-check.json]
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.generate-security-report
+kind: capability
+name: Generate Security Report
+version: 0.1.0
+status: draft
+purpose: Consolidar auditorias em relatorio de seguranca.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-security-report.md
+  output_template: ../../templates/security-report-output.md
+inputs:
+  required: [audit_dir]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [security-findings.json, security-report.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/generate-security-report.yaml
+write_policy: read_only

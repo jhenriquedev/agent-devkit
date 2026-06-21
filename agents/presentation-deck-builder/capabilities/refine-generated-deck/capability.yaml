@@ -1,0 +1,18 @@
+id: presentation-deck-builder.refine-generated-deck
+kind: capability
+name: Refine Generated Deck
+version: 0.1.0
+status: draft
+purpose: Apply user feedback to a generated deck while preserving template constraints.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/refine-generated-deck.md
+inputs:
+  required: [deck, feedback]
+  optional: [output]
+outputs:
+  artifacts: [deck.pptx]
+integration:
+  repository: ../../infra/integrations/presentation-renderer
+  methods: []
+write_policy: output_only

@@ -1,0 +1,14 @@
+id: excel-workbook-builder.validate-reconciliation-rules
+kind: capability
+name: Validate Reconciliation Rules
+version: 0.1.0
+status: draft
+purpose: Validate reconciliation keys, tolerances, rounding, and match rules.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [rules]
+outputs:
+  artifacts: [rules-validation.md]
+write_policy: read_only

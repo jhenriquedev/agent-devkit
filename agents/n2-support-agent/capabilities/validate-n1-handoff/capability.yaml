@@ -1,0 +1,15 @@
+id: n2-support-agent.validate-n1-handoff
+kind: capability
+name: Validate N1 Handoff
+version: 0.1.0
+status: draft
+purpose: Validate whether the N1 contract is sufficient for N2 root-cause analysis.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/validate-n1-handoff.md
+inputs:
+  optional: [project, card, n1_contract, fixture, output, format]
+outputs:
+  artifacts: [n2-handoff-validation.json]
+write_policy: read_only

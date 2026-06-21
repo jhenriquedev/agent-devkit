@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-config-guardrails
+kind: capability
+name: Audit Config Guardrails
+version: 0.1.0
+status: draft
+purpose: Auditar AWS Config recorders e rules como guardrails de governanca.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-config-guardrails.md
+  output_template: ../../templates/config-guardrails-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [config-guardrails-audit.json, config-guardrails-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-config-guardrails.yaml
+write_policy: read_only

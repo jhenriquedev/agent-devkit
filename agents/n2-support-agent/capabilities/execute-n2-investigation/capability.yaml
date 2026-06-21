@@ -1,0 +1,17 @@
+id: n2-support-agent.execute-n2-investigation
+kind: capability
+name: Execute N2 Investigation
+version: 0.1.0
+status: draft
+purpose: >
+  Load N2 support context, analyze code root cause, generate patch_plan.md, and
+  plan or execute Azure DevOps workflow actions.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/execute-n2-investigation.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, output, fixture, execute, format]
+outputs:
+  artifacts: [n2-investigation.json, patch_plan.md]
+write_policy: confirm

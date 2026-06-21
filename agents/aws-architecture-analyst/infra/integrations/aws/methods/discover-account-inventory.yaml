@@ -1,0 +1,10 @@
+id: aws-architecture.discover-account-inventory
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: discover_account_inventory
+  type: read
+  confirmation_required: false
+outputs:
+  type: aws-inventory

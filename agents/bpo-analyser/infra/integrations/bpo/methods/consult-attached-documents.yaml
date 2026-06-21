@@ -1,0 +1,5 @@
+id: bpo.consult-attached-documents
+transport: soap-http
+service: WsProposta
+operation: ConsultaDocumentosAnexados
+write_policy: read_only

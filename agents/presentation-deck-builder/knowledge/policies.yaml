@@ -1,0 +1,47 @@
+id: presentation-deck-builder.policies
+version: 0.1.0
+status: draft
+
+template_policy:
+  ask_before_saving_template: true
+  save_templates_under_agent_templates: true
+  require_template_manifest: true
+  require_input_schema_for_each_template: true
+  mark_new_templates_as_draft_until_approved: true
+
+template_versioning_policy:
+  templates_are_versioned_assets: true
+  never_overwrite_validated_template: true
+  create_new_version_for_template_changes: true
+  current_version_declared_in_manifest: true
+  keep_changelog_per_template: true
+  support_status:
+    - draft
+    - validated
+    - deprecated
+    - archived
+
+content_policy:
+  do_not_invent_missing_business_content: true
+  ask_when_slide_content_is_ambiguous: true
+  allow_generation_without_questions_only_when_input_is_structured_and_complete: true
+  supported_input_formats:
+    - pdf
+    - md
+    - csv
+    - docx
+    - xlsx
+    - txt
+
+deck_quality_policy:
+  preserve_template_visual_identity: true
+  validate_slide_overflow: true
+  validate_missing_placeholders: true
+  validate_required_fields: true
+  avoid_overcrowded_slides: true
+
+filesystem_policy:
+  ask_before_writing_templates: true
+  ask_before_overwriting_templates: true
+  generated_decks_default_output: outputs
+  portable_paths_required: true

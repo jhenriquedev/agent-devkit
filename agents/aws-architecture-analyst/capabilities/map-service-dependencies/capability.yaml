@@ -1,0 +1,23 @@
+id: aws-architecture-analyst.map-service-dependencies
+kind: capability
+name: Map Service Dependencies
+version: 0.1.0
+status: draft
+purpose: >
+  Criar mapa de dependencias entre recursos a partir de inventario AWS
+  normalizado.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/map-service-dependencies.md
+  output_template: ../../templates/dependency-map-output.md
+inputs:
+  required: [inventory]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [dependency-map.json, dependency-map.md, unresolved-dependencies.json]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/map-service-dependencies.yaml
+write_policy: read_only

@@ -1,0 +1,23 @@
+id: data-scientist-analyst.calculate-confidence-intervals
+kind: capability
+name: Calculate Confidence Intervals
+version: 0.1.0
+status: draft
+purpose: >
+  Calcular intervalo de confianca para media de uma coluna numerica usando
+  aproximacao normal.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/calculate-confidence-intervals.md
+  output_template: null
+inputs:
+  required: [source, metric_column]
+  optional: [confidence, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/calculate-confidence-intervals.yaml
+write_policy: read_only

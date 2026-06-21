@@ -1,0 +1,21 @@
+id: aws-operations-operator.restart-ecs-service
+kind: capability
+name: Restart ECS Service
+version: 0.1.0
+status: draft
+purpose: Planejar restart controlado de ECS service.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/restart-ecs-service.md
+  output_template: ../../templates/operation-plan-output.md
+inputs:
+  required: [cluster, service, environment]
+  optional: [profile, region, execute, confirm_resource, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-plan.md, operation-dry-run.json, operation-result.json, rollback-notes.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/restart-ecs-service.yaml
+write_policy: confirm

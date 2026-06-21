@@ -1,0 +1,21 @@
+id: aws-operations-operator.force-ecs-deployment
+kind: capability
+name: Force ECS Deployment
+version: 0.1.0
+status: draft
+purpose: Forcar novo deployment de ECS service com dry-run por padrao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/force-ecs-deployment.md
+  output_template: ../../templates/operation-plan-output.md
+inputs:
+  required: [cluster, service, environment]
+  optional: [profile, region, execute, confirm_resource, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [operation-plan.md, operation-dry-run.json, operation-result.json, rollback-notes.md]
+integration:
+  repository: ../../infra/integrations/aws-operations/aws_operations_repository.py
+  methods:
+    - ../../infra/integrations/aws-operations/methods/force-ecs-deployment.yaml
+write_policy: confirm

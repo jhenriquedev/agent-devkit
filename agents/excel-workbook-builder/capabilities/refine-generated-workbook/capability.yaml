@@ -1,0 +1,14 @@
+id: excel-workbook-builder.refine-generated-workbook
+kind: capability
+name: Refine Generated Workbook
+version: 0.1.0
+status: draft
+purpose: Apply user feedback to a generated workbook and produce a revised copy.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [workbook, feedback]
+outputs:
+  artifacts: [workbook.xlsx]
+write_policy: output_only

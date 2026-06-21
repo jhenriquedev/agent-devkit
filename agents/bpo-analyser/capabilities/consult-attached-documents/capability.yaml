@@ -1,0 +1,22 @@
+id: bpo-analyser.consult-attached-documents
+kind: capability
+name: Consult BPO Attached Documents
+version: 0.1.0
+status: draft
+purpose: >
+  Consultar documentos anexados diretamente na BPO via WsProposta.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/consult-attached-documents.md
+  output_template: ../../templates/consult-attached-documents-output.md
+inputs:
+  required: [proposal_number]
+  optional: [document_type, include_content, fixture, output, format]
+outputs:
+  artifacts: [bpo-attached-documents.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/consult-attached-documents.yaml
+write_policy: read_only

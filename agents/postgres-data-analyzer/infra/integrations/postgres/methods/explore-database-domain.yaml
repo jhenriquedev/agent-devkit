@@ -1,0 +1,8 @@
+id: explore-database-domain
+description: Infer functional areas and important entities from PostgreSQL metadata.
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit]
+outputs:
+  fields: [result]
+read_only: true

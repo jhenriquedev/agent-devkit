@@ -1,0 +1,22 @@
+id: aws-architecture-analyst.estimate-blast-radius
+kind: capability
+name: Estimate Blast Radius
+version: 0.1.0
+status: draft
+purpose: >
+  Estimar impacto direto e indireto de falha ou alteracao em recurso AWS.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/estimate-blast-radius.md
+  output_template: ../../templates/blast-radius-output.md
+inputs:
+  required: [resource_id]
+  optional: [inventory, dependency_map, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [blast-radius.md, blast-radius.json]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/estimate-blast-radius.yaml
+write_policy: read_only

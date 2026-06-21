@@ -1,0 +1,23 @@
+id: n1-support-agent.analyze-bpo-proposal
+kind: capability
+name: Analyze BPO Proposal
+version: 0.1.0
+status: draft
+purpose: >
+  Consult BPO proposal evidence through bpo-analyser and normalize it for the
+  N1 fixed output contract.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-bpo-proposal.md
+inputs:
+  optional: [cpf, proposal_number, document_type, fixture, output, format]
+outputs:
+  artifacts: [n1-bpo-proposal-check.json]
+integration:
+  orchestrated_agents:
+    - bpo-analyser/analyze-proposal
+    - bpo-analyser/analyze-cpf-proposals
+    - bpo-analyser/find-latest-proposal-by-cpf
+    - bpo-analyser/consult-attached-documents
+write_policy: read_only

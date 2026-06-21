@@ -1,0 +1,14 @@
+id: excel-workbook-builder.run-workbook-operation
+kind: capability
+name: Run Workbook Operation
+version: 0.1.0
+status: draft
+purpose: Apply Excel-style operations such as filter, sort, aggregate, and calculate.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [workbook, operation]
+outputs:
+  artifacts: [workbook.xlsx]
+write_policy: output_only

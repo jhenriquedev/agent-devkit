@@ -1,0 +1,88 @@
+id: data-scientist-analyst
+kind: specialist-agent
+name: Data Scientist Analyst
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analisar dados tabulares, planilhas, arquivos locais e resultados vindos de
+  agentes de banco, gerando profiling, deteccao de dados sensiveis,
+  conciliacoes, relatorios tecnicos e artefatos reproduziveis.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/data-policies.md
+  - knowledge/analysis-methods.md
+
+env:
+  required: []
+  optional: []
+
+capabilities:
+  - ingest-dataset
+  - inspect-dataset-schema
+  - profile-dataset
+  - detect-sensitive-data
+  - run-exploratory-analysis
+  - detect-outliers
+  - analyze-correlation
+  - segment-data
+  - analyze-time-series
+  - compare-periods
+  - analyze-cohorts
+  - detect-anomalies
+  - forecast-series
+  - test-hypothesis
+  - calculate-confidence-intervals
+  - calculate-sample-size
+  - measure-effect-size
+  - explain-statistical-result
+  - reconcile-spreadsheets
+  - generate-reconciliation-report
+  - generate-data-report
+  - analyze-sql-source
+
+reused_agents:
+  - postgres-data-analyzer
+  - sqlserver-data-analyzer
+  - bpo-analyser
+  - aws-cloudwatch-log-analyzer
+  - elasticsearch-log-analyzer
+  - topdesk-orchestrator
+  - presentation-deck-builder
+
+agent_surface:
+  repositories:
+    - infra/integrations/file-dataset/data_repository.py
+  methods:
+    - infra/integrations/file-dataset/methods/ingest-dataset.yaml
+    - infra/integrations/file-dataset/methods/inspect-dataset-schema.yaml
+    - infra/integrations/file-dataset/methods/profile-dataset.yaml
+    - infra/integrations/file-dataset/methods/detect-sensitive-data.yaml
+    - infra/integrations/file-dataset/methods/run-exploratory-analysis.yaml
+    - infra/integrations/file-dataset/methods/detect-outliers.yaml
+    - infra/integrations/file-dataset/methods/analyze-correlation.yaml
+    - infra/integrations/file-dataset/methods/segment-data.yaml
+    - infra/integrations/file-dataset/methods/analyze-time-series.yaml
+    - infra/integrations/file-dataset/methods/compare-periods.yaml
+    - infra/integrations/file-dataset/methods/analyze-cohorts.yaml
+    - infra/integrations/file-dataset/methods/detect-anomalies.yaml
+    - infra/integrations/file-dataset/methods/forecast-series.yaml
+    - infra/integrations/file-dataset/methods/test-hypothesis.yaml
+    - infra/integrations/file-dataset/methods/calculate-confidence-intervals.yaml
+    - infra/integrations/file-dataset/methods/calculate-sample-size.yaml
+    - infra/integrations/file-dataset/methods/measure-effect-size.yaml
+    - infra/integrations/file-dataset/methods/explain-statistical-result.yaml
+    - infra/integrations/file-dataset/methods/reconcile-spreadsheets.yaml
+    - infra/integrations/file-dataset/methods/generate-reconciliation-report.yaml
+    - infra/integrations/file-dataset/methods/generate-data-report.yaml
+    - infra/integrations/agent-bridge/methods/analyze-sql-source.yaml
+  policies:
+    - knowledge/data-policies.md
+
+write_policy:
+  read_operations: auto
+  generated_artifacts: explicit_output_path
+  source_mutation: unsupported
+  external_side_effects: unsupported

@@ -1,0 +1,65 @@
+id: knowledge-generator.policies
+version: 0.1.0
+status: draft
+
+source_handling:
+  allow_files: true
+  allow_directories: true
+  allow_mixed_sources: true
+  ignore_common_generated_directories:
+    - .git
+    - .hg
+    - .svn
+    - node_modules
+    - vendor
+    - __pycache__
+    - dist
+    - build
+    - target
+    - .next
+    - bin
+    - obj
+    - .serverless
+  max_default_file_size_bytes: 500000
+
+security_policy:
+  mask_secrets: true
+  do_not_store:
+    - senhas
+    - tokens
+    - api keys
+    - cookies
+    - certificados
+    - private keys
+    - connection strings
+    - payloads pessoais completos
+
+knowledge_policy:
+  profile_driven_artifacts: true
+  require_source_traceability: true
+  require_gap_file: true
+  separate_facts_from_inferences: true
+  default_profile: auto
+  supported_profiles:
+    - code-project
+    - frontend-app
+    - documentation-set
+    - business-domain
+    - integration-docs
+    - support-operations
+    - data-domain
+    - mixed-knowledge
+    - freeform
+
+filesystem_policy:
+  ask_before_creating_output_directory: true
+  overwrite_existing_files: ask
+  portable_paths_required: true
+
+quality_gates:
+  - source_inspected
+  - profile_selected_or_reported
+  - generated_json_is_valid
+  - required_profile_artifacts_exist
+  - secrets_masked
+  - gaps_explicit

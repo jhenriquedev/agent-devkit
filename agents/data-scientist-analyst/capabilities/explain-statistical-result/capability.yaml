@@ -1,0 +1,23 @@
+id: data-scientist-analyst.explain-statistical-result
+kind: capability
+name: Explain Statistical Result
+version: 0.1.0
+status: draft
+purpose: >
+  Traduzir p-valor, alpha e tamanho de efeito opcional em interpretacao tecnica
+  e executiva.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/explain-statistical-result.md
+  output_template: null
+inputs:
+  required: [p_value]
+  optional: [alpha, effect_size, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/explain-statistical-result.yaml
+write_policy: read_only

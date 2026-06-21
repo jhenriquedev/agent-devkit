@@ -1,0 +1,15 @@
+id: n2-support-agent.analyze-code-root-cause
+kind: capability
+name: Analyze Code Root Cause
+version: 0.1.0
+status: draft
+purpose: Inspect project code to identify files, methods, and rules related to the support symptom.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-code-root-cause.md
+inputs:
+  optional: [codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-code-analysis.json]
+write_policy: read_only

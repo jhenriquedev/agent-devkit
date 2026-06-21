@@ -1,0 +1,15 @@
+id: excel-workbook-builder.generate-template-input-file
+kind: capability
+name: Generate Template Input File
+version: 0.1.0
+status: draft
+purpose: Generate user-fillable input schema files for an Excel template version.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [template_id]
+  optional: [template_version, templates_root]
+outputs:
+  artifacts: [input-schema.xlsx, input-schema.md]
+write_policy: template_version_write
+

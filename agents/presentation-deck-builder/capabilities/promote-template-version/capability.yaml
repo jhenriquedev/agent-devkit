@@ -1,0 +1,18 @@
+id: presentation-deck-builder.promote-template-version
+kind: capability
+name: Promote Template Version
+version: 0.1.0
+status: draft
+purpose: Promote a template version to current_version after approval.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/promote-template-version.md
+inputs:
+  required: [template_id, template_version]
+  optional: []
+outputs:
+  artifacts: [template.yaml]
+integration:
+  repository: null
+  methods: []
+write_policy: confirm

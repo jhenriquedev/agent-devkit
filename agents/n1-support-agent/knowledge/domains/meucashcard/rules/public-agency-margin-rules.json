@@ -1,0 +1,43 @@
+{
+  "id": "meucashcard-public-agency-margin-rules",
+  "version": "0.1.0",
+  "domain": "proposal",
+  "rules": [
+    {
+      "id": "public_agency.card_enabled_required",
+      "source": "PublicAgency.HasCard",
+      "rule": "HasCard controla elegibilidade de cartao para o convenio.",
+      "supportImpact": "Cliente sem cartao pode estar em convenio sem cartao habilitado."
+    },
+    {
+      "id": "public_agency.customer_rules",
+      "source": "PublicAgency",
+      "rule": "ValidateCodeSimulation, ValidateCodeRegistration, ValidateProofOfIncome, MinimumAge, MaximumAge e ToggleLimitTransfer afetam elegibilidade e comportamento do app.",
+      "supportImpact": "Chamados por codigo, comprovante, idade ou transferencia devem validar configuracao do convenio."
+    },
+    {
+      "id": "margin.source_precedence",
+      "source": "Margin.GetMarginAsync",
+      "rule": "Margem pode vir de User.Margin, Lead recente, PotentialLead ou BPO; BPO pode usar cache por CPF/matricula/convenio.",
+      "supportImpact": "N1 deve declarar a fonte da margem antes de concluir divergencia."
+    },
+    {
+      "id": "margin.simulation_code_required",
+      "source": "Margin.GetMarginAsync",
+      "rule": "Quando convenio exige ValidateCodeSimulation, codeSimulation vazio falha antes da consulta externa.",
+      "supportImpact": "Erro de simulacao pode ser regra de convenio, nao falha BPO."
+    },
+    {
+      "id": "margin.online_timeout_enqueues_job",
+      "source": "Margin.GetMarginFromBpo",
+      "rule": "Timeout online pode enfileirar GetMarginFromBpoJobService e retornar WaitingForMargin.",
+      "supportImpact": "Cliente aguardando margem exige verificar job e push."
+    },
+    {
+      "id": "margin.percentages",
+      "source": "Margin.GetMarginFromBpo",
+      "rule": "Margem total do BPO e dividida por WithdrawalPercentage e CardPercentage do convenio.",
+      "supportImpact": "Margem menor que esperada pode vir dos percentuais do convenio."
+    }
+  ]
+}

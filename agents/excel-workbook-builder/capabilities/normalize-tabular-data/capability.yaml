@@ -1,0 +1,14 @@
+id: excel-workbook-builder.normalize-tabular-data
+kind: capability
+name: Normalize Tabular Data
+version: 0.1.0
+status: draft
+purpose: Normalize column names, types, dates, numbers, and blank values.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [input]
+outputs:
+  artifacts: [normalized-data.json]
+write_policy: output_only

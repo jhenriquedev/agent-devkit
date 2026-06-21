@@ -1,0 +1,15 @@
+id: n1-support-agent.decide-n1-outcome
+kind: capability
+name: Decide N1 Outcome
+version: 0.1.0
+status: draft
+purpose: Apply N1 decision rules from collected checks and entities.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/decide-n1-outcome.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-decision.json]
+write_policy: read_only

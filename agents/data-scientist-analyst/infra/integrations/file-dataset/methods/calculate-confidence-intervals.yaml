@@ -1,0 +1,4 @@
+id: calculate-confidence-intervals
+repository: data_repository.py
+method: calculate_confidence_intervals
+side_effects: none

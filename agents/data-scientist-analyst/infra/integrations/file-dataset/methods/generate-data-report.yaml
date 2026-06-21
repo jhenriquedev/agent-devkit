@@ -1,0 +1,4 @@
+id: generate-data-report
+repository: data_repository.py
+method: generate_data_report
+side_effects: writes_output_artifact_only

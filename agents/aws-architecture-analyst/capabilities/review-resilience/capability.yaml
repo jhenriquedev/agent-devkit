@@ -1,0 +1,22 @@
+id: aws-architecture-analyst.review-resilience
+kind: capability
+name: Review Resilience
+version: 0.1.0
+status: draft
+purpose: >
+  Revisar sinais de resiliencia de recursos AWS a partir de inventario.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/review-resilience.md
+  output_template: ../../templates/resilience-review-output.md
+inputs:
+  required: [inventory]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [resilience-review.md, resilience-findings.json]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/review-resilience.yaml
+write_policy: read_only

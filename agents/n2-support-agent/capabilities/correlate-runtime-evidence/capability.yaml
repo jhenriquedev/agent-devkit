@@ -1,0 +1,15 @@
+id: n2-support-agent.correlate-runtime-evidence
+kind: capability
+name: Correlate Runtime Evidence
+version: 0.1.0
+status: draft
+purpose: Correlate N1/card/runtime evidence with code findings.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/correlate-runtime-evidence.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-runtime-correlation.json]
+write_policy: read_only

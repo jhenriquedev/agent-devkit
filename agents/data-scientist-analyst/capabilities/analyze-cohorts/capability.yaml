@@ -1,0 +1,23 @@
+id: data-scientist-analyst.analyze-cohorts
+kind: capability
+name: Analyze Cohorts
+version: 0.1.0
+status: draft
+purpose: >
+  Agrupar eventos por data de cohort e idade em dias desde a entrada,
+  calculando contagens e metrica opcional.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-cohorts.md
+  output_template: null
+inputs:
+  required: [source, cohort_column, event_date_column]
+  optional: [metric_column, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/analyze-cohorts.yaml
+write_policy: read_only

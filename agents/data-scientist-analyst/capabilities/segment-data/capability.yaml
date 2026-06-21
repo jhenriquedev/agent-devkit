@@ -1,0 +1,23 @@
+id: data-scientist-analyst.segment-data
+kind: capability
+name: Segment Data
+version: 0.1.0
+status: draft
+purpose: >
+  Segmentar dataset por coluna categorica e calcular contagem, percentual e
+  metricas agregadas opcionais por segmento.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/segment-data.md
+  output_template: null
+inputs:
+  required: [source, segment_column]
+  optional: [metric_column, max_segments, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/segment-data.yaml
+write_policy: read_only

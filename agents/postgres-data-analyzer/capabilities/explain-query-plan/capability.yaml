@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.explain-query-plan
+kind: capability
+name: Explain Query Plan
+version: 0.1.0
+status: draft
+purpose: >
+  Generate a safe PostgreSQL EXPLAIN plan for a read-only query.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/explain-query-plan.md
+  output_template: ../../templates/explain-query-plan-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, left_schema, left_table, right_schema, right_table, column, columns, query, pattern, key_column, key_value, limit, fixture, output]
+outputs:
+  artifacts: [explain-query-plan-output.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/explain-query-plan.yaml
+write_policy: read_only

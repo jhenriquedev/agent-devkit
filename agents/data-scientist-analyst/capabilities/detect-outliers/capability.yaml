@@ -1,0 +1,23 @@
+id: data-scientist-analyst.detect-outliers
+kind: capability
+name: Detect Outliers
+version: 0.1.0
+status: draft
+purpose: >
+  Identificar valores atipicos em colunas numericas usando IQR, z-score ou
+  ambos, com limites e amostras por linha.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-outliers.md
+  output_template: null
+inputs:
+  required: [source]
+  optional: [columns, method, threshold, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/detect-outliers.yaml
+write_policy: read_only

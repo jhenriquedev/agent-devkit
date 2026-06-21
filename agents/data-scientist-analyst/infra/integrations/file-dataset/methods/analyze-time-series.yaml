@@ -1,0 +1,4 @@
+id: analyze-time-series
+repository: data_repository.py
+method: analyze_time_series
+side_effects: none

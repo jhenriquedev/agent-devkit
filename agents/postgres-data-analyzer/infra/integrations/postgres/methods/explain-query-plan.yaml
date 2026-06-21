@@ -1,0 +1,8 @@
+id: explain-query-plan
+description: Generate a safe PostgreSQL EXPLAIN plan for a read-only query.
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit]
+outputs:
+  fields: [result]
+read_only: true

@@ -1,0 +1,22 @@
+id: bpo-analyser.list-proposals-by-cpf
+kind: capability
+name: List BPO Proposals By CPF
+version: 0.1.0
+status: draft
+purpose: >
+  Listar propostas diretamente na BPO via ServicoAPI usando CPF.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-proposals-by-cpf.md
+  output_template: ../../templates/list-proposals-by-cpf-output.md
+inputs:
+  required: [cpf]
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [bpo-proposals-by-cpf.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/list-proposals-by-cpf.yaml
+write_policy: read_only

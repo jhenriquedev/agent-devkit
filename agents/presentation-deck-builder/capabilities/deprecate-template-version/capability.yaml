@@ -1,0 +1,18 @@
+id: presentation-deck-builder.deprecate-template-version
+kind: capability
+name: Deprecate Template Version
+version: 0.1.0
+status: draft
+purpose: Mark a template version as deprecated without deleting files.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/deprecate-template-version.md
+inputs:
+  required: [template_id, template_version]
+  optional: [reason]
+outputs:
+  artifacts: [template.yaml]
+integration:
+  repository: null
+  methods: []
+write_policy: confirm

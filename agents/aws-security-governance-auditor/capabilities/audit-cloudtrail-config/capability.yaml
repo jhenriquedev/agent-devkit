@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-cloudtrail-config
+kind: capability
+name: Audit CloudTrail Config
+version: 0.1.0
+status: draft
+purpose: Auditar configuracao CloudTrail read-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-cloudtrail-config.md
+  output_template: ../../templates/cloudtrail-audit-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [cloudtrail-audit.json, cloudtrail-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-cloudtrail-config.yaml
+write_policy: read_only

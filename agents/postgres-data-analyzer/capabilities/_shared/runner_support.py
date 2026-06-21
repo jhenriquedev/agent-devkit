@@ -26,6 +26,14 @@ def get_repository(database: str | None = None) -> Any:
     return PostgresRepository(database=database)
 
 
+def validate_query_offline(query: str, limit: int) -> dict[str, Any]:
+    sys.path.insert(0, str(POSTGRES_DIR))
+    from postgres_repository import enforce_limit, validate_readonly_query  # pylint: disable=import-error
+
+    safe_query = enforce_limit(validate_readonly_query(query), limit)
+    return {"valid": True, "query": safe_query, "limit": limit}
+
+
 def write_output(markdown: str, output: str | None) -> None:
     if output:
         Path(output).write_text(markdown, encoding="utf-8")
@@ -76,3 +84,38 @@ def mask_cpf(value: str) -> str:
 
 def render_key_values(payload: dict[str, Any], keys: list[str]) -> list[str]:
     return [f"- {key}: {value_or_dash(payload.get(key))}" for key in keys]
+
+
+def render_generic_table(rows: list[dict[str, Any]], limit: int = 30) -> list[str]:
+    return render_table(rows, limit=limit)
+
+
+def render_erd(relationships: list[dict[str, Any]]) -> list[str]:
+    lines = ["```mermaid", "erDiagram"]
+    if not relationships:
+        lines.append('  EMPTY["No relationships detected"]')
+    for row in relationships:
+        parent = sanitize_mermaid(row.get("parent_table"))
+        referenced = sanitize_mermaid(row.get("referenced_table"))
+        lines.append(f"  {parent} }}o--|| {referenced} : {value_or_dash(row.get('relationship_name'))}")
+    lines.append("```")
+    return lines
+
+
+def sanitize_mermaid(value: Any) -> str:
+    return re.sub(r"[^A-Za-z0-9_]", "_", str(value or "unknown"))
+
+
+def infer_domain(table_name: str) -> str:
+    lowered = table_name.lower()
+    groups = {
+        "customer": ["customer", "client", "cliente", "person", "pessoa"],
+        "sales": ["order", "pedido", "sale", "invoice", "fatura"],
+        "finance": ["payment", "pagamento", "ledger", "account"],
+        "audit": ["log", "audit", "history", "evento"],
+        "security": ["user", "role", "permission", "auth"],
+    }
+    for domain, terms in groups.items():
+        if any(term in lowered for term in terms):
+            return domain
+    return "other"

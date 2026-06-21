@@ -1,0 +1,23 @@
+id: data-scientist-analyst.generate-reconciliation-report
+kind: capability
+name: Generate Reconciliation Report
+version: 0.1.0
+status: draft
+purpose: >
+  Gerar relatorio markdown reproduzivel a partir de uma conciliacao entre duas
+  bases tabulares.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-reconciliation-report.md
+  output_template: ../../templates/reconciliation-report.md
+inputs:
+  required: [left, right, key]
+  optional: [compare_columns, numeric_tolerance, output]
+outputs:
+  artifacts: [markdown, json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/generate-reconciliation-report.yaml
+write_policy: generated_artifacts_only

@@ -1,0 +1,15 @@
+id: n2-support-agent.generate-card-comment
+kind: capability
+name: Generate Card Comment
+version: 0.1.0
+status: draft
+purpose: Generate a concise Azure DevOps internal comment from the N2 diagnosis and patch plan.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-card-comment.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-card-comment.md]
+write_policy: read_only

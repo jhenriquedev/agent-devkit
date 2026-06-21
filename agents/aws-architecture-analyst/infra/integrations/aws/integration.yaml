@@ -1,0 +1,13 @@
+id: aws-architecture
+version: 0.1.0
+status: draft
+provider: aws
+repository:
+  language: python
+  path: aws_repository.py
+  dependencies: aws-cli
+auth:
+  method: aws-default-credential-chain
+policy:
+  read_only: true
+  command_allowlist_required: true

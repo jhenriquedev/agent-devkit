@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 import sys
+import unicodedata
 
 
 IGNORED_DIRS = {
@@ -79,7 +80,9 @@ ARTIFACTS = {
 class ProjectSnapshot:
     project: Path
     depth: str
+    depth_reason: str
     focus: str | None
+    focus_terms: list[str]
     files: list[Path]
     documentation: list[Path]
     manifests: list[Path]
@@ -88,6 +91,11 @@ class ProjectSnapshot:
     config_files: list[Path]
     directories: list[Path]
     observed_terms: list[str]
+    business_concepts: list[str]
+    technical_identifiers: list[str]
+    possible_entities: list[str]
+    possible_actions: list[str]
+    possible_statuses: list[str]
 
 
 def main() -> int:
@@ -107,7 +115,7 @@ def main() -> int:
         if not project.exists() or not project.is_dir():
             raise ValueError(f"project directory not found: {project}")
 
-        snapshot = inspect_project(project, args.depth or "medium", args.focus)
+        snapshot = inspect_project(project, args.depth, args.focus)
         output_dir = resolve_output_dir(args.output_dir, project)
         ensure_output_dir(output_dir, args.yes_create_dir)
         documents = render_documents(snapshot)
@@ -122,8 +130,8 @@ def main() -> int:
     return 0
 
 
-def inspect_project(project: Path, depth: str, focus: str | None) -> ProjectSnapshot:
-    max_files = {"light": 80, "medium": 220, "deep": 600}[depth]
+def inspect_project(project: Path, requested_depth: str | None, focus: str | None) -> ProjectSnapshot:
+    max_files = {"light": 80, "medium": 220, "deep": 600}.get(requested_depth or "deep", 600)
     files: list[Path] = []
     directories: set[Path] = set()
 
@@ -141,17 +149,29 @@ def inspect_project(project: Path, depth: str, focus: str | None) -> ProjectSnap
         if len(files) >= max_files:
             break
 
+    focus_terms = expand_focus_terms(focus)
+    files = prioritize_files(files, project, focus_terms)
     documentation = [path for path in files if path.suffix.lower() == ".md"]
     manifests = [path for path in files if path.name in INTERESTING_NAMES]
     source_files = [path for path in files if path.suffix.lower() in {".cs", ".go", ".java", ".js", ".jsx", ".kt", ".php", ".py", ".rb", ".swift", ".ts", ".tsx"}]
     test_files = [path for path in files if is_test_file(path)]
     config_files = [path for path in files if path.suffix.lower() in {".json", ".toml", ".yaml", ".yml"} or path.name.startswith(".env")]
-    observed_terms = extract_observed_terms(project, documentation + source_files[:20])
+    observed_terms = extract_observed_terms(project, documentation + source_files[:40] + config_files[:10], focus_terms)
+    depth, depth_reason = resolve_depth(
+        requested_depth=requested_depth,
+        files=files,
+        source_files=source_files,
+        test_files=test_files,
+        config_files=config_files,
+    )
+    categories = categorize_terms(observed_terms)
 
     return ProjectSnapshot(
         project=project,
         depth=depth,
+        depth_reason=depth_reason,
         focus=focus,
+        focus_terms=focus_terms,
         files=files,
         documentation=documentation,
         manifests=manifests,
@@ -160,6 +180,11 @@ def inspect_project(project: Path, depth: str, focus: str | None) -> ProjectSnap
         config_files=config_files,
         directories=sorted(directories),
         observed_terms=observed_terms,
+        business_concepts=categories["business_concepts"],
+        technical_identifiers=categories["technical_identifiers"],
+        possible_entities=categories["possible_entities"],
+        possible_actions=categories["possible_actions"],
+        possible_statuses=categories["possible_statuses"],
     )
 
 
@@ -185,7 +210,7 @@ def is_test_file(path: Path) -> bool:
     )
 
 
-def extract_observed_terms(project: Path, files: list[Path]) -> list[str]:
+def extract_observed_terms(project: Path, files: list[Path], focus_terms: list[str]) -> list[str]:
     terms: dict[str, int] = {}
     for relative in files[:30]:
         path = project / relative
@@ -193,12 +218,109 @@ def extract_observed_terms(project: Path, files: list[Path]) -> list[str]:
             text = path.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        for raw in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9_-]{4,}", text):
-            term = raw.strip("_-").lower()
-            if term in {"function", "return", "const", "class", "import", "export", "string", "latest"}:
+        for raw in re.findall(r"[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9_-]{3,}", text):
+            term = normalize_token(raw.strip("_-"))
+            if term in {"function", "return", "const", "class", "import", "export", "string", "latest", "from", "with"}:
                 continue
-            terms[term] = terms.get(term, 0) + 1
+            focus_bonus = 4 if matches_focus(term, focus_terms) else 0
+            terms[term] = terms.get(term, 0) + 1 + focus_bonus
     return [term for term, _count in sorted(terms.items(), key=lambda item: (-item[1], item[0]))[:20]]
+
+
+def resolve_depth(
+    requested_depth: str | None,
+    files: list[Path],
+    source_files: list[Path],
+    test_files: list[Path],
+    config_files: list[Path],
+) -> tuple[str, str]:
+    if requested_depth:
+        return requested_depth, "Profundidade informada explicitamente pelo usuario."
+
+    paths = [str(path).lower() for path in files]
+    has_migrations = any("migration" in path or "migrations" in path for path in paths)
+    has_auth = any(token in path for path in paths for token in ("auth", "permission", "role", "security"))
+    has_integrations = any(token in path for path in paths for token in ("api", "client", "http", "integration", "connector", "repository"))
+    has_data = any(token in path for path in paths for token in ("model", "entity", "schema", "database", "db", ".sql"))
+    if len(files) > 250 or (has_migrations and (has_auth or has_integrations or has_data)) or (has_auth and has_integrations and has_data):
+        return "deep", "Inferida por presenca de migrations, dados, permissoes, integracoes ou alto volume de arquivos."
+    if source_files or config_files or test_files or len(files) > 20:
+        return "medium", "Inferida por presenca de codigo, configuracoes ou testes em projeto unico."
+    return "light", "Inferida por baixo volume de arquivos e ausencia de sinais tecnicos criticos."
+
+
+def prioritize_files(files: list[Path], project: Path, focus_terms: list[str]) -> list[Path]:
+    if not focus_terms:
+        return files
+
+    def score(relative: Path) -> tuple[int, str]:
+        haystack = normalize_token(str(relative))
+        value = sum(3 for term in focus_terms if term and term in haystack)
+        try:
+            text = (project / relative).read_text(encoding="utf-8", errors="ignore")[:8000]
+        except OSError:
+            text = ""
+        normalized_text = normalize_token(text)
+        value += sum(1 for term in focus_terms if term and term in normalized_text)
+        return (-value, str(relative))
+
+    return sorted(files, key=score)
+
+
+def expand_focus_terms(focus: str | None) -> list[str]:
+    if not focus:
+        return []
+    base_terms = [normalize_token(term) for term in re.findall(r"[A-Za-zÀ-ÿ0-9]+", focus)]
+    expanded = set(term for term in base_terms if term)
+    normalized_focus = " ".join(base_terms)
+    if "solicit" in normalized_focus:
+        expanded.update({"solicitacao", "solicitacoes", "ticket", "tickets", "request", "requests", "atendimento"})
+    if "abert" in normalized_focus or "abrir" in normalized_focus:
+        expanded.update({"abrir", "abertura", "open", "create", "criar"})
+    if "status" in normalized_focus:
+        expanded.update({"status", "state", "estado"})
+    return sorted(expanded)
+
+
+def normalize_token(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-zA-Z0-9]+", "", ascii_value).lower()
+
+
+def matches_focus(term: str, focus_terms: list[str]) -> bool:
+    return any(focus_term and (focus_term in term or term in focus_term) for focus_term in focus_terms)
+
+
+def categorize_terms(terms: list[str]) -> dict[str, list[str]]:
+    technical_markers = ("id", "uuid", "dto", "http", "api", "repo", "repository", "service", "controller", "handler")
+    action_markers = ("create", "open", "close", "update", "delete", "abrir", "fechar", "criar", "atualizar", "concluir")
+    status_markers = ("status", "state", "open", "closed", "aberto", "concluido", "pending", "pendente")
+    entity_markers = ("ticket", "solicitacao", "solicitacoes", "cliente", "usuario", "atendimento", "pedido")
+    categories = {
+        "business_concepts": [],
+        "technical_identifiers": [],
+        "possible_entities": [],
+        "possible_actions": [],
+        "possible_statuses": [],
+    }
+    for term in terms:
+        if any(marker in term for marker in technical_markers):
+            categories["technical_identifiers"].append(term)
+        if any(marker in term for marker in action_markers):
+            categories["possible_actions"].append(term)
+        if any(marker in term for marker in status_markers):
+            categories["possible_statuses"].append(term)
+        if any(marker in term for marker in entity_markers):
+            categories["possible_entities"].append(term)
+        if term not in categories["technical_identifiers"] and (
+            term in categories["possible_entities"]
+            or term in categories["possible_actions"]
+            or term in categories["possible_statuses"]
+            or len(term) >= 6
+        ):
+            categories["business_concepts"].append(term)
+    return {key: values[:12] for key, values in categories.items()}
 
 
 def resolve_output_dir(output_dir: str | None, project: Path) -> Path:
@@ -276,6 +398,10 @@ def render_analysis_context(snapshot: ProjectSnapshot) -> str:
 - Profundidade: `{snapshot.depth}`
 - Foco: {snapshot.focus or "nao informado"}
 
+## Justificativa Da Profundidade
+
+- {snapshot.depth_reason}
+
 ## Fatos Observados No Projeto
 
 - Arquivos considerados: {len(snapshot.files)}
@@ -292,6 +418,14 @@ def render_analysis_context(snapshot: ProjectSnapshot) -> str:
 ## Termos Observados
 
 {render_term_list(snapshot.observed_terms)}
+
+## Conceitos Candidatos De Negocio
+
+{render_term_list(snapshot.business_concepts)}
+
+## Identificadores Tecnicos Separados
+
+{render_term_list(snapshot.technical_identifiers)}
 
 ## Inferencias
 
@@ -339,7 +473,9 @@ def render_business_rules(snapshot: ProjectSnapshot) -> str:
 ## Fatos Observados
 
 - O projeto contem termos que podem representar conceitos de negocio:
-  {", ".join(snapshot.observed_terms[:12]) if snapshot.observed_terms else "nenhum termo recorrente identificado"}.
+  {", ".join(snapshot.business_concepts[:12]) if snapshot.business_concepts else "nenhum conceito candidato identificado"}.
+- Identificadores tecnicos foram separados para evitar que implementacao vire
+  requisito sem validacao: {", ".join(snapshot.technical_identifiers[:8]) if snapshot.technical_identifiers else "nenhum identificador tecnico relevante separado"}.
 
 ## Inferencias Provaveis
 
@@ -369,6 +505,7 @@ def render_critical_points(snapshot: ProjectSnapshot) -> str:
 | Cobertura de testes ausente ou incompleta | Ausencia de testes para codigo: {missing_tests} | Alto se a mudanca for critica | Mapear cenarios de regressao. |
 | Integracoes nao confirmadas | Analise estatica inicial | Medio | Confirmar sistemas externos e contratos. |
 | Permissoes nao confirmadas | Analise estatica inicial | Alto se houver dados sensiveis | Validar papeis, autorizacoes e auditoria. |
+| Profundidade inferida | {snapshot.depth}: {snapshot.depth_reason} | Medio | Revisar se a profundidade esta adequada ao escopo. |
 """
 
 
@@ -379,6 +516,13 @@ def render_business_questions(snapshot: ProjectSnapshot) -> str:
 ## Conceitos Observados
 
 - Termos para validacao: {terms}
+- Conceitos candidatos de negocio: {", ".join(snapshot.business_concepts[:10]) if snapshot.business_concepts else "a confirmar"}
+- Identificadores tecnicos separados: {", ".join(snapshot.technical_identifiers[:10]) if snapshot.technical_identifiers else "nenhum"}
+
+## Foco Da Analise
+
+- Foco informado: {snapshot.focus or "nao informado"}
+- Termos de foco usados: {", ".join(snapshot.focus_terms) if snapshot.focus_terms else "nenhum"}
 
 ## Perguntas Bloqueantes
 
@@ -402,6 +546,11 @@ def render_technical_impact(snapshot: ProjectSnapshot) -> str:
 ## Areas Possivelmente Impactadas
 
 {render_path_list(snapshot.source_files[:50])}
+
+## Recorte Por Foco
+
+- Foco informado: {snapshot.focus or "nao informado"}
+- Arquivos acima sao priorizados por aderencia ao foco quando informado.
 
 ## Testes E Qualidade
 

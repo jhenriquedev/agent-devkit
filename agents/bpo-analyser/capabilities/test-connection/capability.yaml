@@ -1,0 +1,22 @@
+id: bpo-analyser.test-connection
+kind: capability
+name: Test BPO Connection
+version: 0.1.0
+status: draft
+purpose: >
+  Validar variaveis de ambiente e, opcionalmente, disponibilidade dos endpoints
+  SOAP BPO.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/test-connection.md
+  output_template: ../../templates/test-connection-output.md
+inputs:
+  optional: [network, fixture, output]
+outputs:
+  artifacts: [bpo-connection.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/test-connection.yaml
+write_policy: read_only

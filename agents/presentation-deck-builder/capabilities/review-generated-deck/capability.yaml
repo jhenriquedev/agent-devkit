@@ -1,0 +1,18 @@
+id: presentation-deck-builder.review-generated-deck
+kind: capability
+name: Review Generated Deck
+version: 0.1.0
+status: draft
+purpose: Review generated PowerPoint for template adherence, missing content, overflow, and visual issues.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/review-generated-deck.md
+inputs:
+  required: [deck]
+  optional: [template_id, template_version]
+outputs:
+  artifacts: [deck-review.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

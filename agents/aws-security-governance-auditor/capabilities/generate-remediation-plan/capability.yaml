@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.generate-remediation-plan
+kind: capability
+name: Generate Remediation Plan
+version: 0.1.0
+status: draft
+purpose: Gerar plano de remediacao sem executar correcoes.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-remediation-plan.md
+  output_template: ../../templates/remediation-plan-output.md
+inputs:
+  required: [audit_dir]
+  optional: [output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [remediation-plan.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/generate-remediation-plan.yaml
+write_policy: read_only

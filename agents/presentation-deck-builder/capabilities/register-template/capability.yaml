@@ -1,0 +1,28 @@
+id: presentation-deck-builder.register-template
+kind: capability
+name: Register Template
+version: 0.1.0
+status: draft
+purpose: >
+  Register a received PowerPoint template as a versioned reusable template,
+  creating manifest, input schemas, slide map, and changelog.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/register-template.md
+inputs:
+  required: [template, template_id]
+  optional: [name, version, status, templates_root, yes_save]
+outputs:
+  artifacts:
+    - template.yaml
+    - versions/<version>/template.pptx
+    - versions/<version>/input-schema.xlsx
+    - versions/<version>/input-schema.md
+    - versions/<version>/slide-map.yaml
+    - versions/<version>/usage-notes.md
+    - changelog.md
+integration:
+  repository: null
+  methods: []
+write_policy: ask_before_write

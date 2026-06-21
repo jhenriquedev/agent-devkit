@@ -1,0 +1,15 @@
+id: excel-workbook-builder.generate-workbook-from-template
+kind: capability
+name: Generate Workbook From Template
+version: 0.1.0
+status: draft
+purpose: Generate a workbook from a registered template and structured data.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [template_id, input]
+  optional: [template_version, templates_root, output, title]
+outputs:
+  artifacts: [workbook.xlsx]
+write_policy: output_only
+

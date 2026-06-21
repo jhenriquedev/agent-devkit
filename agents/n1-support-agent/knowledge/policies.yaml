@@ -1,0 +1,56 @@
+id: n1-support-agent.policies
+version: 0.1.0
+status: draft
+
+input_policy:
+  required:
+    - project
+    - card
+  preferred_entities:
+    - cpf
+    - proposal_number
+    - contract_number
+    - topdesk_ticket
+    - request_id
+    - correlation_id
+
+azure_policy:
+  read_card: auto
+  add_analysis_tag: confirm
+  move_card: confirm
+  default_analysis_tag: Analise N1
+
+runbook_policy:
+  deterministic_order:
+    - azure_card
+    - entity_extraction
+    - symptom_routing
+    - restrictive_base
+    - bpo
+    - cognito
+    - onboarding
+    - proposal
+    - logs
+    - related_tickets
+    - decision
+    - artifacts
+
+privacy:
+  mask_cpf_by_default: true
+  avoid_raw_personal_data_dumps: true
+
+output_contract:
+  required_sections:
+    - card
+    - entities
+    - symptomRoute
+    - checks
+    - evidenceLedger
+    - businessRulesApplied
+    - diagnosticGaps
+    - qualityGate
+    - decision
+    - recommendedAction
+    - azureActions
+    - artifacts
+    - audit

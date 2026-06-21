@@ -1,0 +1,42 @@
+id: aws-security-governance-auditor.policies
+version: 0.1.0
+status: draft
+
+aws_policy:
+  read_only: true
+  command_allowlist_required: true
+  mutations_unsupported: true
+  remediation_execution_unsupported: true
+
+security_policy:
+  never_print_secrets: true
+  redact_human_reports:
+    - secret values
+    - access keys
+    - session tokens
+    - raw IAM policy documents
+    - connection strings
+
+finding_policy:
+  required_fields:
+    - id
+    - severity
+    - category
+    - resource_type
+    - resource_id
+    - title
+    - evidence
+    - recommendation
+  severity_levels:
+    - critical
+    - high
+    - medium
+    - low
+    - info
+
+quality_gates:
+  - read_only_allowlist_enforced
+  - findings_have_severity
+  - findings_have_evidence
+  - remediation_is_plan_only
+  - secrets_redacted

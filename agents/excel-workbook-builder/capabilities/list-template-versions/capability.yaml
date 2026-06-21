@@ -1,0 +1,15 @@
+id: excel-workbook-builder.list-template-versions
+kind: capability
+name: List Template Versions
+version: 0.1.0
+status: draft
+purpose: List versions for one Excel template.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [template_id]
+  optional: [templates_root]
+outputs:
+  artifacts: [template_version_list]
+write_policy: read_only
+

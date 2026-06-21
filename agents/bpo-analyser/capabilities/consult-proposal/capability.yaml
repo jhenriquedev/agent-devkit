@@ -1,0 +1,22 @@
+id: bpo-analyser.consult-proposal
+kind: capability
+name: Consult BPO Proposal
+version: 0.1.0
+status: draft
+purpose: >
+  Consultar proposta diretamente na BPO via ServicoAPI por numero de proposta.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/consult-proposal.md
+  output_template: ../../templates/consult-proposal-output.md
+inputs:
+  required: [proposal_number]
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [bpo-proposal.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/consult-proposal.yaml
+write_policy: read_only

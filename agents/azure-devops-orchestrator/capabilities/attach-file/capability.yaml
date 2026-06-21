@@ -1,0 +1,38 @@
+id: azure-devops-orchestrator.attach-file
+kind: capability
+name: Attach File
+version: 0.1.0
+status: draft
+
+purpose: >
+  Attach a local file to an Azure DevOps work item with explicit confirmation
+  before writing.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/attach-file.md
+  output_template: ../../templates/attach-file-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - file
+  optional:
+    - comment
+    - execute
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - card-attachment.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/update-work-item.yaml
+
+write_policy: confirm

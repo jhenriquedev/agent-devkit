@@ -1,0 +1,18 @@
+id: presentation-deck-builder.create-template-version
+kind: capability
+name: Create Template Version
+version: 0.1.0
+status: draft
+purpose: Create a new template version from a base version or updated file.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-template-version.md
+inputs:
+  required: [template_id, new_version]
+  optional: [base_version, template]
+outputs:
+  artifacts: [template.pptx, changelog.md]
+integration:
+  repository: null
+  methods: []
+write_policy: create_new_version

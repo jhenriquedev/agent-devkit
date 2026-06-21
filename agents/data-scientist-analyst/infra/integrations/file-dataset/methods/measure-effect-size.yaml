@@ -1,0 +1,4 @@
+id: measure-effect-size
+repository: data_repository.py
+method: measure_effect_size
+side_effects: none

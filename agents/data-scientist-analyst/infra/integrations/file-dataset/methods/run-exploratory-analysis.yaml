@@ -1,0 +1,4 @@
+id: run-exploratory-analysis
+repository: data_repository.py
+method: run_exploratory_analysis
+side_effects: none

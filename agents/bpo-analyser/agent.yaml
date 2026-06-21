@@ -1,0 +1,56 @@
+id: bpo-analyser
+kind: specialist-agent
+name: BPO Analyser
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Consultar diretamente servicos BPO para analisar status, situacao,
+  observacoes e documentos anexados de propostas por numero de proposta ou CPF,
+  sem depender da API SelfHire.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - BPO_SERVICO_API_URL
+    - BPO_WS_PROPOSTA_URL
+    - BPO_CARTAO_USER
+    - BPO_CARTAO_PASSWORD
+  optional:
+    - BPO_WS_ESTEIRA_URL
+    - BPO_WS_FORMALIZACAO_URL
+    - BPO_CONSIGNACAO_URL
+    - BPO_HTTP_TIMEOUT
+    - BPO_DEFAULT_DOCUMENT_TYPE
+    - BPO_TLS_VERIFY
+
+capabilities:
+  - test-connection
+  - list-proposals-by-cpf
+  - analyze-cpf-proposals
+  - find-latest-proposal-by-cpf
+  - consult-proposal
+  - consult-attached-documents
+  - analyze-proposal
+
+agent_surface:
+  repositories:
+    - infra/integrations/bpo/bpo_repository.py
+  methods:
+    - infra/integrations/bpo/methods/test-connection.yaml
+    - infra/integrations/bpo/methods/list-proposals-by-cpf.yaml
+    - infra/integrations/bpo/methods/analyze-cpf-proposals.yaml
+    - infra/integrations/bpo/methods/find-latest-proposal-by-cpf.yaml
+    - infra/integrations/bpo/methods/consult-proposal.yaml
+    - infra/integrations/bpo/methods/consult-attached-documents.yaml
+    - infra/integrations/bpo/methods/analyze-proposal.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  mutation_operations: unsupported

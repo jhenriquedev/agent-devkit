@@ -1,0 +1,15 @@
+id: n1-support-agent.extract-card-entities
+kind: capability
+name: Extract Card Entities
+version: 0.1.0
+status: draft
+purpose: Extract CPF, proposal, contract, TOPdesk ticket and correlation identifiers from card text.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/extract-card-entities.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-card-entities.json]
+write_policy: read_only

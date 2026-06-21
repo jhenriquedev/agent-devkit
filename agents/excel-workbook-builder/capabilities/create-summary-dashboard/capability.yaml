@@ -1,0 +1,14 @@
+id: excel-workbook-builder.create-summary-dashboard
+kind: capability
+name: Create Summary Dashboard
+version: 0.1.0
+status: draft
+purpose: Create an executive summary sheet with KPIs, charts, and callouts.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [workbook, metrics]
+outputs:
+  artifacts: [workbook.xlsx]
+write_policy: output_only

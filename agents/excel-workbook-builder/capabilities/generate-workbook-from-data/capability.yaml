@@ -1,0 +1,15 @@
+id: excel-workbook-builder.generate-workbook-from-data
+kind: capability
+name: Generate Workbook From Data
+version: 0.1.0
+status: draft
+purpose: Generate a formatted Excel workbook from normalized data.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [input]
+  optional: [output, title]
+outputs:
+  artifacts: [workbook.xlsx]
+write_policy: output_only
+

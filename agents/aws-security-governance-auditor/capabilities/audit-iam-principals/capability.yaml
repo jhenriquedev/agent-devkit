@@ -1,0 +1,21 @@
+id: aws-security-governance-auditor.audit-iam-principals
+kind: capability
+name: Audit IAM Principals
+version: 0.1.0
+status: draft
+purpose: Auditar usuarios, roles e policies IAM permissivas em modo read-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/audit-iam-principals.md
+  output_template: ../../templates/iam-audit-output.md
+inputs:
+  required: []
+  optional: [profile, region, fixture, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [iam-audit.json, iam-audit.md]
+integration:
+  repository: ../../infra/integrations/aws-security/aws_security_repository.py
+  methods:
+    - ../../infra/integrations/aws-security/methods/audit-iam-principals.yaml
+write_policy: read_only

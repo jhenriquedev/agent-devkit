@@ -1,0 +1,15 @@
+id: excel-workbook-builder.ingest-workbook-data
+kind: capability
+name: Ingest Workbook Data
+version: 0.1.0
+status: draft
+purpose: Extract usable data ranges from an existing workbook.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [workbook]
+  optional: [sheet, range]
+outputs:
+  artifacts: [extracted-data.json]
+write_policy: output_only

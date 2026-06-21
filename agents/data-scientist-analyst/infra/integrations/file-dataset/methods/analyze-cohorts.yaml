@@ -1,0 +1,4 @@
+id: analyze-cohorts
+repository: data_repository.py
+method: analyze_cohorts
+side_effects: none

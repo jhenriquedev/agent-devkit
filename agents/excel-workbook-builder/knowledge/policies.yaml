@@ -1,0 +1,24 @@
+id: excel-workbook-builder.policies
+phase: 1
+template_policy:
+  save_requires_confirmation: true
+  never_overwrite_validated_template: true
+  versioning_required: true
+workbook_policy:
+  final_format: xlsx
+  formulas_must_be_auditable: true
+  typed_values_required: true
+  visual_review_required: true
+delegation_policy:
+  database_access: delegate_to_existing_agents
+  allowed_database_agents:
+    - sqlserver-data-analyzer
+    - postgres-data-analyzer
+    - azure-devops-orchestrator
+quality_gates:
+  - workbook_saved
+  - formula_error_scan
+  - key_range_inspection
+  - visual_preview_for_generated_workbooks
+  - source_traceability
+

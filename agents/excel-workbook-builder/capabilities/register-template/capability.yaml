@@ -1,0 +1,15 @@
+id: excel-workbook-builder.register-template
+kind: capability
+name: Register Template
+version: 0.1.0
+status: draft
+purpose: Register a received Excel template as a versioned reusable template.
+entrypoint:
+  runner: runner.py
+inputs:
+  required: [template, template_id]
+  optional: [name, version, status, templates_root, yes_save]
+outputs:
+  artifacts: [template.xlsx, template.yaml, input-schema.xlsx, sheet-map.yaml]
+write_policy: ask_before_write
+

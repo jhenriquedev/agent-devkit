@@ -1,0 +1,15 @@
+id: excel-workbook-builder.scan-formula-errors
+kind: capability
+name: Scan Formula Errors
+version: 0.1.0
+status: draft
+purpose: Scan workbook XML for common formula error markers.
+entrypoint:
+  runner: ../review-generated-workbook/runner.py
+inputs:
+  required: [workbook]
+  optional: [output]
+outputs:
+  artifacts: [formula-error-scan.md]
+write_policy: read_only
+

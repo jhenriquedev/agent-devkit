@@ -1,0 +1,23 @@
+id: bpo-analyser.analyze-proposal
+kind: capability
+name: Analyze BPO Proposal
+version: 0.1.0
+status: draft
+purpose: >
+  Consolidar status, situacao, observacoes e documentos anexados de uma
+  proposta consultando diretamente a BPO.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-proposal.md
+  output_template: ../../templates/analyze-proposal-output.md
+inputs:
+  required: [proposal_number]
+  optional: [document_type, fixture, output, format]
+outputs:
+  artifacts: [bpo-proposal-analysis.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/analyze-proposal.yaml
+write_policy: read_only

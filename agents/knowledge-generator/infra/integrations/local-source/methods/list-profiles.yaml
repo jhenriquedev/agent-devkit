@@ -1,0 +1,5 @@
+id: knowledge-generator.local-source.list-profiles
+kind: method
+name: list_profiles
+read_only: true
+description: Return supported knowledge profiles.

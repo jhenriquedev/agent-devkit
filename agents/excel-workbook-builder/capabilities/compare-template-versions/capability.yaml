@@ -1,0 +1,14 @@
+id: excel-workbook-builder.compare-template-versions
+kind: capability
+name: Compare Template Versions
+version: 0.1.0
+status: draft
+purpose: Compare structure, schema, formulas and notes between template versions.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [template_id, left_version, right_version]
+outputs:
+  artifacts: [comparison.md]
+write_policy: read_only

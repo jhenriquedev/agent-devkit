@@ -1,0 +1,22 @@
+id: aws-architecture-analyst.analyze-workload-architecture
+kind: capability
+name: Analyze Workload Architecture
+version: 0.1.0
+status: draft
+purpose: >
+  Analisar um workload por nome, prefixo ou tag a partir de inventario AWS.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-workload-architecture.md
+  output_template: ../../templates/workload-architecture-output.md
+inputs:
+  required: [inventory]
+  optional: [workload, resource_prefix, output_dir, yes_create_dir, yes_overwrite]
+outputs:
+  artifacts: [workload-architecture.md, workload-components.json, workload-open-questions.md]
+integration:
+  repository: ../../infra/integrations/aws/aws_repository.py
+  methods:
+    - ../../infra/integrations/aws/methods/analyze-workload-architecture.yaml
+write_policy: read_only

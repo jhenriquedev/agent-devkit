@@ -1,0 +1,19 @@
+id: n1-support-agent.collect-customer-logs
+kind: capability
+name: Collect Customer Logs
+version: 0.1.0
+status: draft
+purpose: Collect CloudWatch or Elasticsearch logs by CPF, proposal, request id or correlation id.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/collect-customer-logs.md
+inputs:
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [n1-customer-logs.json]
+integration:
+  orchestrated_agents:
+    - aws-cloudwatch-log-analyzer/search-log-events
+    - elasticsearch-log-analyzer/search-log-events
+write_policy: read_only

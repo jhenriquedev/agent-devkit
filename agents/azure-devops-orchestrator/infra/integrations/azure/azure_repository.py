@@ -176,6 +176,54 @@ class AzureRepository:
             "created_at": result.get("createdDate"),
         }
 
+    def attach_file(
+        self,
+        work_item_id: int,
+        file_path: str,
+        *,
+        project: str | None = None,
+        comment: str | None = None,
+        dry_run: bool = True,
+    ) -> dict[str, Any]:
+        resolved_project = self._resolve_project(project)
+        file_name = os.path.basename(file_path)
+        if dry_run:
+            return {
+                "dry_run": True,
+                "work_item_id": work_item_id,
+                "project": resolved_project,
+                "file_path": file_path,
+                "file_name": file_name,
+                "operation": "attach_file",
+            }
+
+        attachment = self._upload_attachment(resolved_project, file_path, file_name)
+        operations = [
+            {
+                "op": "add",
+                "path": "/relations/-",
+                "value": {
+                    "rel": "AttachedFile",
+                    "url": attachment["url"],
+                    "attributes": {"comment": comment or file_name},
+                },
+            }
+        ]
+        updated = self.update_work_item(
+            work_item_id,
+            operations,
+            project=resolved_project,
+            dry_run=False,
+            reason=comment,
+        )
+        return {
+            "dry_run": False,
+            "work_item_id": work_item_id,
+            "file_name": file_name,
+            "attachment_url": attachment["url"],
+            "new_rev": updated.get("new_rev"),
+        }
+
     def update_work_item(
         self,
         work_item_id: int,
@@ -292,6 +340,40 @@ class AzureRepository:
             raise AzureRepositoryError(f"Azure DevOps HTTP {status}: {raw}")
 
         return json.loads(raw) if raw.strip() else {}
+
+    def _upload_attachment(self, project: str, file_path: str, file_name: str) -> dict[str, Any]:
+        url = (
+            f"{self._project_base_url(project)}/_apis/wit/attachments?"
+            f"{urllib.parse.urlencode({'fileName': file_name, 'api-version': self.config.api_version})}"
+        )
+        command = [
+            "curl",
+            "-sS",
+            "-X",
+            "POST",
+            "-u",
+            f":{self.config.pat}",
+            "-H",
+            "Accept: application/json",
+            "-H",
+            "Content-Type: application/octet-stream",
+            "--data-binary",
+            f"@{file_path}",
+            url,
+        ]
+        result = subprocess.run(
+            command,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            raise AzureRepositoryError(f"Azure DevOps attachment upload failed: {result.stderr.strip()}")
+        payload = json.loads(result.stdout) if result.stdout.strip() else {}
+        if not payload.get("url"):
+            raise AzureRepositoryError(f"Azure DevOps attachment upload returned no URL: {result.stdout}")
+        return payload
 
     def _build_wiql(
         self,

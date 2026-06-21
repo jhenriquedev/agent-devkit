@@ -1,0 +1,23 @@
+id: knowledge-generator.list-knowledge-profiles
+kind: capability
+name: List Knowledge Profiles
+version: 0.1.0
+status: draft
+purpose: >
+  Listar profiles de knowledge suportados e os artefatos esperados por cada
+  tipo de fonte.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-knowledge-profiles.md
+  output_template: null
+inputs:
+  required: []
+  optional: []
+outputs:
+  artifacts: []
+integration:
+  repository: ../../infra/integrations/local-source/knowledge_repository.py
+  methods:
+    - ../../infra/integrations/local-source/methods/list-profiles.yaml
+write_policy: read_only

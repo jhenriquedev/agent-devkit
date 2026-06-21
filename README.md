@@ -114,15 +114,25 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`aws-cloudwatch-log-analyzer`](agents/aws-cloudwatch-log-analyzer/):
   especialista em AWS CloudWatch Logs para busca de eventos, rastreio de
   requests, padroes de erro e relatorios operacionais.
+- [`bpo-analyser`](agents/bpo-analyser/): especialista em consulta direta a
+  BPO para analisar propostas por CPF ou numero, status, situacao,
+  observacoes e documentos anexados, sem usar a API SelfHire.
 - [`elasticsearch-log-analyzer`](agents/elasticsearch-log-analyzer/):
   especialista em Elasticsearch para descoberta de fontes, busca de eventos,
   rastreio de requests, padroes de erro e relatorios de logs.
+- [`n1-support-agent`](agents/n1-support-agent/): especialista N1 para executar
+  runbooks operacionais a partir de cards Azure DevOps, orquestrando Azure,
+  SQL Server, logs e TOPdesk.
 - [`database-change-operator`](agents/database-change-operator/):
   especialista em mudancas controladas em PostgreSQL, incluindo migrations,
   rollback, scripts de escrita, upserts e updates com dry-run por padrao.
 - [`postgres-data-analyzer`](agents/postgres-data-analyzer/):
-  especialista em PostgreSQL read-only para descoberta de schema, queries,
-  perfil de dados, deteccao de colunas sensiveis e analise de CPF.
+  especialista em PostgreSQL read-only para descoberta de databases, schemas,
+  tabelas, relacionamentos, joins, queries assistidas, perfilamento, qualidade
+  de dados e relatorios analiticos.
+- [`presentation-deck-builder`](agents/presentation-deck-builder/):
+  especialista em templates versionados de PowerPoint, arquivos de entrada para
+  preenchimento e geracao de decks a partir de conteudo estruturado.
 - [`sqlserver-data-analyzer`](agents/sqlserver-data-analyzer/):
   especialista em SQL Server read-only para descoberta de databases, schemas,
   tabelas, relacionamentos, joins, queries assistidas, perfilamento, qualidade
@@ -153,10 +163,16 @@ Use o executavel da raiz para descobrir agentes e capabilities:
 ./ai-devkit inspect azure-devops-orchestrator read-card
 ./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
 ./ai-devkit run database-change-operator plan-migration --path migrations/202606211200_create_table.up.sql
+./ai-devkit run n1-support-agent execute-n1-card-runbook --project "Sustentacao" --card 7710
+./ai-devkit run bpo-analyser analyze-cpf-proposals --cpf 12345678901
+./ai-devkit run bpo-analyser analyze-proposal --proposal-number 123456
+./ai-devkit run presentation-deck-builder register-template --template status.pptx --template-id status-report --version 0.1.0 --yes-save
 ./ai-devkit run postgres-data-analyzer list-tables --database outro_banco --schema public
 ./ai-devkit run sqlserver-data-analyzer list-tables --schema dbo
 ./ai-devkit run sqlserver-change-operator plan-migration --path migrations/001_create_table.up.sql
 ./ai-devkit run software-specification-analyst analyze-project-context --project . --output-dir specifications/contexto --yes-create-dir
+./ai-devkit run software-specification-analyst conduct-requirements-interview --input demanda.md --analysis-dir specifications/contexto --output-dir specifications/entrevista --yes-create-dir
+./ai-devkit run software-specification-analyst create-final-spec-from-analysis --analysis-dir specifications/refinada --output-dir specifications/final --yes-create-dir
 ./ai-devkit run software-specification-analyst create-complete-spec --input demanda.md
 ./ai-devkit run technical-integration-analyst extract-integration-contract --file api.md
 ./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
@@ -176,9 +192,17 @@ O `database-change-operator` possui runners para `test-write-permissions`,
 `upsert-records`, `update-records` e `migration-report`. Operacoes de escrita
 rodam em dry-run por padrao e exigem `--execute`.
 
+O `n1-support-agent` possui runners para executar runbook de card Azure,
+extrair entidades, planejar checks N1, gerar artefatos e atualizar card Azure
+por orquestracao. Escritas em Azure DevOps exigem `--execute`.
+
 Nos agentes Postgres, `POSTGRES_DB_CONN_STRING` e a conexao base. Use
 `--database <nome>` para trocar apenas o database da URL quando a mesma
 credencial tiver acesso a mais de um banco no mesmo host.
+
+O `postgres-data-analyzer` possui runners read-only para descoberta de schema,
+relacionamentos, sugestao de joins, validacao e execucao de queries limitadas,
+perfilamento, qualidade de dados, rastreio de registros e relatorios.
 
 O `sqlserver-data-analyzer` possui runners read-only para descoberta de schema,
 relacionamentos, sugestao de joins, validacao e execucao de queries limitadas,
@@ -195,10 +219,15 @@ extrair contratos, identificar informacoes ausentes, analisar ordem de uso,
 gerar massa de testes, gerar curls/Postman Collections, gerar artefatos de
 protocolo, executar testes controlados e gerar documentacao tecnica.
 
-O `software-specification-analyst` possui runners para `analyze-project-context`
-e `create-complete-spec`. Ele pode criar documentos intermediarios de analise
-antes da especificacao final, pergunta antes de criar uma pasta no projeto atual
-e salva artefatos em `specifications/<slug>/` por padrao.
+O `software-specification-analyst` possui runners para `analyze-project-context`,
+`conduct-requirements-interview`, `refine-analysis-with-feedback`,
+`create-final-spec-from-analysis` e `create-complete-spec`. Ele cria documentos
+intermediarios, conduz perguntas, incorpora feedback e gera especificacao final
+a partir de analise refinada.
+
+O `presentation-deck-builder` possui runners iniciais para registrar templates
+versionados, listar templates/versoes e gerar arquivos de entrada
+`input-schema.xlsx` e `input-schema.md`.
 
 ## Por onde comecar
 

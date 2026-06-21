@@ -1,0 +1,23 @@
+id: presentation-deck-builder.generate-template-input-file
+kind: capability
+name: Generate Template Input File
+version: 0.1.0
+status: draft
+purpose: >
+  Generate or refresh the user-fillable input schema files for a template
+  version.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-template-input-file.md
+inputs:
+  required: [template_id]
+  optional: [template_version, templates_root]
+outputs:
+  artifacts:
+    - input-schema.xlsx
+    - input-schema.md
+integration:
+  repository: null
+  methods: []
+write_policy: template_version_write

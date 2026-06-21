@@ -7,12 +7,13 @@ purpose: >
   Create a final software specification from mature analysis documents,
   preserving traceability from discovery through final requirements.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/create-final-spec-from-analysis.md
   output_template: ../../templates/complete-spec-output.md
 inputs:
-  required: [analysis]
-  optional: [title, include_technical_spec, include_user_stories]
+  required: [analysis_dir]
+  optional: [title, output_dir, include_technical_spec, include_user_stories, yes_create_dir, yes_overwrite]
 outputs:
   artifacts:
     - software-specification.md

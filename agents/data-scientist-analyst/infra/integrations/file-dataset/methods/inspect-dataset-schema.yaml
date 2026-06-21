@@ -1,0 +1,4 @@
+id: inspect-dataset-schema
+repository: data_repository.py
+method: inspect_dataset_schema
+side_effects: none

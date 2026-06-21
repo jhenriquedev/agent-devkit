@@ -1,0 +1,23 @@
+id: data-scientist-analyst.inspect-dataset-schema
+kind: capability
+name: Inspect Dataset Schema
+version: 0.1.0
+status: draft
+purpose: >
+  Inferir schema, tipos, chaves provaveis, nulos e dados sensiveis de um
+  dataset tabular.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/inspect-dataset-schema.md
+  output_template: null
+inputs:
+  required: [source]
+  optional: [output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/inspect-dataset-schema.yaml
+write_policy: read_only

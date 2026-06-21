@@ -1,0 +1,6 @@
+id: bpo.analyze-proposal
+transport: soap-http
+operations:
+  - consultarPropostaPorNumeroProposta
+  - ConsultaDocumentosAnexados
+write_policy: read_only

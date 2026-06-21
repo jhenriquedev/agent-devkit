@@ -1,0 +1,15 @@
+id: n2-support-agent.rank-code-findings
+kind: capability
+name: Rank Code Findings
+version: 0.1.0
+status: draft
+purpose: Rank source, migration, and test findings so patch plans prefer implementation files over tests.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/rank-code-findings.md
+inputs:
+  optional: [codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-ranked-code-findings.json]
+write_policy: read_only

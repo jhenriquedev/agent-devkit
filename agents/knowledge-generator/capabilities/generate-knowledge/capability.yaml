@@ -1,0 +1,32 @@
+id: knowledge-generator.generate-knowledge
+kind: capability
+name: Generate Knowledge
+version: 0.1.0
+status: draft
+purpose: >
+  Gerar uma pasta knowledge a partir de fonte local, escolhendo artefatos por
+  profile e preservando rastreabilidade.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-knowledge.md
+  output_template: null
+inputs:
+  required: [source]
+  optional:
+    - output_dir
+    - profile
+    - project_id
+    - yes_create_dir
+    - yes_overwrite
+outputs:
+  artifacts:
+    - project.json
+    - source-index.json
+    - coverage-assessment.md
+    - hardening/initial-gaps.json
+integration:
+  repository: ../../infra/integrations/local-source/knowledge_repository.py
+  methods:
+    - ../../infra/integrations/local-source/methods/generate-knowledge.yaml
+write_policy: ask_before_creating_output_directory

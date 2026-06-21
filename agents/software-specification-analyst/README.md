@@ -24,6 +24,9 @@ especificacoes completas para desenvolvimento de software.
 ```bash
 ./ai-devkit capabilities software-specification-analyst
 ./ai-devkit run software-specification-analyst analyze-project-context --project . --output-dir specifications/contexto --yes-create-dir
+./ai-devkit run software-specification-analyst conduct-requirements-interview --input demanda.md --analysis-dir specifications/contexto --output-dir specifications/entrevista --yes-create-dir
+./ai-devkit run software-specification-analyst refine-analysis-with-feedback --analysis-dir specifications/contexto --feedback respostas.md --output-dir specifications/refinada --yes-create-dir
+./ai-devkit run software-specification-analyst create-final-spec-from-analysis --analysis-dir specifications/refinada --output-dir specifications/final --yes-create-dir
 ./ai-devkit inspect software-specification-analyst create-complete-spec
 ./ai-devkit run software-specification-analyst create-complete-spec --input demanda.md
 ```
@@ -34,7 +37,7 @@ Por padrao, `create-complete-spec` propoe salvar os artefatos em:
 <projeto-atual>/specifications/<slug-da-demanda>/
 ```
 
-O runner pergunta antes de criar a pasta. Para automacoes revisadas, use
+Os runners perguntam antes de criar pastas. Para automacoes revisadas, use
 `--yes-create-dir` explicitamente.
 
 ## Uso de skills em vendor
@@ -67,6 +70,16 @@ Artefatos intermediarios de analise:
 - `data-and-permissions-analysis.md`
 - `open-decisions.md`
 - `analysis-review.md`
+
+Artefatos de entrevista e refinamento:
+
+- `interview-guide.md`
+- `stakeholder-questions.md`
+- `missing-decisions.md`
+- `refined-analysis.md`
+- `resolved-questions.md`
+- `remaining-open-questions.md`
+- `decision-log.md`
 
 Artefatos finais de especificacao:
 

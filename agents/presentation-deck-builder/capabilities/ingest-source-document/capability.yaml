@@ -1,0 +1,18 @@
+id: presentation-deck-builder.ingest-source-document
+kind: capability
+name: Ingest Source Document
+version: 0.1.0
+status: draft
+purpose: Read PDF, Markdown, CSV, Word, Excel, or text and extract structured deck content.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/ingest-source-document.md
+inputs:
+  required: [input]
+  optional: [output]
+outputs:
+  artifacts: [extracted-content.md]
+integration:
+  repository: ../../infra/integrations/document-reader
+  methods: []
+write_policy: read_only

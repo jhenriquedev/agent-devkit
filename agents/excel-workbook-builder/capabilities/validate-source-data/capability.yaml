@@ -1,0 +1,14 @@
+id: excel-workbook-builder.validate-source-data
+kind: capability
+name: Validate Source Data
+version: 0.1.0
+status: draft
+purpose: Validate required columns, types, duplicates, and blanks in source data.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: [input, expected_schema]
+outputs:
+  artifacts: [validation-report.md]
+write_policy: read_only

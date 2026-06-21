@@ -1,0 +1,23 @@
+id: data-scientist-analyst.analyze-sql-source
+kind: capability
+name: Analyze SQL Source
+version: 0.1.0
+status: draft
+purpose: >
+  Delegar analise SQL read-only para postgres-data-analyzer ou
+  sqlserver-data-analyzer e retornar o resultado como fonte analitica.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-sql-source.md
+  output_template: null
+inputs:
+  required: [database_agent, database_capability]
+  optional: [database, schema, table, query, limit]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/agent-bridge
+  methods:
+    - ../../infra/integrations/agent-bridge/methods/analyze-sql-source.yaml
+write_policy: read_only

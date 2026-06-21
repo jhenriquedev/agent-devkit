@@ -1,0 +1,43 @@
+{
+  "id": "meucashcard-restrictive-base-rules",
+  "version": "0.1.0",
+  "domain": "restrictive",
+  "rules": [
+    {
+      "id": "restrictive.cpf_absent_auto_approved",
+      "source": "GetProcessedRestrictives_usecase",
+      "rule": "Quando CPF nao existe na base restritiva, retorna IsApproved true e IsAutomaticallyApproved true.",
+      "supportImpact": "Ausencia na base e clear operacional."
+    },
+    {
+      "id": "restrictive.query_error_not_safe_clear",
+      "source": "GetProcessedRestrictives_usecase",
+      "rule": "Erro ao consultar base retorna IsApproved true, mas IsAutomaticallyApproved false.",
+      "supportImpact": "Erro de consulta nao deve virar bloqueio nem liberacao segura."
+    },
+    {
+      "id": "restrictive.juridico_blocks",
+      "source": "GetProcessedRestrictives_usecase",
+      "rule": "Flag IsJuridico bloqueia fluxo normal e tambem bloqueia refinanciamento.",
+      "supportImpact": "Juridico e a restricao mais forte no modulo."
+    },
+    {
+      "id": "restrictive.purchase_withdrawal_block_outside_cobranca",
+      "source": "GetProcessedRestrictives_usecase",
+      "rule": "Fora da promotora Cobranca MCC, Compra, Saque ou Juridico tornam IsApproved false.",
+      "supportImpact": "Cliente em Compra/Saque normalmente fica bloqueado."
+    },
+    {
+      "id": "restrictive.refin_only_juridico_blocks",
+      "source": "GetProcessedRestrictives_usecase",
+      "rule": "Para refinanciamento, IsApproved e true se nao for juridico.",
+      "supportImpact": "Compra/Saque nao devem bloquear refinanciamento sem Juridico."
+    },
+    {
+      "id": "restrictive.low_value_purchase_indeterminate",
+      "source": "GetProcessedRestrictives_usecase",
+      "rule": "Em proposta de saque, se o cliente so tem Compra e inadimplencia compra <= 150, retorna aprovado com IsIndeterminate true.",
+      "supportImpact": "Baixo valor pode exigir tratativa/manualidade, nao bloqueio direto."
+    }
+  ]
+}

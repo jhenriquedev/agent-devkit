@@ -1,0 +1,18 @@
+id: presentation-deck-builder.inspect-template
+kind: capability
+name: Inspect Template
+version: 0.1.0
+status: draft
+purpose: Inspect a template version to identify layouts, placeholders, slide types, and usage guidance.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/inspect-template.md
+inputs:
+  required: [template_id]
+  optional: [template_version]
+outputs:
+  artifacts: [template-inspection.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

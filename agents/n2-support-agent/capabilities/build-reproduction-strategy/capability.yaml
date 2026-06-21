@@ -1,0 +1,15 @@
+id: n2-support-agent.build-reproduction-strategy
+kind: capability
+name: Build Reproduction Strategy
+version: 0.1.0
+status: draft
+purpose: Define the TDD reproduction strategy before a patch plan is implemented.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/build-reproduction-strategy.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-reproduction-strategy.json]
+write_policy: read_only

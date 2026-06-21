@@ -1,0 +1,69 @@
+id: n1-support-agent
+kind: specialist-agent
+name: N1 Support Agent
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Execute deterministic N1 operational triage from an Azure DevOps card,
+  orchestrating specialist agents for Azure, SQL Server, logs, TOPdesk, and
+  customer context checks while producing a fixed output contract.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+  - knowledge/runbooks/customer-onboarding-triage.md
+  - knowledge/domains/meucashcard/index.json
+
+env:
+  required: []
+  optional: []
+
+depends_on_agents:
+  - azure-devops-orchestrator
+  - sqlserver-data-analyzer
+  - bpo-analyser
+  - topdesk-orchestrator
+  - aws-cloudwatch-log-analyzer
+  - elasticsearch-log-analyzer
+
+capabilities:
+  - execute-n1-card-runbook
+  - extract-card-entities
+  - route-customer-symptom
+  - analyze-bpo-proposal
+  - analyze-restrictive-base
+  - analyze-cognito-user
+  - analyze-onboarding-status
+  - analyze-proposal-status
+  - collect-customer-logs
+  - decide-n1-outcome
+  - generate-n1-artifacts
+  - update-azure-card
+
+agent_surface:
+  repositories: []
+  methods: []
+  orchestrated_agents:
+    - azure-devops-orchestrator/read-card
+    - azure-devops-orchestrator/update-card-tags
+    - azure-devops-orchestrator/move-card
+    - sqlserver-data-analyzer/run-readonly-query
+    - sqlserver-data-analyzer/trace-record
+    - bpo-analyser/analyze-proposal
+    - bpo-analyser/analyze-cpf-proposals
+    - bpo-analyser/find-latest-proposal-by-cpf
+    - bpo-analyser/consult-attached-documents
+    - n1-support-agent/route-customer-symptom
+    - topdesk-orchestrator/read-incident
+    - aws-cloudwatch-log-analyzer/search-log-events
+    - elasticsearch-log-analyzer/search-log-events
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  azure_tag_operations: confirm
+  azure_move_operations: confirm
+  external_mutations: confirm

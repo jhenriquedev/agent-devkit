@@ -1,0 +1,22 @@
+id: data-scientist-analyst.calculate-sample-size
+kind: capability
+name: Calculate Sample Size
+version: 0.1.0
+status: draft
+purpose: >
+  Estimar tamanho de amostra para comparacao balanceada de duas proporcoes.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/calculate-sample-size.md
+  output_template: null
+inputs:
+  required: [baseline_rate, minimum_detectable_effect]
+  optional: [alpha, power, output]
+outputs:
+  artifacts: [json]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/calculate-sample-size.yaml
+write_policy: read_only

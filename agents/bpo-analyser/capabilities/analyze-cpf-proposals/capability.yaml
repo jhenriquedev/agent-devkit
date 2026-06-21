@@ -1,0 +1,23 @@
+id: bpo-analyser.analyze-cpf-proposals
+kind: capability
+name: Analyze BPO CPF Proposals
+version: 0.1.0
+status: draft
+purpose: >
+  Analisar todas as propostas BPO de um CPF, classificando elegiveis,
+  em analise e reprovadas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-cpf-proposals.md
+  output_template: ../../templates/analyze-cpf-proposals-output.md
+inputs:
+  required: [cpf]
+  optional: [fixture, output, format]
+outputs:
+  artifacts: [bpo-cpf-proposals-analysis.md]
+integration:
+  repository: ../../infra/integrations/bpo/bpo_repository.py
+  methods:
+    - ../../infra/integrations/bpo/methods/analyze-cpf-proposals.yaml
+write_policy: read_only

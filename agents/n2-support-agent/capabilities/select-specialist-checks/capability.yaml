@@ -1,0 +1,15 @@
+id: n2-support-agent.select-specialist-checks
+kind: capability
+name: Select Specialist Checks
+version: 0.1.0
+status: draft
+purpose: Select the specialist agents needed to validate an N2 hypothesis.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/select-specialist-checks.md
+inputs:
+  optional: [project, card, n1_contract, codebase_path, fixture, output, format]
+outputs:
+  artifacts: [n2-specialist-checks.json]
+write_policy: read_only

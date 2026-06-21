@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.suggest-joins
+kind: capability
+name: Suggest Joins
+version: 0.1.0
+status: draft
+purpose: >
+  Suggest joins from constraints and naming heuristics.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/suggest-joins.md
+  output_template: ../../templates/suggest-joins-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, left_schema, left_table, right_schema, right_table, column, columns, query, pattern, key_column, key_value, limit, fixture, output]
+outputs:
+  artifacts: [suggest-joins-output.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/suggest-joins.yaml
+write_policy: read_only
