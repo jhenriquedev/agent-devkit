@@ -1,0 +1,28 @@
+id: elasticsearch-log-analyzer.search-log-events
+kind: capability
+name: Search Log Events
+version: 0.1.0
+status: draft
+purpose: >
+  Search Elasticsearch log events by explicit source, time window, service,
+  environment, level, text query, and structured filters.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/search-log-events.md
+  output_template: ../../templates/search-log-events-output.md
+inputs:
+  required: [source, from, to]
+  optional: [query, service, environment, level, filters_json, time_field, limit, fixture, output]
+outputs:
+  artifacts: [log-events.md]
+integration:
+  repository: ../../infra/integrations/elasticsearch/elasticsearch_repository.py
+  methods:
+    - ../../infra/integrations/elasticsearch/methods/describe-source.yaml
+    - ../../infra/integrations/elasticsearch/methods/render-query.yaml
+    - ../../infra/integrations/elasticsearch/methods/count-events.yaml
+    - ../../infra/integrations/elasticsearch/methods/search-events.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-terms.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
+write_policy: read_only

@@ -1,0 +1,23 @@
+id: technical-integration-analyst.generate-http-artifacts
+kind: capability
+name: Generate HTTP Artifacts
+version: 0.1.0
+status: draft
+purpose: >
+  Generate curl examples and importable Postman Collection artifacts for HTTP,
+  REST, SOAP-over-HTTP, MCP-over-HTTP, and similar integrations.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-http-artifacts.md
+  output_template: ../../templates/generate-http-artifacts-output.md
+inputs:
+  required: []
+  optional: [url, file, directory, text, base_url, postman_output, output]
+outputs:
+  artifacts: [http-artifacts.md, postman-collection.json]
+integration:
+  repository: ../../infra/integrations/technical-integration/technical_integration_repository.py
+  methods:
+    - ../../infra/integrations/technical-integration/methods/generate-http-artifacts.yaml
+write_policy: read_only

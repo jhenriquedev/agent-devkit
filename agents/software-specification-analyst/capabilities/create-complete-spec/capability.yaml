@@ -1,0 +1,42 @@
+id: software-specification-analyst.create-complete-spec
+kind: capability
+name: Create Complete Spec
+version: 0.1.0
+status: draft
+
+purpose: >
+  Generate a complete software specification package from a demand, separating
+  functional, technical, stories, journeys, traceability, risks, and open
+  questions.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-complete-spec.md
+  output_template: ../../templates/complete-spec-output.md
+
+inputs:
+  required:
+    - input
+  optional:
+    - title
+    - output_dir
+    - yes_create_dir
+    - yes_overwrite
+    - stdout
+
+outputs:
+  artifacts:
+    - software-specification.md
+    - functional-spec.md
+    - technical-spec.md
+    - user-stories.md
+    - journey-flows.md
+    - requirements-traceability.md
+    - open-questions.md
+
+integration:
+  repository: null
+  methods: []
+
+write_policy: ask_before_creating_output_directory

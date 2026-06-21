@@ -1,0 +1,33 @@
+id: sqlserver-change-operator.policies
+version: 0.1.0
+status: draft
+
+write_operations:
+  confirmation_required: true
+  execute_flag_required: true
+  destructive_confirmation_required: true
+  blocked_keywords:
+    - drop database
+    - alter server
+    - alter login
+    - create login
+    - grant
+    - revoke
+    - backup database
+    - restore
+    - truncate
+    - xp_cmdshell
+    - sp_configure
+    - openrowset
+    - linked server
+
+limits:
+  default_statement_timeout_ms: 15000
+  default_lock_timeout_ms: 5000
+  default_max_affected_rows: 100
+
+audit:
+  schema: ai_devkit
+  migrations_table: schema_migrations
+  changes_table: change_audit
+  backups_table: record_backups

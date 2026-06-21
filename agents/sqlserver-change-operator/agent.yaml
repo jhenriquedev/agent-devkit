@@ -1,0 +1,65 @@
+id: sqlserver-change-operator
+kind: specialist-agent
+name: SQL Server Change Operator
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Apply controlled Microsoft SQL Server changes when the local connection string
+  has permission, including migrations, rollback, write scripts, object
+  creation, updates, deletes, upserts, logical backups, history tracking, and
+  safety guardrails.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - SQLSERVER_DB_CONN_STRING
+  optional:
+    - SQLSERVER_STATEMENT_TIMEOUT
+    - SQLSERVER_LOCK_TIMEOUT
+    - SQLSERVER_MAX_AFFECTED_ROWS
+    - SQLSERVER_CHANGE_SCHEMA
+
+runtime_inputs:
+  optional:
+    - database
+
+capabilities:
+  - test-write-permissions
+  - plan-migration
+  - apply-migration
+  - rollback-migration
+  - run-write-script
+  - create-object
+  - update-records
+  - delete-records
+  - upsert-records
+  - backup-records
+  - change-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/sqlserver/sqlserver_change_repository.py
+  methods:
+    - infra/integrations/sqlserver/methods/test-write-permissions.yaml
+    - infra/integrations/sqlserver/methods/plan-migration.yaml
+    - infra/integrations/sqlserver/methods/apply-migration.yaml
+    - infra/integrations/sqlserver/methods/rollback-migration.yaml
+    - infra/integrations/sqlserver/methods/run-write-script.yaml
+    - infra/integrations/sqlserver/methods/create-object.yaml
+    - infra/integrations/sqlserver/methods/update-records.yaml
+    - infra/integrations/sqlserver/methods/delete-records.yaml
+    - infra/integrations/sqlserver/methods/upsert-records.yaml
+    - infra/integrations/sqlserver/methods/backup-records.yaml
+    - infra/integrations/sqlserver/methods/change-report.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  write_operations: confirm
+  destructive_operations: blocked_by_default

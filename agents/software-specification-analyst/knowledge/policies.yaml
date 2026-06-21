@@ -1,0 +1,111 @@
+id: software-specification-analyst.policies
+version: 0.1.0
+status: draft
+
+source_handling:
+  require_fact_inference_separation: true
+  do_not_invent_requirements: true
+  mark_assumptions_explicitly: true
+  mark_open_questions_explicitly: true
+  preserve_user_language: portuguese
+
+specification_policy:
+  required_sections:
+    - resumo_executivo
+    - contexto_e_problema
+    - objetivos
+    - escopo
+    - fora_de_escopo
+    - atores_e_personas
+    - requisitos_funcionais
+    - requisitos_nao_funcionais
+    - regras_de_negocio
+    - user_stories
+    - criterios_de_aceite
+    - jornadas_e_fluxogramas
+    - modelo_de_dados
+    - apis_e_integracoes
+    - permissoes_e_seguranca
+    - observabilidade
+    - estrategia_de_testes
+    - riscos_e_dependencias
+    - matriz_de_rastreabilidade
+    - perguntas_abertas
+    - handoff_para_desenvolvimento
+  output_format: markdown
+  diagram_format: mermaid
+  language: pt-BR
+
+analysis_policy:
+  classify_depth_before_work: true
+  allowed_depths:
+    - light
+    - medium
+    - deep
+  allow_incremental_analysis_documents: true
+  final_spec_requires_sufficient_context: true
+  separate_code_facts_from_business_truth: true
+  ask_questions_when_business_rule_is_implicit: true
+  support_multiple_projects: true
+  allow_review_correction_polishing_loop: true
+
+interview_policy:
+  ask_targeted_questions: true
+  avoid_long_questionnaires_when_scope_is_small: true
+  group_questions_by:
+    - negocio
+    - funcional
+    - tecnico
+    - dados
+    - seguranca
+    - qa
+
+code_analysis_policy:
+  inspect_project_structure: true
+  identify_critical_modules: true
+  map_existing_flows: true
+  identify_implicit_business_rules: true
+  document_uncertainty: true
+  ignore_common_generated_directories:
+    - .git
+    - node_modules
+    - vendor
+    - __pycache__
+    - dist
+    - build
+    - target
+    - .next
+
+filesystem_policy:
+  ask_before_creating_output_directory: true
+  default_output_root: specifications
+  portable_paths_required: true
+  overwrite_existing_files: ask
+  allowed_write_scope:
+    - current_project_only
+
+vendor_skills_policy:
+  consult_catalog_before_domain_work: true
+  catalog: ../../vendor/skills/CATALOG.md
+  base_skill: ../../vendor/skills/ecc/product-capability
+  load_only_relevant_skills: true
+
+quality_gates:
+  - profundidade_da_analise_classificada
+  - fatos_de_codigo_separados_de_regras_de_negocio
+  - documentos_intermediarios_criados_quando_necessario
+  - perguntas_de_negocio_derivadas_de_lacunas
+  - problema_e_objetivo_claros
+  - escopo_e_fora_de_escopo_explicitos
+  - atores_identificados
+  - requisitos_funcionais_numerados
+  - requisitos_nao_funcionais_cobertos
+  - regras_de_negocio_separadas
+  - user_stories_com_criterios_de_aceite
+  - fluxos_principais_alternativos_e_excecoes
+  - impactos_em_dados_apis_e_integracoes
+  - requisitos_de_seguranca_e_permissao
+  - estrategia_de_testes
+  - riscos_e_dependencias
+  - perguntas_abertas_explicitas
+  - matriz_de_rastreabilidade

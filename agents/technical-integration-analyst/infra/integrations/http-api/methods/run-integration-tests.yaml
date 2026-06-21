@@ -1,0 +1,8 @@
+id: run-integration-tests
+description: Plan and optionally execute integration tests.
+inputs:
+  required: [contract]
+  optional: [base_url, execute, confirm_mutations]
+outputs:
+  fields: [dry_run, results]
+write_policy: confirm

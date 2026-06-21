@@ -1,0 +1,8 @@
+id: aggregate-terms
+description: Aggregate matching events by one field.
+inputs:
+  required: [source, field, from, to]
+  optional: [query, service, environment, level, filters, time_field, size]
+outputs:
+  fields: [source, field, buckets]
+read_only: true

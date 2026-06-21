@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.build-analysis-query
+kind: capability
+name: Build Analysis Query
+version: 0.1.0
+status: draft
+purpose: >
+  Build a safe analysis query from tables, columns, filters, or a question.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/build-analysis-query.md
+  output_template: ../../templates/build-analysis-query-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [build-analysis-query-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/build-analysis-query.yaml
+write_policy: read_only

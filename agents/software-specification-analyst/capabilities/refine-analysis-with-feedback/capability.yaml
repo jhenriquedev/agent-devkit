@@ -1,0 +1,21 @@
+id: software-specification-analyst.refine-analysis-with-feedback
+kind: capability
+name: Refine Analysis With Feedback
+version: 0.1.0
+status: draft
+purpose: >
+  Incorporate stakeholder feedback, corrections, and answers into analysis
+  documents before final specification.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/refine-analysis-with-feedback.md
+  output_template: ../../templates/refined-analysis-output.md
+inputs:
+  required: [analysis, feedback]
+  optional: [strictness]
+outputs:
+  artifacts: [refined-analysis.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

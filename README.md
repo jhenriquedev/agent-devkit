@@ -114,6 +114,31 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`aws-cloudwatch-log-analyzer`](agents/aws-cloudwatch-log-analyzer/):
   especialista em AWS CloudWatch Logs para busca de eventos, rastreio de
   requests, padroes de erro e relatorios operacionais.
+- [`elasticsearch-log-analyzer`](agents/elasticsearch-log-analyzer/):
+  especialista em Elasticsearch para descoberta de fontes, busca de eventos,
+  rastreio de requests, padroes de erro e relatorios de logs.
+- [`database-change-operator`](agents/database-change-operator/):
+  especialista em mudancas controladas em PostgreSQL, incluindo migrations,
+  rollback, scripts de escrita, upserts e updates com dry-run por padrao.
+- [`postgres-data-analyzer`](agents/postgres-data-analyzer/):
+  especialista em PostgreSQL read-only para descoberta de schema, queries,
+  perfil de dados, deteccao de colunas sensiveis e analise de CPF.
+- [`sqlserver-data-analyzer`](agents/sqlserver-data-analyzer/):
+  especialista em SQL Server read-only para descoberta de databases, schemas,
+  tabelas, relacionamentos, joins, queries assistidas, perfilamento, qualidade
+  de dados e relatorios analiticos.
+- [`sqlserver-change-operator`](agents/sqlserver-change-operator/):
+  especialista em mudancas controladas em SQL Server, incluindo migrations,
+  rollback, scripts de escrita, criacao de objetos, updates, deletes e upserts
+  com dry-run por padrao.
+- [`software-specification-analyst`](agents/software-specification-analyst/):
+  especialista em analise de requisitos, entrevistas, analise de projetos,
+  documentacao funcional/tecnica, user stories, fluxos de jornada e
+  rastreabilidade.
+- [`technical-integration-analyst`](agents/technical-integration-analyst/):
+  especialista em analise de documentacoes tecnicas de integracoes, com suporte
+  a REST, SOAP, MCP, SFTP, SMTP e outros protocolos, gerando contratos, fluxos,
+  massa de testes, curls, Postman Collections e documentacao tecnica.
 - [`topdesk-orchestrator`](agents/topdesk-orchestrator/): especialista em
   TOPdesk para incidentes, triagem, enriquecimento, pedidos de informacao e
   relatorios operacionais.
@@ -127,6 +152,13 @@ Use o executavel da raiz para descobrir agentes e capabilities:
 ./ai-devkit capabilities azure-devops-orchestrator
 ./ai-devkit inspect azure-devops-orchestrator read-card
 ./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run database-change-operator plan-migration --path migrations/202606211200_create_table.up.sql
+./ai-devkit run postgres-data-analyzer list-tables --database outro_banco --schema public
+./ai-devkit run sqlserver-data-analyzer list-tables --schema dbo
+./ai-devkit run sqlserver-change-operator plan-migration --path migrations/001_create_table.up.sql
+./ai-devkit run software-specification-analyst analyze-project-context --project . --output-dir specifications/contexto --yes-create-dir
+./ai-devkit run software-specification-analyst create-complete-spec --input demanda.md
+./ai-devkit run technical-integration-analyst extract-integration-contract --file api.md
 ./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
 
@@ -138,6 +170,35 @@ No estado atual, as 8 capabilities do `azure-devops-orchestrator` possuem
 O `topdesk-orchestrator` tambem possui runners para `list-incidents`,
 `read-incident`, `create-incident`, `update-incident`,
 `analyze-incident-insufficiency`, `request-more-info` e `incident-report`.
+
+O `database-change-operator` possui runners para `test-write-permissions`,
+`plan-migration`, `apply-migration`, `rollback-migration`, `run-write-script`,
+`upsert-records`, `update-records` e `migration-report`. Operacoes de escrita
+rodam em dry-run por padrao e exigem `--execute`.
+
+Nos agentes Postgres, `POSTGRES_DB_CONN_STRING` e a conexao base. Use
+`--database <nome>` para trocar apenas o database da URL quando a mesma
+credencial tiver acesso a mais de um banco no mesmo host.
+
+O `sqlserver-data-analyzer` possui runners read-only para descoberta de schema,
+relacionamentos, sugestao de joins, validacao e execucao de queries limitadas,
+perfilamento, qualidade de dados, rastreio de registros e relatorios.
+
+O `sqlserver-change-operator` possui runners para `test-write-permissions`,
+`plan-migration`, `apply-migration`, `rollback-migration`, `run-write-script`,
+`create-object`, `update-records`, `delete-records`, `upsert-records`,
+`backup-records` e `change-report`. Escritas reais exigem `--execute`, e
+deletes reais tambem exigem `--confirm-delete`.
+
+O `technical-integration-analyst` possui runners para ingerir documentacoes,
+extrair contratos, identificar informacoes ausentes, analisar ordem de uso,
+gerar massa de testes, gerar curls/Postman Collections, gerar artefatos de
+protocolo, executar testes controlados e gerar documentacao tecnica.
+
+O `software-specification-analyst` possui runners para `analyze-project-context`
+e `create-complete-spec`. Ele pode criar documentos intermediarios de analise
+antes da especificacao final, pergunta antes de criar uma pasta no projeto atual
+e salva artefatos em `specifications/<slug>/` por padrao.
 
 ## Por onde comecar
 

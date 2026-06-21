@@ -1,0 +1,8 @@
+id: apply-migration
+description: Apply one migration and record history.
+inputs:
+  required: [path]
+  optional: [database, name, execute]
+outputs:
+  fields: [dry_run, migration_id, status, plan]
+write_operation: true

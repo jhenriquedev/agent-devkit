@@ -1,0 +1,23 @@
+id: technical-integration-analyst.identify-missing-information
+kind: capability
+name: Identify Missing Information
+version: 0.1.0
+status: draft
+purpose: >
+  Identify missing information required to generate executable artifacts or run
+  integration tests safely.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/identify-missing-information.md
+  output_template: ../../templates/identify-missing-information-output.md
+inputs:
+  required: []
+  optional: [url, file, directory, text, base_url, output]
+outputs:
+  artifacts: [missing-integration-information.md]
+integration:
+  repository: ../../infra/integrations/technical-integration/technical_integration_repository.py
+  methods:
+    - ../../infra/integrations/technical-integration/methods/identify-missing-information.yaml
+write_policy: read_only

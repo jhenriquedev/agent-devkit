@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.trace-record
+kind: capability
+name: Trace Record
+version: 0.1.0
+status: draft
+purpose: >
+  Trace a record through related tables using keys.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/trace-record.md
+  output_template: ../../templates/trace-record-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [trace-record-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/trace-record.yaml
+write_policy: read_only

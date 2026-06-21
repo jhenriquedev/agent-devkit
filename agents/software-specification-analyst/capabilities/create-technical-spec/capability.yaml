@@ -1,0 +1,21 @@
+id: software-specification-analyst.create-technical-spec
+kind: capability
+name: Create Technical Spec
+version: 0.1.0
+status: draft
+purpose: >
+  Create a technical specification with architecture, components, APIs, data,
+  integrations, security, observability, deployment, risks, and test strategy.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-technical-spec.md
+  output_template: ../../templates/technical-spec-output.md
+inputs:
+  required: [input]
+  optional: [title, architecture_context]
+outputs:
+  artifacts: [technical-spec.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

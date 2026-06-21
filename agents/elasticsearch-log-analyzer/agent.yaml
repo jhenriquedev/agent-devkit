@@ -1,0 +1,53 @@
+id: elasticsearch-log-analyzer
+kind: specialist-agent
+name: Elasticsearch Log Analyzer
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analyze Elasticsearch logs with explicit runtime scope, including source
+  discovery, event search, request tracing, error pattern detection, sample
+  extraction, operational reports, and Azure DevOps card correlation.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional:
+    - ELASTICSEARCH_URL
+    - ELASTICSEARCH_API_KEY
+    - ELASTIC_API_KEY
+    - EC_API_KEY
+    - ELASTICSEARCH_DEFAULT_TIME_FIELD
+
+capabilities:
+  - list-log-sources
+  - search-log-events
+  - analyze-service-errors
+  - trace-request
+  - detect-error-patterns
+  - extract-log-samples
+  - generate-log-report
+  - correlate-azure-card-logs
+
+agent_surface:
+  repositories:
+    - infra/integrations/elasticsearch/elasticsearch_repository.py
+  methods:
+    - infra/integrations/elasticsearch/methods/list-sources.yaml
+    - infra/integrations/elasticsearch/methods/describe-source.yaml
+    - infra/integrations/elasticsearch/methods/render-query.yaml
+    - infra/integrations/elasticsearch/methods/search-events.yaml
+    - infra/integrations/elasticsearch/methods/count-events.yaml
+    - infra/integrations/elasticsearch/methods/aggregate-terms.yaml
+    - infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
+    - infra/integrations/elasticsearch/methods/get-event.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  write_operations: unsupported

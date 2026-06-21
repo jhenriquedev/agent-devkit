@@ -1,0 +1,21 @@
+id: software-specification-analyst.analyze-multiple-projects
+kind: capability
+name: Analyze Multiple Projects
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze multiple local projects to map cross-project boundaries, integration
+  contracts, ownership, duplicated rules, and impact areas.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-multiple-projects.md
+  output_template: ../../templates/multi-project-analysis-output.md
+inputs:
+  required: [projects]
+  optional: [depth, focus]
+outputs:
+  artifacts: [multi-project-analysis.md]
+integration:
+  repository: null
+  methods: []
+write_policy: ask_before_creating_output_directory

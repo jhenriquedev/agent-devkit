@@ -1,0 +1,21 @@
+id: software-specification-analyst.identify-business-questions
+kind: capability
+name: Identify Business Questions
+version: 0.1.0
+status: draft
+purpose: >
+  Turn gaps found in documents or code into objective business questions for
+  stakeholders.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/identify-business-questions.md
+  output_template: ../../templates/business-questions-output.md
+inputs:
+  required: [input]
+  optional: [source_type]
+outputs:
+  artifacts: [business-questions.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

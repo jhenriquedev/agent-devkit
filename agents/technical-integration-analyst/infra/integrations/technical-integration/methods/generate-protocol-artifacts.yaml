@@ -1,0 +1,8 @@
+id: generate-protocol-artifacts
+description: Generate operational artifacts for non-HTTP protocols.
+inputs:
+  required: [contract]
+  optional: []
+outputs:
+  fields: [artifacts, checklist]
+read_only: true

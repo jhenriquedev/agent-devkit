@@ -1,0 +1,27 @@
+id: software-specification-analyst.create-final-spec-from-analysis
+kind: capability
+name: Create Final Spec From Analysis
+version: 0.1.0
+status: draft
+purpose: >
+  Create a final software specification from mature analysis documents,
+  preserving traceability from discovery through final requirements.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-final-spec-from-analysis.md
+  output_template: ../../templates/complete-spec-output.md
+inputs:
+  required: [analysis]
+  optional: [title, include_technical_spec, include_user_stories]
+outputs:
+  artifacts:
+    - software-specification.md
+    - functional-spec.md
+    - technical-spec.md
+    - user-stories.md
+    - journey-flows.md
+    - requirements-traceability.md
+integration:
+  repository: null
+  methods: []
+write_policy: ask_before_creating_output_directory

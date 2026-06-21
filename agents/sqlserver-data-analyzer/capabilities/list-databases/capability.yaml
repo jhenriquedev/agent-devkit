@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.list-databases
+kind: capability
+name: List Databases
+version: 0.1.0
+status: draft
+purpose: >
+  List accessible SQL Server databases.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-databases.md
+  output_template: ../../templates/list-databases-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [list-databases-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/list-databases.yaml
+write_policy: read_only

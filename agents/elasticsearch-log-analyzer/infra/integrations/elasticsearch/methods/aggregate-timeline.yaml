@@ -1,0 +1,8 @@
+id: aggregate-timeline
+description: Build a date histogram for matching events.
+inputs:
+  required: [source, from, to]
+  optional: [query, service, environment, level, filters, time_field, interval]
+outputs:
+  fields: [source, time_field, interval, buckets]
+read_only: true

@@ -1,0 +1,8 @@
+id: render-query
+description: Render the Elasticsearch DSL body for review/debug.
+inputs:
+  required: [source, from, to]
+  optional: [query, service, environment, level, filters, time_field, limit]
+outputs:
+  fields: [source, body]
+read_only: true

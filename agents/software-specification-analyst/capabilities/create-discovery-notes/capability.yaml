@@ -1,0 +1,21 @@
+id: software-specification-analyst.create-discovery-notes
+kind: capability
+name: Create Discovery Notes
+version: 0.1.0
+status: draft
+purpose: >
+  Create discovery notes with facts, hypotheses, assumptions, gaps, and areas
+  that need validation before requirements can be finalized.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-discovery-notes.md
+  output_template: ../../templates/discovery-notes-output.md
+inputs:
+  required: [input]
+  optional: [depth]
+outputs:
+  artifacts: [discovery-notes.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

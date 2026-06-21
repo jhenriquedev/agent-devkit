@@ -1,0 +1,43 @@
+id: postgres-data-analyzer.policies
+version: 0.1.0
+status: draft
+
+read_operations:
+  confirmation_required: false
+  allowed:
+    - test_connection
+    - list_schemas
+    - list_tables
+    - describe_table
+    - run_readonly_query
+    - profile_table
+    - detect_sensitive_columns
+    - analyze_cpf_column
+
+write_operations:
+  supported: false
+  blocked_keywords:
+    - insert
+    - update
+    - delete
+    - drop
+    - alter
+    - truncate
+    - create
+    - grant
+    - revoke
+    - vacuum
+
+privacy:
+  mask_cpf_by_default: true
+  avoid_personal_data_dumps: true
+
+limits:
+  default_query_limit: 100
+  default_statement_timeout_ms: 15000
+
+database_selection:
+  default_source: POSTGRES_DB_CONN_STRING
+  override_argument: database
+  override_scope: database_name_only
+  reject_url_as_database_name: true

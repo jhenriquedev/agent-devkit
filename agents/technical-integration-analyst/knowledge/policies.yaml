@@ -1,0 +1,46 @@
+id: technical-integration-analyst.policies
+version: 0.1.0
+status: draft
+
+source_handling:
+  accepted_inputs:
+    - url
+    - file
+    - directory
+    - text
+  preserve_evidence: true
+  max_source_preview_chars: 500
+
+protocols:
+  supported:
+    - rest
+    - soap
+    - mcp
+    - sftp
+    - smtp
+    - graphql
+    - file
+    - queue
+    - unknown
+
+execution:
+  dry_run_default: true
+  execute_flag_required: true
+  mutation_confirmation_required: true
+  default_timeout_seconds: 30
+  blocked_without_base_url: true
+
+privacy:
+  mask_secrets: true
+  masked_fields:
+    - authorization
+    - token
+    - api_key
+    - password
+    - secret
+    - cookie
+
+artifact_generation:
+  postman_schema: https://schema.getpostman.com/json/collection/v2.1.0/collection.json
+  markdown_is_canonical: true
+  pdf_renderer: reportlab

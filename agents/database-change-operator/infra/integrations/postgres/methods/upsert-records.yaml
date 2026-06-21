@@ -1,0 +1,8 @@
+id: upsert-records
+description: Upsert records from JSON or CSV into a target table.
+inputs:
+  required: [schema, table, key_column, input]
+  optional: [database, execute]
+outputs:
+  fields: [dry_run, record_count, status, plan]
+write_operation: true

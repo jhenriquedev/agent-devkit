@@ -1,0 +1,30 @@
+id: elasticsearch
+version: 0.1.0
+status: draft
+
+provider: elasticsearch
+scope:
+  - indices
+  - data-streams
+  - aliases
+  - search
+  - count
+  - aggregations
+
+env:
+  required: []
+  optional:
+    - ELASTICSEARCH_URL
+    - ELASTICSEARCH_API_KEY
+    - ELASTIC_API_KEY
+    - EC_API_KEY
+    - ELASTICSEARCH_DEFAULT_TIME_FIELD
+
+repository:
+  language: python
+  path: elasticsearch_repository.py
+  cli: cli.py
+  dependencies: stdlib-plus-curl
+
+auth:
+  method: api-key

@@ -1,0 +1,8 @@
+id: rollback-migration
+description: Execute rollback SQL and update migration history.
+inputs:
+  required: [path]
+  optional: [database, execute]
+outputs:
+  fields: [dry_run, migration_id, status, plan]
+write_operation: true

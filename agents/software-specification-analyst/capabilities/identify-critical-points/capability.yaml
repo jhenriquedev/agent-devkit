@@ -1,0 +1,22 @@
+id: software-specification-analyst.identify-critical-points
+kind: capability
+name: Identify Critical Points
+version: 0.1.0
+status: draft
+purpose: >
+  Identify critical functional and technical points such as implicit business
+  rules, coupling, missing tests, sensitive integrations, permissions, and data
+  risks.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/identify-critical-points.md
+  output_template: ../../templates/critical-points-output.md
+inputs:
+  required: [input]
+  optional: [project_context]
+outputs:
+  artifacts: [critical-points.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: software-specification-analyst.build-requirements-traceability
+kind: capability
+name: Build Requirements Traceability
+version: 0.1.0
+status: draft
+purpose: >
+  Build a traceability matrix connecting requirements, user stories, acceptance
+  criteria, technical components, tests, risks, and open questions.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/build-requirements-traceability.md
+  output_template: ../../templates/traceability-matrix-output.md
+inputs:
+  required: [input]
+  optional: [include_tests, include_components]
+outputs:
+  artifacts: [requirements-traceability.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

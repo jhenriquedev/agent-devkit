@@ -1,0 +1,23 @@
+id: technical-integration-analyst.ingest-technical-docs
+kind: capability
+name: Ingest Technical Docs
+version: 0.1.0
+status: draft
+purpose: >
+  Load integration documentation from URL, file, directory, or inline text and
+  produce a normalized source inventory.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/ingest-technical-docs.md
+  output_template: ../../templates/ingest-technical-docs-output.md
+inputs:
+  required: []
+  optional: [url, file, directory, text, output]
+outputs:
+  artifacts: [technical-docs-ingestion.md]
+integration:
+  repository: ../../infra/integrations/document-source/document_source_repository.py
+  methods:
+    - ../../infra/integrations/document-source/methods/load-sources.yaml
+write_policy: read_only

@@ -1,0 +1,7 @@
+id: describe-source
+description: Describe mappings and common log fields for a source.
+inputs:
+  required: [source]
+outputs:
+  fields: [time_fields, service_fields, level_fields, trace_fields, fields]
+read_only: true

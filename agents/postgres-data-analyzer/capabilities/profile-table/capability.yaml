@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.profile-table
+kind: capability
+name: Profile Table
+version: 0.1.0
+status: draft
+purpose: >
+  Profile table row count and basic column quality metrics.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/profile-table.md
+  output_template: ../../templates/profile-table-output.md
+inputs:
+  required: [schema, table]
+  optional: [database, limit_columns, fixture, output]
+outputs:
+  artifacts: [postgres-table-profile.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/profile-table.yaml
+write_policy: read_only

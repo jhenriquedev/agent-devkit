@@ -1,0 +1,8 @@
+id: plan-migration
+description: Analyze SQL migration safety, checksum, operations, and rollback availability.
+inputs:
+  required: [path]
+  optional: [database]
+outputs:
+  fields: [checksum, statement_count, operations, blocked, destructive, rollback_path]
+write_operation: false

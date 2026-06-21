@@ -1,0 +1,22 @@
+id: software-specification-analyst.conduct-requirements-interview
+kind: capability
+name: Conduct Requirements Interview
+version: 0.1.0
+status: draft
+purpose: >
+  Conduct a targeted requirements interview, adapting question depth to the
+  demand size and grouping questions by business, functional, technical, data,
+  security, and QA concerns.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/conduct-requirements-interview.md
+  output_template: ../../templates/interview-guide-output.md
+inputs:
+  required: [input]
+  optional: [depth, audience, project_context]
+outputs:
+  artifacts: [interview-guide.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

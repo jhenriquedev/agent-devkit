@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.detect-data-quality-issues
+kind: capability
+name: Detect Data Quality Issues
+version: 0.1.0
+status: draft
+purpose: >
+  Detect null, duplicate, format, and relationship quality issues.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-data-quality-issues.md
+  output_template: ../../templates/detect-data-quality-issues-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [detect-data-quality-issues-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/detect-data-quality-issues.yaml
+write_policy: read_only

@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.detect-sensitive-columns
+kind: capability
+name: Detect Sensitive Columns
+version: 0.1.0
+status: draft
+purpose: >
+  Detect likely sensitive columns by metadata.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-sensitive-columns.md
+  output_template: ../../templates/detect-sensitive-columns-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [detect-sensitive-columns-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/detect-sensitive-columns.yaml
+write_policy: read_only

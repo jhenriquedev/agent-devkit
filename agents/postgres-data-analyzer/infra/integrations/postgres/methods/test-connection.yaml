@@ -1,0 +1,7 @@
+id: test-connection
+description: Validate Postgres connectivity and return basic session metadata.
+inputs:
+  optional: [database]
+outputs:
+  fields: [version, database, user_name, current_schema]
+read_only: true

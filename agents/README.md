@@ -39,4 +39,15 @@ agents/<agent-id>/
 
 - `azure-devops-orchestrator`: especialista em Azure DevOps Boards.
 - `aws-cloudwatch-log-analyzer`: especialista em AWS CloudWatch Logs.
+- `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
+- `database-change-operator`: especialista em mudancas controladas em Postgres.
+- `postgres-data-analyzer`: especialista em analise read-only de dados Postgres.
+- `sqlserver-data-analyzer`: especialista em analise read-only de dados SQL
+  Server.
+- `sqlserver-change-operator`: especialista em mudancas controladas em SQL
+  Server.
+- `software-specification-analyst`: especialista em analise de requisitos,
+  entrevistas, analise de projetos e especificacoes completas de software.
+- `technical-integration-analyst`: especialista em documentacoes tecnicas de
+  integracoes e artefatos de teste.
 - `topdesk-orchestrator`: especialista em TOPdesk para incidentes e triagem.

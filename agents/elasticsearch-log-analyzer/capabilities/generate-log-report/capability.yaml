@@ -1,0 +1,26 @@
+id: elasticsearch-log-analyzer.generate-log-report
+kind: capability
+name: Generate Log Report
+version: 0.1.0
+status: draft
+purpose: >
+  Generate an operational report from Elasticsearch logs with counts,
+  distributions, samples, and next investigation steps.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-log-report.md
+  output_template: ../../templates/generate-log-report-output.md
+inputs:
+  required: [source, from, to]
+  optional: [query, service, environment, level, time_field, limit, fixture, output]
+outputs:
+  artifacts: [log-report.md]
+integration:
+  repository: ../../infra/integrations/elasticsearch/elasticsearch_repository.py
+  methods:
+    - ../../infra/integrations/elasticsearch/methods/count-events.yaml
+    - ../../infra/integrations/elasticsearch/methods/search-events.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-terms.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
+write_policy: read_only

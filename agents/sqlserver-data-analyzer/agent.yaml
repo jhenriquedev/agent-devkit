@@ -1,0 +1,88 @@
+id: sqlserver-data-analyzer
+kind: specialist-agent
+name: SQL Server Data Analyzer
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analyze Microsoft SQL Server databases in read-only mode, including database
+  discovery, schemas, tables, relationships, join suggestions, bounded queries,
+  assisted query building, table sampling, profiling, sensitive-column
+  detection, data-quality analysis, CPF validation, query plan explanation, ERD
+  reports, record tracing, table comparison, and operational data reports.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - SQLSERVER_DB_CONN_STRING
+  optional:
+    - SQLSERVER_STATEMENT_TIMEOUT
+    - SQLSERVER_LOCK_TIMEOUT
+    - SQLSERVER_QUERY_LIMIT
+
+capabilities:
+  - test-connection
+  - list-databases
+  - list-schemas
+  - list-tables
+  - describe-table
+  - list-relationships
+  - suggest-joins
+  - search-tables
+  - search-columns
+  - explore-database-domain
+  - generate-erd-report
+  - run-readonly-query
+  - validate-readonly-query
+  - build-analysis-query
+  - explain-query-plan
+  - sample-table
+  - profile-table
+  - analyze-query-result
+  - detect-sensitive-columns
+  - detect-data-quality-issues
+  - analyze-cpf-column
+  - estimate-table-size
+  - compare-tables
+  - trace-record
+  - generate-data-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - infra/integrations/sqlserver/methods/test-connection.yaml
+    - infra/integrations/sqlserver/methods/list-databases.yaml
+    - infra/integrations/sqlserver/methods/list-schemas.yaml
+    - infra/integrations/sqlserver/methods/list-tables.yaml
+    - infra/integrations/sqlserver/methods/describe-table.yaml
+    - infra/integrations/sqlserver/methods/list-relationships.yaml
+    - infra/integrations/sqlserver/methods/suggest-joins.yaml
+    - infra/integrations/sqlserver/methods/search-tables.yaml
+    - infra/integrations/sqlserver/methods/search-columns.yaml
+    - infra/integrations/sqlserver/methods/explore-database-domain.yaml
+    - infra/integrations/sqlserver/methods/generate-erd-report.yaml
+    - infra/integrations/sqlserver/methods/run-readonly-query.yaml
+    - infra/integrations/sqlserver/methods/validate-readonly-query.yaml
+    - infra/integrations/sqlserver/methods/build-analysis-query.yaml
+    - infra/integrations/sqlserver/methods/explain-query-plan.yaml
+    - infra/integrations/sqlserver/methods/sample-table.yaml
+    - infra/integrations/sqlserver/methods/profile-table.yaml
+    - infra/integrations/sqlserver/methods/analyze-query-result.yaml
+    - infra/integrations/sqlserver/methods/detect-sensitive-columns.yaml
+    - infra/integrations/sqlserver/methods/detect-data-quality-issues.yaml
+    - infra/integrations/sqlserver/methods/analyze-cpf-column.yaml
+    - infra/integrations/sqlserver/methods/estimate-table-size.yaml
+    - infra/integrations/sqlserver/methods/compare-tables.yaml
+    - infra/integrations/sqlserver/methods/trace-record.yaml
+    - infra/integrations/sqlserver/methods/generate-data-report.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  write_operations: unsupported

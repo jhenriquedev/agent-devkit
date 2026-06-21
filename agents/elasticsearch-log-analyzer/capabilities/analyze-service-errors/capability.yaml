@@ -1,0 +1,25 @@
+id: elasticsearch-log-analyzer.analyze-service-errors
+kind: capability
+name: Analyze Service Errors
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze service errors in a time window and group them by level, type, and
+  message pattern.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-service-errors.md
+  output_template: ../../templates/analyze-service-errors-output.md
+inputs:
+  required: [source, from, to]
+  optional: [service, environment, query, level, time_field, limit, fixture, output]
+outputs:
+  artifacts: [service-error-analysis.md]
+integration:
+  repository: ../../infra/integrations/elasticsearch/elasticsearch_repository.py
+  methods:
+    - ../../infra/integrations/elasticsearch/methods/search-events.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-terms.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
+write_policy: read_only

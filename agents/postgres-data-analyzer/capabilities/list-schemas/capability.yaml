@@ -1,0 +1,21 @@
+id: postgres-data-analyzer.list-schemas
+kind: capability
+name: List Schemas
+version: 0.1.0
+status: draft
+purpose: >
+  List non-system schemas available in the connected database.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-schemas.md
+  output_template: ../../templates/list-schemas-output.md
+inputs:
+  optional: [database, fixture, output]
+outputs:
+  artifacts: [postgres-schemas.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/list-schemas.yaml
+write_policy: read_only

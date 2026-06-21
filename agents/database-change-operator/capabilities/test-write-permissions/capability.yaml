@@ -1,0 +1,21 @@
+id: database-change-operator.test-write-permissions
+kind: capability
+name: Test Write Permissions
+version: 0.1.0
+status: draft
+purpose: >
+  Test whether the current connection can write by using temporary objects and rollback.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/test-write-permissions.md
+  output_template: ../../templates/test-write-permissions-output.md
+inputs:
+  optional: [database, execute, fixture, output]
+outputs:
+  artifacts: [write-permissions.md]
+integration:
+  repository: ../../infra/integrations/postgres/database_change_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/test-write-permissions.yaml
+write_policy: confirm

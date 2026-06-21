@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.explain-query-plan
+kind: capability
+name: Explain Query Plan
+version: 0.1.0
+status: draft
+purpose: >
+  Generate and summarize a safe estimated query plan.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/explain-query-plan.md
+  output_template: ../../templates/explain-query-plan-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [explain-query-plan-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/explain-query-plan.yaml
+write_policy: read_only

@@ -1,0 +1,22 @@
+id: elasticsearch-log-analyzer.correlate-azure-card-logs
+kind: capability
+name: Correlate Azure Card Logs
+version: 0.1.0
+status: draft
+purpose: >
+  Use Azure DevOps card context to search related Elasticsearch log evidence.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/correlate-azure-card-logs.md
+  output_template: ../../templates/correlate-azure-card-logs-output.md
+inputs:
+  required: [source, from, to]
+  optional: [card_fixture, query, service, environment, time_field, limit, fixture, output]
+outputs:
+  artifacts: [azure-card-log-correlation.md]
+integration:
+  repository: ../../infra/integrations/elasticsearch/elasticsearch_repository.py
+  methods:
+    - ../../infra/integrations/elasticsearch/methods/search-events.yaml
+write_policy: read_only

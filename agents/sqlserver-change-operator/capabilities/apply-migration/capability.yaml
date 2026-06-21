@@ -1,0 +1,22 @@
+id: sqlserver-change-operator.apply-migration
+kind: capability
+name: Apply Migration
+version: 0.1.0
+status: draft
+purpose: >
+  Apply one SQL Server migration with history tracking and --execute confirmation.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/apply-migration.md
+  output_template: ../../templates/apply-migration-output.md
+inputs:
+  required: []
+  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
+outputs:
+  artifacts: [apply-migration-result.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_change_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/apply-migration.yaml
+write_policy: confirm

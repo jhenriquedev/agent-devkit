@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.compare-tables
+kind: capability
+name: Compare Tables
+version: 0.1.0
+status: draft
+purpose: >
+  Compare structure and basic samples between two tables.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/compare-tables.md
+  output_template: ../../templates/compare-tables-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [compare-tables-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/compare-tables.yaml
+write_policy: read_only

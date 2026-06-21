@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.detect-sensitive-columns
+kind: capability
+name: Detect Sensitive Columns
+version: 0.1.0
+status: draft
+purpose: >
+  Detect likely sensitive columns by metadata, such as CPF, CNPJ, email, phone,
+  name, and address.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-sensitive-columns.md
+  output_template: ../../templates/detect-sensitive-columns-output.md
+inputs:
+  optional: [schema, database, fixture, output]
+outputs:
+  artifacts: [postgres-sensitive-columns.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/detect-sensitive-columns.yaml
+write_policy: read_only

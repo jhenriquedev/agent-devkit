@@ -1,0 +1,7 @@
+id: test-write-permissions
+description: Test write permissions inside rollback.
+inputs:
+  optional: [database, execute]
+outputs:
+  fields: [dry_run, write_permissions, rolled_back, checks]
+write_operation: true

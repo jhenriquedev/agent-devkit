@@ -1,0 +1,7 @@
+id: list-sources
+description: List Elasticsearch indices, data streams, and aliases.
+inputs:
+  optional: [pattern, limit]
+outputs:
+  fields: [indices, data_streams, aliases]
+read_only: true

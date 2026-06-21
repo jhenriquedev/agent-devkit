@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.analyze-query-result
+kind: capability
+name: Analyze Query Result
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze rows returned by a query or fixture.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-query-result.md
+  output_template: ../../templates/analyze-query-result-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [analyze-query-result-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/analyze-query-result.yaml
+write_policy: read_only

@@ -1,0 +1,8 @@
+id: apply-migration
+description: Apply one SQL Server migration with history tracking and --execute confirmation.
+inputs:
+  required: []
+  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows]
+outputs:
+  fields: [result]
+write_policy: confirm

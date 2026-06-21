@@ -1,0 +1,21 @@
+id: software-specification-analyst.map-user-journeys
+kind: capability
+name: Map User Journeys
+version: 0.1.0
+status: draft
+purpose: >
+  Map user journeys, alternative paths, exception flows, and system handoffs as
+  Markdown and Mermaid diagrams.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/map-user-journeys.md
+  output_template: ../../templates/journey-flow-output.md
+inputs:
+  required: [input]
+  optional: [actor, journey]
+outputs:
+  artifacts: [journey-flows.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

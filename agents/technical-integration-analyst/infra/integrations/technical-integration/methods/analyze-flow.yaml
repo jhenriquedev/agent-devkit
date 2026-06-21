@@ -1,0 +1,8 @@
+id: analyze-flow
+description: Analyze recommended integration usage order.
+inputs:
+  required: [contract]
+  optional: []
+outputs:
+  fields: [steps, dependencies, cleanup]
+read_only: true

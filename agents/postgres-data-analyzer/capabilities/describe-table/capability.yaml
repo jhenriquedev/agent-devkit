@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.describe-table
+kind: capability
+name: Describe Table
+version: 0.1.0
+status: draft
+purpose: >
+  Describe table columns, indexes, and constraints.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/describe-table.md
+  output_template: ../../templates/describe-table-output.md
+inputs:
+  required: [schema, table]
+  optional: [database, fixture, output]
+outputs:
+  artifacts: [postgres-table-description.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/describe-table.yaml
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: software-specification-analyst.review-spec-completeness
+kind: capability
+name: Review Spec Completeness
+version: 0.1.0
+status: draft
+purpose: >
+  Review an existing specification for completeness, ambiguity, contradictions,
+  missing quality gates, risks, and unresolved decisions.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/review-spec-completeness.md
+  output_template: ../../templates/spec-review-output.md
+inputs:
+  required: [input]
+  optional: [strictness]
+outputs:
+  artifacts: [spec-review.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

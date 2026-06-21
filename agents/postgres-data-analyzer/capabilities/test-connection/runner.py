@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Runner for test-connection."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+import sys
+
+SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
+sys.path.insert(0, str(SHARED_DIR))
+
+from runner_support import get_repository, load_fixture, print_error, render_key_values, write_output
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run postgres-data-analyzer/test-connection")
+    parser.add_argument("--database")
+    parser.add_argument("--fixture")
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    try:
+        payload = load_fixture(args.fixture) if args.fixture else get_repository(args.database).test_connection()
+        if args.fixture and args.database:
+            payload.setdefault("database", args.database)
+        lines = ["# Postgres Connection", "", *render_key_values(payload, ["database", "user_name", "current_schema", "version"])]
+        write_output("\n".join(lines).rstrip() + "\n", args.output)
+    except Exception as exc:
+        return print_error(exc)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

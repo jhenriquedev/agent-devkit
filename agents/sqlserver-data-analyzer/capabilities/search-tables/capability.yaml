@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.search-tables
+kind: capability
+name: Search Tables
+version: 0.1.0
+status: draft
+purpose: >
+  Search tables by name or schema pattern.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/search-tables.md
+  output_template: ../../templates/search-tables-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [search-tables-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/search-tables.yaml
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: software-specification-analyst.create-analysis-dossier
+kind: capability
+name: Create Analysis Dossier
+version: 0.1.0
+status: draft
+purpose: >
+  Consolidate discovery notes, project analysis, business questions, critical
+  points, and open decisions into a reviewable analysis dossier.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-analysis-dossier.md
+  output_template: ../../templates/analysis-dossier-output.md
+inputs:
+  required: [input]
+  optional: [project_context, feedback]
+outputs:
+  artifacts: [analysis-dossier.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

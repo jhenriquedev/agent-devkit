@@ -1,0 +1,23 @@
+id: technical-integration-analyst.run-integration-tests
+kind: capability
+name: Run Integration Tests
+version: 0.1.0
+status: draft
+purpose: >
+  Plan and optionally execute integration tests against real endpoints with
+  dry-run by default and explicit mutation confirmation.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-integration-tests.md
+  output_template: ../../templates/run-integration-tests-output.md
+inputs:
+  required: []
+  optional: [url, file, directory, text, base_url, execute, confirm_mutations, fixture, output]
+outputs:
+  artifacts: [integration-test-report.md]
+integration:
+  repository: ../../infra/integrations/http-api/http_api_repository.py
+  methods:
+    - ../../infra/integrations/http-api/methods/run-integration-tests.yaml
+write_policy: confirm

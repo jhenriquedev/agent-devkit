@@ -1,0 +1,8 @@
+id: identify-missing-information
+description: Identify information required to complete artifacts or run tests.
+inputs:
+  required: [contract]
+  optional: []
+outputs:
+  fields: [questions, blockers]
+read_only: true

@@ -1,0 +1,30 @@
+id: postgres-change
+version: 0.1.0
+status: draft
+
+provider: postgres
+scope:
+  - write-permission-test
+  - migration-plan
+  - migration-apply
+  - migration-rollback
+  - controlled-write-script
+  - upsert
+  - update
+  - migration-history
+
+env:
+  required:
+    - POSTGRES_DB_CONN_STRING
+  optional:
+    - POSTGRES_STATEMENT_TIMEOUT
+    - POSTGRES_LOCK_TIMEOUT
+
+repository:
+  language: python
+  path: database_change_repository.py
+  cli: cli.py
+  dependencies: stdlib-plus-psql
+
+auth:
+  method: connection-string

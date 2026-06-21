@@ -1,0 +1,21 @@
+id: software-specification-analyst.create-functional-spec
+kind: capability
+name: Create Functional Spec
+version: 0.1.0
+status: draft
+purpose: >
+  Create a functional specification with business context, actors, scope,
+  functional requirements, rules, journeys, exceptions, and acceptance criteria.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/create-functional-spec.md
+  output_template: ../../templates/functional-spec-output.md
+inputs:
+  required: [input]
+  optional: [title, source_type]
+outputs:
+  artifacts: [functional-spec.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

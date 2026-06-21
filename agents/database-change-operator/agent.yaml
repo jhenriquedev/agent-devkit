@@ -1,0 +1,56 @@
+id: database-change-operator
+kind: specialist-agent
+name: Database Change Operator
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Apply controlled PostgreSQL database changes when the local connection string
+  has permission, with planning, confirmation, migration history, rollback
+  support, and safety guardrails.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - POSTGRES_DB_CONN_STRING
+  optional:
+    - POSTGRES_STATEMENT_TIMEOUT
+    - POSTGRES_LOCK_TIMEOUT
+
+runtime_inputs:
+  optional:
+    - database
+
+capabilities:
+  - test-write-permissions
+  - plan-migration
+  - apply-migration
+  - rollback-migration
+  - run-write-script
+  - upsert-records
+  - update-records
+  - migration-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/postgres/database_change_repository.py
+  methods:
+    - infra/integrations/postgres/methods/test-write-permissions.yaml
+    - infra/integrations/postgres/methods/plan-migration.yaml
+    - infra/integrations/postgres/methods/apply-migration.yaml
+    - infra/integrations/postgres/methods/rollback-migration.yaml
+    - infra/integrations/postgres/methods/run-write-script.yaml
+    - infra/integrations/postgres/methods/upsert-records.yaml
+    - infra/integrations/postgres/methods/update-records.yaml
+    - infra/integrations/postgres/methods/migration-report.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  write_operations: confirm
+  destructive_operations: blocked_by_default

@@ -1,0 +1,22 @@
+id: database-change-operator.apply-migration
+kind: capability
+name: Apply Migration
+version: 0.1.0
+status: draft
+purpose: >
+  Apply one migration with history tracking and --execute confirmation.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/apply-migration.md
+  output_template: ../../templates/apply-migration-output.md
+inputs:
+  required: [path]
+  optional: [database, name, execute, fixture, output]
+outputs:
+  artifacts: [migration-apply-result.md]
+integration:
+  repository: ../../infra/integrations/postgres/database_change_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/apply-migration.yaml
+write_policy: confirm

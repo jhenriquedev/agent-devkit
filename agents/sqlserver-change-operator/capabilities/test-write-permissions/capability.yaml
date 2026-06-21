@@ -1,0 +1,22 @@
+id: sqlserver-change-operator.test-write-permissions
+kind: capability
+name: Test Write Permissions
+version: 0.1.0
+status: draft
+purpose: >
+  Test write permission using temporary objects and rollback.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/test-write-permissions.md
+  output_template: ../../templates/test-write-permissions-output.md
+inputs:
+  required: []
+  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
+outputs:
+  artifacts: [test-write-permissions-result.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_change_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/test-write-permissions.yaml
+write_policy: confirm

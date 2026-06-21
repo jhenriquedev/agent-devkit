@@ -1,0 +1,7 @@
+id: list-tables
+description: List tables and views by optional schema.
+inputs:
+  optional: [schema, database, limit]
+outputs:
+  fields: [tables]
+read_only: true

@@ -1,0 +1,8 @@
+id: list-tables
+description: List tables and views by schema.
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit]
+outputs:
+  fields: [result]
+read_only: true

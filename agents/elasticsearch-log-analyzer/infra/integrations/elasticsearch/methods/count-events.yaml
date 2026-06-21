@@ -1,0 +1,8 @@
+id: count-events
+description: Count log events matching filters.
+inputs:
+  required: [source, from, to]
+  optional: [query, service, environment, level, filters, time_field]
+outputs:
+  fields: [source, count, query]
+read_only: true

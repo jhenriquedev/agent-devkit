@@ -1,0 +1,8 @@
+id: describe-table
+description: Describe table columns, indexes, and constraints.
+inputs:
+  required: [schema, table]
+  optional: [database]
+outputs:
+  fields: [columns, indexes, constraints]
+read_only: true

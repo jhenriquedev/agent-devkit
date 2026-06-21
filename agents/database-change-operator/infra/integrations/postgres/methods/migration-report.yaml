@@ -1,0 +1,7 @@
+id: migration-report
+description: List migration history recorded by the agent.
+inputs:
+  optional: [database]
+outputs:
+  fields: [count, migrations]
+write_operation: false

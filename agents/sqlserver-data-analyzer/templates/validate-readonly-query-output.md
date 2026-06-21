@@ -1,0 +1,1 @@
+# Validate Read-Only Query

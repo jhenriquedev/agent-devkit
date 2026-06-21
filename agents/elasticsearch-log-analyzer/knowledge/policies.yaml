@@ -1,0 +1,33 @@
+id: elasticsearch-log-analyzer.policies
+version: 0.1.0
+status: draft
+
+read_operations:
+  confirmation_required: false
+  allowed:
+    - list_sources
+    - describe_source
+    - render_query
+    - search_events
+    - count_events
+    - aggregate_terms
+    - aggregate_timeline
+    - get_event
+
+write_operations:
+  supported: false
+
+scope_policy:
+  project_in_env: forbidden
+  required_runtime_scope:
+    - source
+    - from
+    - to
+  recommended_runtime_scope:
+    - service
+    - environment
+    - level
+
+limits:
+  default_events: 100
+  max_events: 1000

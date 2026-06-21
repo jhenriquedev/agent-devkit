@@ -1,0 +1,58 @@
+id: technical-integration-analyst
+kind: specialist-agent
+name: Technical Integration Analyst
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analyze technical integration documentation from URLs, files, directories, or
+  free text, including REST, SOAP, MCP, SFTP, SMTP, and other protocols, then
+  generate integration contracts, usage flows, test data, Postman collections,
+  commands, Markdown/PDF documentation, and controlled execution plans.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional:
+    - TECH_INTEGRATION_DEFAULT_BASE_URL
+    - TECH_INTEGRATION_DEFAULT_AUTH_TOKEN
+    - TECH_INTEGRATION_HTTP_TIMEOUT
+
+capabilities:
+  - ingest-technical-docs
+  - extract-integration-contract
+  - identify-missing-information
+  - analyze-integration-flow
+  - generate-test-data
+  - generate-http-artifacts
+  - generate-protocol-artifacts
+  - run-integration-tests
+  - generate-technical-docs
+
+agent_surface:
+  repositories:
+    - infra/integrations/document-source/document_source_repository.py
+    - infra/integrations/technical-integration/technical_integration_repository.py
+    - infra/integrations/http-api/http_api_repository.py
+  methods:
+    - infra/integrations/document-source/methods/load-sources.yaml
+    - infra/integrations/technical-integration/methods/extract-contract.yaml
+    - infra/integrations/technical-integration/methods/identify-missing-information.yaml
+    - infra/integrations/technical-integration/methods/analyze-flow.yaml
+    - infra/integrations/technical-integration/methods/generate-test-data.yaml
+    - infra/integrations/technical-integration/methods/generate-http-artifacts.yaml
+    - infra/integrations/technical-integration/methods/generate-protocol-artifacts.yaml
+    - infra/integrations/http-api/methods/run-integration-tests.yaml
+    - infra/integrations/technical-integration/methods/generate-technical-docs.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  artifact_generation: auto
+  external_calls: confirm
+  mutation_operations: confirm

@@ -1,0 +1,22 @@
+id: database-change-operator.rollback-migration
+kind: capability
+name: Rollback Migration
+version: 0.1.0
+status: draft
+purpose: >
+  Execute a rollback migration with --execute confirmation.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/rollback-migration.md
+  output_template: ../../templates/rollback-migration-output.md
+inputs:
+  required: [path]
+  optional: [database, execute, fixture, output]
+outputs:
+  artifacts: [migration-rollback-result.md]
+integration:
+  repository: ../../infra/integrations/postgres/database_change_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/rollback-migration.yaml
+write_policy: confirm

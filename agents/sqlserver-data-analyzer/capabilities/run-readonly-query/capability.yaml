@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.run-readonly-query
+kind: capability
+name: Run Read-Only Query
+version: 0.1.0
+status: draft
+purpose: >
+  Run a bounded read-only T-SQL query.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-readonly-query.md
+  output_template: ../../templates/run-readonly-query-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [run-readonly-query-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/run-readonly-query.yaml
+write_policy: read_only

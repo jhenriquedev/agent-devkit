@@ -1,0 +1,8 @@
+id: load-sources
+description: Load documentation sources from URL, file, directory, or inline text.
+inputs:
+  required: []
+  optional: [url, file, directory, text]
+outputs:
+  fields: [sources, ignored, count]
+read_only: true

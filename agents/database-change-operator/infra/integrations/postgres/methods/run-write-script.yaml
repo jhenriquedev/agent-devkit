@@ -1,0 +1,8 @@
+id: run-write-script
+description: Execute a controlled write SQL script.
+inputs:
+  required: [path]
+  optional: [database, execute]
+outputs:
+  fields: [dry_run, status, plan]
+write_operation: true

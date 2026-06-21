@@ -1,0 +1,23 @@
+id: postgres-data-analyzer.analyze-cpf-column
+kind: capability
+name: Analyze CPF Column
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze CPF format, check digits, blanks, repeated digits, and duplicates for
+  a target column.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-cpf-column.md
+  output_template: ../../templates/analyze-cpf-column-output.md
+inputs:
+  required: [schema, table, column]
+  optional: [database, fixture, output]
+outputs:
+  artifacts: [postgres-cpf-analysis.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/analyze-cpf-column.yaml
+write_policy: read_only

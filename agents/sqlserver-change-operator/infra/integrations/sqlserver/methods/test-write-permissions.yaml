@@ -1,0 +1,8 @@
+id: test-write-permissions
+description: Test write permission using temporary objects and rollback.
+inputs:
+  required: []
+  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows]
+outputs:
+  fields: [result]
+write_policy: confirm

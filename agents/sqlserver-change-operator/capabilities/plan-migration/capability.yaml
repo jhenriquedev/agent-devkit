@@ -1,0 +1,22 @@
+id: sqlserver-change-operator.plan-migration
+kind: capability
+name: Plan Migration
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze a SQL Server migration file before execution.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/plan-migration.md
+  output_template: ../../templates/plan-migration-output.md
+inputs:
+  required: []
+  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
+outputs:
+  artifacts: [plan-migration-result.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_change_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/plan-migration.yaml
+write_policy: confirm

@@ -1,0 +1,7 @@
+id: get-event
+description: Get one event by _id.
+inputs:
+  required: [source, event_id]
+outputs:
+  fields: [source, event]
+read_only: true

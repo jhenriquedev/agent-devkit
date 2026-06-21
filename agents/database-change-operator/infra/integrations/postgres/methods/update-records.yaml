@@ -1,0 +1,8 @@
+id: update-records
+description: Update records with required where clause and preview.
+inputs:
+  required: [schema, table, set_json, where]
+  optional: [database, execute]
+outputs:
+  fields: [dry_run, affected_rows_before, status, plan]
+write_operation: true

@@ -1,0 +1,23 @@
+id: technical-integration-analyst.analyze-integration-flow
+kind: capability
+name: Analyze Integration Flow
+version: 0.1.0
+status: draft
+purpose: >
+  Infer the recommended order of use, dependencies, prerequisites, validation
+  steps, and cleanup steps for a technical integration.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-integration-flow.md
+  output_template: ../../templates/analyze-integration-flow-output.md
+inputs:
+  required: []
+  optional: [url, file, directory, text, base_url, output]
+outputs:
+  artifacts: [integration-flow.md]
+integration:
+  repository: ../../infra/integrations/technical-integration/technical_integration_repository.py
+  methods:
+    - ../../infra/integrations/technical-integration/methods/analyze-flow.yaml
+write_policy: read_only

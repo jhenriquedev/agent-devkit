@@ -1,0 +1,34 @@
+id: database-change-operator.policies
+version: 0.1.0
+status: draft
+
+write_operations:
+  confirmation_required: true
+  execute_flag_required: true
+  dry_run_default: true
+
+blocked_operations:
+  - drop database
+  - drop schema
+  - alter system
+  - copy program
+  - create extension
+  - grant
+  - revoke
+
+migration_policy:
+  history_table: ai_devkit_migrations
+  checksum_required: true
+  destructive_requires_rollback: true
+  transaction_preferred: true
+
+timeouts:
+  statement_timeout_env: POSTGRES_STATEMENT_TIMEOUT
+  lock_timeout_env: POSTGRES_LOCK_TIMEOUT
+
+database_selection:
+  default_source: POSTGRES_DB_CONN_STRING
+  override_argument: database
+  override_scope: database_name_only
+  reject_url_as_database_name: true
+  show_target_database_before_writes: true

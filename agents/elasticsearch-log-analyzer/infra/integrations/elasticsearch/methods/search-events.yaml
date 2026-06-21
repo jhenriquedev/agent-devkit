@@ -1,0 +1,8 @@
+id: search-events
+description: Search normalized log events.
+inputs:
+  required: [source, from, to]
+  optional: [query, service, environment, level, filters, time_field, limit]
+outputs:
+  fields: [source, total, events, query]
+read_only: true

@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.describe-table
+kind: capability
+name: Describe Table
+version: 0.1.0
+status: draft
+purpose: >
+  Describe columns, keys, constraints, and indexes for a table.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/describe-table.md
+  output_template: ../../templates/describe-table-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [describe-table-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/describe-table.yaml
+write_policy: read_only

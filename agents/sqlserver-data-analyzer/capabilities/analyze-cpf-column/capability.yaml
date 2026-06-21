@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.analyze-cpf-column
+kind: capability
+name: Analyze CPF Column
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze CPF format, check digits, blanks, and duplicates.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-cpf-column.md
+  output_template: ../../templates/analyze-cpf-column-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [analyze-cpf-column-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/analyze-cpf-column.yaml
+write_policy: read_only

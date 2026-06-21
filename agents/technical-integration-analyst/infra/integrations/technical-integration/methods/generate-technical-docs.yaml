@@ -1,0 +1,8 @@
+id: generate-technical-docs
+description: Generate Markdown and PDF technical documentation.
+inputs:
+  required: [contract]
+  optional: [md_output, pdf_output]
+outputs:
+  fields: [markdown, pdf_path]
+read_only: true

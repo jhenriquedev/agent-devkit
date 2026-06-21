@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.estimate-table-size
+kind: capability
+name: Estimate Table Size
+version: 0.1.0
+status: draft
+purpose: >
+  Estimate row count and space usage for tables.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/estimate-table-size.md
+  output_template: ../../templates/estimate-table-size-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [estimate-table-size-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/estimate-table-size.yaml
+write_policy: read_only

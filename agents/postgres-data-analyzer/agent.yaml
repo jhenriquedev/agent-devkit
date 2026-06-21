@@ -1,0 +1,55 @@
+id: postgres-data-analyzer
+kind: specialist-agent
+name: Postgres Data Analyzer
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analyze PostgreSQL data in read-only mode, including schema discovery, table
+  descriptions, bounded queries, data profiling, sensitive-column detection,
+  CPF validation, and operational data reports.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - POSTGRES_DB_CONN_STRING
+  optional:
+    - POSTGRES_STATEMENT_TIMEOUT
+
+runtime_inputs:
+  optional:
+    - database
+
+capabilities:
+  - test-connection
+  - list-schemas
+  - list-tables
+  - describe-table
+  - run-readonly-query
+  - profile-table
+  - detect-sensitive-columns
+  - analyze-cpf-column
+  - generate-data-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/postgres/postgres_repository.py
+  methods:
+    - infra/integrations/postgres/methods/test-connection.yaml
+    - infra/integrations/postgres/methods/list-schemas.yaml
+    - infra/integrations/postgres/methods/list-tables.yaml
+    - infra/integrations/postgres/methods/describe-table.yaml
+    - infra/integrations/postgres/methods/run-readonly-query.yaml
+    - infra/integrations/postgres/methods/profile-table.yaml
+    - infra/integrations/postgres/methods/detect-sensitive-columns.yaml
+    - infra/integrations/postgres/methods/analyze-cpf-column.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  write_operations: unsupported

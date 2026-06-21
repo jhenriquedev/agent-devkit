@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.generate-erd-report
+kind: capability
+name: Generate ERD Report
+version: 0.1.0
+status: draft
+purpose: >
+  Generate a Markdown ERD-style relationship report.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-erd-report.md
+  output_template: ../../templates/generate-erd-report-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [generate-erd-report-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/generate-erd-report.yaml
+write_policy: read_only

@@ -1,0 +1,22 @@
+id: sqlserver-change-operator.change-report
+kind: capability
+name: Change Report
+version: 0.1.0
+status: draft
+purpose: >
+  List migration and change history recorded by the agent.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/change-report.md
+  output_template: ../../templates/change-report-output.md
+inputs:
+  required: []
+  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
+outputs:
+  artifacts: [change-report-result.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_change_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/change-report.yaml
+write_policy: confirm

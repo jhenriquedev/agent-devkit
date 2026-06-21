@@ -1,0 +1,24 @@
+id: postgres-data-analyzer.generate-data-report
+kind: capability
+name: Generate Data Report
+version: 0.1.0
+status: draft
+purpose: >
+  Generate a Markdown data report from table profile and sensitive-column
+  detection.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-data-report.md
+  output_template: ../../templates/generate-data-report-output.md
+inputs:
+  required: [schema, table]
+  optional: [database, limit_columns, fixture, output]
+outputs:
+  artifacts: [postgres-data-report.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/profile-table.yaml
+    - ../../infra/integrations/postgres/methods/detect-sensitive-columns.yaml
+write_policy: read_only

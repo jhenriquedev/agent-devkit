@@ -1,0 +1,23 @@
+id: technical-integration-analyst.generate-technical-docs
+kind: capability
+name: Generate Technical Docs
+version: 0.1.0
+status: draft
+purpose: >
+  Generate Markdown and PDF technical documentation from an extracted
+  integration contract.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-technical-docs.md
+  output_template: ../../templates/generate-technical-docs-output.md
+inputs:
+  required: []
+  optional: [url, file, directory, text, base_url, md_output, pdf_output, output]
+outputs:
+  artifacts: [technical-integration-docs.md, technical-integration-docs.pdf]
+integration:
+  repository: ../../infra/integrations/technical-integration/technical_integration_repository.py
+  methods:
+    - ../../infra/integrations/technical-integration/methods/generate-technical-docs.yaml
+write_policy: read_only

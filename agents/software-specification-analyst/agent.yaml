@@ -1,0 +1,54 @@
+id: software-specification-analyst
+kind: specialist-agent
+name: Software Specification Analyst
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Atuar como analista de requisitos completo, entrevistando stakeholders,
+  analisando um ou mais projetos existentes, criando documentos intermediarios
+  de descoberta e contexto, levantando pontos criticos e duvidas de negocio, e
+  entao gerando especificacoes funcionais e tecnicas quando houver contexto
+  suficiente.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional: []
+
+capabilities:
+  - conduct-requirements-interview
+  - analyze-project-context
+  - analyze-multiple-projects
+  - create-discovery-notes
+  - identify-business-questions
+  - identify-critical-points
+  - create-analysis-dossier
+  - refine-analysis-with-feedback
+  - create-final-spec-from-analysis
+  - create-complete-spec
+  - create-functional-spec
+  - create-technical-spec
+  - write-user-stories
+  - map-user-journeys
+  - build-requirements-traceability
+  - review-spec-completeness
+
+agent_surface:
+  repositories: []
+  methods: []
+  policies:
+    - knowledge/policies.yaml
+  skills_catalog:
+    - ../../vendor/skills/CATALOG.md
+
+write_policy:
+  read_operations: auto
+  project_analysis: ask_before_creating_output_directory
+  specification_generation: ask_before_creating_output_directory
+  overwrite_operations: confirm
+  external_side_effects: unsupported

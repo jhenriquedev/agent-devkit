@@ -1,0 +1,22 @@
+id: database-change-operator.upsert-records
+kind: capability
+name: Upsert Records
+version: 0.1.0
+status: draft
+purpose: >
+  Upsert JSON or CSV records into a table with dry-run by default.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/upsert-records.md
+  output_template: ../../templates/upsert-records-output.md
+inputs:
+  required: [schema, table, key_column, input]
+  optional: [database, execute, fixture, output]
+outputs:
+  artifacts: [upsert-records-result.md]
+integration:
+  repository: ../../infra/integrations/postgres/database_change_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/upsert-records.yaml
+write_policy: confirm

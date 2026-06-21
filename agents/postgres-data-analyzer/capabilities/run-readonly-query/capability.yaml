@@ -1,0 +1,22 @@
+id: postgres-data-analyzer.run-readonly-query
+kind: capability
+name: Run Readonly Query
+version: 0.1.0
+status: draft
+purpose: >
+  Execute a bounded read-only SQL query and render rows safely.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-readonly-query.md
+  output_template: ../../templates/run-readonly-query-output.md
+inputs:
+  required: [query]
+  optional: [database, limit, fixture, output]
+outputs:
+  artifacts: [postgres-query-result.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/run-readonly-query.yaml
+write_policy: read_only

@@ -1,0 +1,21 @@
+id: software-specification-analyst.write-user-stories
+kind: capability
+name: Write User Stories
+version: 0.1.0
+status: draft
+purpose: >
+  Convert specification intent into epics, features, user stories, acceptance
+  criteria, dependencies, and test notes.
+entrypoint:
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/write-user-stories.md
+  output_template: ../../templates/user-stories-output.md
+inputs:
+  required: [input]
+  optional: [story_format, include_gherkin]
+outputs:
+  artifacts: [user-stories.md]
+integration:
+  repository: null
+  methods: []
+write_policy: read_only

@@ -1,0 +1,22 @@
+id: database-change-operator.run-write-script
+kind: capability
+name: Run Write Script
+version: 0.1.0
+status: draft
+purpose: >
+  Execute a controlled write SQL script with dry-run by default.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-write-script.md
+  output_template: ../../templates/run-write-script-output.md
+inputs:
+  required: [path]
+  optional: [database, execute, fixture, output]
+outputs:
+  artifacts: [write-script-result.md]
+integration:
+  repository: ../../infra/integrations/postgres/database_change_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/run-write-script.yaml
+write_policy: confirm

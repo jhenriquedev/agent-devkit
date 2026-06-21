@@ -1,0 +1,8 @@
+id: generate-test-data
+description: Generate valid, invalid, boundary, and flow-dependent test data.
+inputs:
+  required: [contract]
+  optional: []
+outputs:
+  fields: [valid, invalid, boundary, flow]
+read_only: true

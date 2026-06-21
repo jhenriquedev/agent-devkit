@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.validate-readonly-query
+kind: capability
+name: Validate Read-Only Query
+version: 0.1.0
+status: draft
+purpose: >
+  Validate whether a T-SQL query is safe and read-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/validate-readonly-query.md
+  output_template: ../../templates/validate-readonly-query-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [validate-readonly-query-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/validate-readonly-query.yaml
+write_policy: read_only

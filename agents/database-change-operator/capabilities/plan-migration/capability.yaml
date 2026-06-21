@@ -1,0 +1,22 @@
+id: database-change-operator.plan-migration
+kind: capability
+name: Plan Migration
+version: 0.1.0
+status: draft
+purpose: >
+  Analyze a migration SQL file before execution.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/plan-migration.md
+  output_template: ../../templates/plan-migration-output.md
+inputs:
+  required: [path]
+  optional: [database, fixture, output]
+outputs:
+  artifacts: [migration-plan.md]
+integration:
+  repository: ../../infra/integrations/postgres/database_change_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/plan-migration.yaml
+write_policy: read_only

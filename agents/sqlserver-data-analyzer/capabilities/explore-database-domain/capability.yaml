@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.explore-database-domain
+kind: capability
+name: Explore Database Domain
+version: 0.1.0
+status: draft
+purpose: >
+  Infer functional areas and important entities from database metadata.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/explore-database-domain.md
+  output_template: ../../templates/explore-database-domain-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [explore-database-domain-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/explore-database-domain.yaml
+write_policy: read_only

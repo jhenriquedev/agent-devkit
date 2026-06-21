@@ -1,0 +1,24 @@
+id: elasticsearch-log-analyzer.detect-error-patterns
+kind: capability
+name: Detect Error Patterns
+version: 0.1.0
+status: draft
+purpose: >
+  Detect recurring error fingerprints and relevant distribution in Elasticsearch
+  logs.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-error-patterns.md
+  output_template: ../../templates/detect-error-patterns-output.md
+inputs:
+  required: [source, from, to]
+  optional: [service, environment, query, level, time_field, limit, fixture, output]
+outputs:
+  artifacts: [error-patterns.md]
+integration:
+  repository: ../../infra/integrations/elasticsearch/elasticsearch_repository.py
+  methods:
+    - ../../infra/integrations/elasticsearch/methods/search-events.yaml
+    - ../../infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
+write_policy: read_only

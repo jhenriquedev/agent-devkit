@@ -1,0 +1,8 @@
+id: extract-contract
+description: Extract a normalized technical integration contract.
+inputs:
+  required: [sources]
+  optional: [base_url]
+outputs:
+  fields: [protocols, base_url, auth, operations, errors, missing_information]
+read_only: true

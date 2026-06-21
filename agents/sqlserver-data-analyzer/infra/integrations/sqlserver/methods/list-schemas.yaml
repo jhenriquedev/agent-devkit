@@ -1,0 +1,8 @@
+id: list-schemas
+description: List schemas in the selected SQL Server database.
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit]
+outputs:
+  fields: [result]
+read_only: true

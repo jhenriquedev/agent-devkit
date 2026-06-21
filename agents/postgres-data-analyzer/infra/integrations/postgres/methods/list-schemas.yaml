@@ -1,0 +1,7 @@
+id: list-schemas
+description: List non-system schemas.
+inputs:
+  optional: [database]
+outputs:
+  fields: [schemas]
+read_only: true

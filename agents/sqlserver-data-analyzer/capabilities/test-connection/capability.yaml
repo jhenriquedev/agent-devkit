@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.test-connection
+kind: capability
+name: Test Connection
+version: 0.1.0
+status: draft
+purpose: >
+  Validate SQL Server connectivity and current execution context.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/test-connection.md
+  output_template: ../../templates/test-connection-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [test-connection-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/test-connection.yaml
+write_policy: read_only

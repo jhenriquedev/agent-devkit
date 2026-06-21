@@ -1,0 +1,21 @@
+id: postgres-data-analyzer.list-tables
+kind: capability
+name: List Tables
+version: 0.1.0
+status: draft
+purpose: >
+  List tables and views from a schema or from all non-system schemas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-tables.md
+  output_template: ../../templates/list-tables-output.md
+inputs:
+  optional: [schema, database, limit, fixture, output]
+outputs:
+  artifacts: [postgres-tables.md]
+integration:
+  repository: ../../infra/integrations/postgres/postgres_repository.py
+  methods:
+    - ../../infra/integrations/postgres/methods/list-tables.yaml
+write_policy: read_only

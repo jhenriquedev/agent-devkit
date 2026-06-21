@@ -1,0 +1,22 @@
+id: sqlserver-data-analyzer.search-columns
+kind: capability
+name: Search Columns
+version: 0.1.0
+status: draft
+purpose: >
+  Search columns by name, type, or sensitivity pattern.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/search-columns.md
+  output_template: ../../templates/search-columns-output.md
+inputs:
+  required: []
+  optional: [database, schema, table, column, query, pattern, limit, fixture, output]
+outputs:
+  artifacts: [search-columns-output.md]
+integration:
+  repository: ../../infra/integrations/sqlserver/sqlserver_repository.py
+  methods:
+    - ../../infra/integrations/sqlserver/methods/search-columns.yaml
+write_policy: read_only

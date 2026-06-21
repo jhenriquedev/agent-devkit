@@ -1,0 +1,29 @@
+id: postgres
+version: 0.1.0
+status: draft
+
+provider: postgres
+scope:
+  - schemas
+  - tables
+  - columns
+  - indexes
+  - constraints
+  - readonly-query
+  - profiling
+  - cpf-analysis
+
+env:
+  required:
+    - POSTGRES_DB_CONN_STRING
+  optional:
+    - POSTGRES_STATEMENT_TIMEOUT
+
+repository:
+  language: python
+  path: postgres_repository.py
+  cli: cli.py
+  dependencies: stdlib-plus-psql
+
+auth:
+  method: connection-string

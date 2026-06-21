@@ -1,0 +1,7 @@
+id: detect-sensitive-columns
+description: Detect likely sensitive columns by name.
+inputs:
+  optional: [schema, database]
+outputs:
+  fields: [columns]
+read_only: true

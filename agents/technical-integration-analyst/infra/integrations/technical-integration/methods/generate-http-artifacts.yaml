@@ -1,0 +1,8 @@
+id: generate-http-artifacts
+description: Generate curls and Postman Collection v2.1 artifacts.
+inputs:
+  required: [contract]
+  optional: [postman_output]
+outputs:
+  fields: [curl_examples, postman_collection]
+read_only: true
