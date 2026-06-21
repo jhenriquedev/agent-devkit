@@ -1,0 +1,38 @@
+id: aws-cloudwatch-log-analyzer.extract-log-samples
+kind: capability
+name: Extract Log Samples
+version: 0.1.0
+status: draft
+
+purpose: >
+  Extrair amostras representativas de logs usando uma estrategia controlada.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/extract-log-samples.md
+  output_template: ../../templates/extract-log-samples-output.md
+
+inputs:
+  required:
+    - region
+    - log_group
+    - start_time
+    - end_time
+  optional:
+    - filter_pattern
+    - sample_size
+    - strategy
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - log-samples.md
+
+integration:
+  repository: ../../infra/integrations/aws-cloudwatch/cloudwatch_repository.py
+  methods:
+    - ../../infra/integrations/aws-cloudwatch/methods/filter-log-events.yaml
+
+write_policy: read_only

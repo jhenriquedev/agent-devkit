@@ -1,0 +1,22 @@
+id: aws-cloudwatch.start-logs-insights-query
+kind: integration-method
+version: 0.1.0
+status: draft
+
+operation:
+  repository_method: start_logs_insights_query
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - region
+    - log_group
+    - start_time
+    - end_time
+    - query
+  optional:
+    - limit
+
+outputs:
+  type: logs-insights-query

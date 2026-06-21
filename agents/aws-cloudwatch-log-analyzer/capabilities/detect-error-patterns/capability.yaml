@@ -1,0 +1,39 @@
+id: aws-cloudwatch-log-analyzer.detect-error-patterns
+kind: capability
+name: Detect Error Patterns
+version: 0.1.0
+status: draft
+
+purpose: >
+  Agrupar eventos de erro por mensagem, endpoint, status code ou stream para
+  identificar recorrencia.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/detect-error-patterns.md
+  output_template: ../../templates/detect-error-patterns-output.md
+
+inputs:
+  required:
+    - region
+    - log_group
+    - start_time
+    - end_time
+  optional:
+    - filter_pattern
+    - group_by
+    - limit
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - error-patterns.md
+
+integration:
+  repository: ../../infra/integrations/aws-cloudwatch/cloudwatch_repository.py
+  methods:
+    - ../../infra/integrations/aws-cloudwatch/methods/filter-log-events.yaml
+
+write_policy: read_only

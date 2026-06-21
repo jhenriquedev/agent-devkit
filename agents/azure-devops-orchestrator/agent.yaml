@@ -26,6 +26,11 @@ capabilities:
   - listar-cards
   - ler-card
   - comentar-card
+  - alterar-tags-card
+  - atribuir-card
+  - mover-card
+  - preparar-analise-card
+  - gerar-relatorio-cards
 
 agent_surface:
   repositories:

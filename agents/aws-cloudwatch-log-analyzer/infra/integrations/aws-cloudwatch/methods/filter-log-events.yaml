@@ -1,0 +1,23 @@
+id: aws-cloudwatch.filter-log-events
+kind: integration-method
+version: 0.1.0
+status: draft
+
+operation:
+  repository_method: filter_log_events
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - region
+    - log_group
+    - start_time
+    - end_time
+  optional:
+    - filter_pattern
+    - log_stream_prefix
+    - limit
+
+outputs:
+  type: log-event-list

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CloudWatch Log Group",
+  "type": "object",
+  "properties": {
+    "log_group_name": { "type": ["string", "null"] },
+    "creation_time": { "type": ["integer", "null"] },
+    "retention_in_days": { "type": ["integer", "null"] },
+    "metric_filter_count": { "type": ["integer", "null"] },
+    "stored_bytes": { "type": ["integer", "null"] },
+    "arn": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

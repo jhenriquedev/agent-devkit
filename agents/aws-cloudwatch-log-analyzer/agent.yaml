@@ -1,0 +1,50 @@
+id: aws-cloudwatch-log-analyzer
+kind: specialist-agent
+name: AWS CloudWatch Log Analyzer
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Analisar logs de servicos no AWS CloudWatch Logs, buscando eventos,
+  rastreando requests, detectando padroes de erro e gerando relatorios
+  operacionais para sustentacao.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional:
+    - AWS_PROFILE
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+
+capabilities:
+  - list-log-groups
+  - search-log-events
+  - analyze-service-error
+  - trace-request
+  - detect-error-patterns
+  - extract-log-samples
+  - generate-incident-report
+  - correlate-azure-card-logs
+
+agent_surface:
+  repositories:
+    - infra/integrations/aws-cloudwatch/cloudwatch_repository.py
+  methods:
+    - infra/integrations/aws-cloudwatch/methods/list-log-groups.yaml
+    - infra/integrations/aws-cloudwatch/methods/filter-log-events.yaml
+    - infra/integrations/aws-cloudwatch/methods/start-logs-insights-query.yaml
+    - infra/integrations/aws-cloudwatch/methods/get-logs-insights-query-results.yaml
+    - infra/integrations/aws-cloudwatch/methods/describe-log-streams.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  write_operations: unsupported

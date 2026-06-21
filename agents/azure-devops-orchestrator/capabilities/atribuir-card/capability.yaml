@@ -1,0 +1,38 @@
+id: azure-devops-orchestrator.atribuir-card
+kind: capability
+name: Atribuir Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Atribuir um work item a uma pessoa depois de resolver identidade e apresentar
+  preview da alteracao.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/atribuir-card.md
+  output_template: ../../templates/atribuir-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - assignee
+  optional:
+    - reason
+    - execute
+    - skip_identity_lookup
+
+outputs:
+  artifacts:
+    - atribuicao-card.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/find-users.yaml
+    - ../../infra/integrations/azure/methods/update-work-item.yaml
+
+write_policy: confirm

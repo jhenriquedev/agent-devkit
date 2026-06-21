@@ -1,0 +1,17 @@
+id: aws-cloudwatch.get-logs-insights-query-results
+kind: integration-method
+version: 0.1.0
+status: draft
+
+operation:
+  repository_method: get_logs_insights_query_results
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - region
+    - query_id
+
+outputs:
+  type: logs-insights-query-result

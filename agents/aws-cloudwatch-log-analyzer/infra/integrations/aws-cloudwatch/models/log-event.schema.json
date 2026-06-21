@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CloudWatch Log Event",
+  "type": "object",
+  "properties": {
+    "timestamp": { "type": ["integer", "null"] },
+    "ingestion_time": { "type": ["integer", "null"] },
+    "log_stream_name": { "type": ["string", "null"] },
+    "message": { "type": ["string", "null"] },
+    "event_id": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

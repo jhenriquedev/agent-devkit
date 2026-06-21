@@ -1,0 +1,20 @@
+id: aws-cloudwatch.describe-log-streams
+kind: integration-method
+version: 0.1.0
+status: draft
+
+operation:
+  repository_method: describe_log_streams
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - region
+    - log_group
+  optional:
+    - log_stream_prefix
+    - limit
+
+outputs:
+  type: log-stream-list

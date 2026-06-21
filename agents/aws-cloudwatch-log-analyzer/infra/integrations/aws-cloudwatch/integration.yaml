@@ -1,0 +1,28 @@
+id: aws-cloudwatch
+version: 0.1.0
+status: draft
+
+provider: aws-cloudwatch
+scope:
+  - logs
+  - log-groups
+  - log-events
+  - logs-insights
+
+env:
+  optional:
+    - AWS_PROFILE
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - AWS_SESSION_TOKEN
+
+repository:
+  language: python
+  path: cloudwatch_repository.py
+  cli: cli.py
+  dependencies: aws-cli
+  execution: local-serverless
+
+auth:
+  method: aws-default-credential-chain

@@ -1,0 +1,37 @@
+id: azure-devops-orchestrator.alterar-tags-card
+kind: capability
+name: Alterar Tags Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Adicionar ou remover tags de um work item com diff explicito e confirmacao
+  antes da escrita.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/alterar-tags-card.md
+  output_template: ../../templates/alterar-tags-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+  optional:
+    - add_tags
+    - remove_tags
+    - reason
+    - execute
+
+outputs:
+  artifacts:
+    - alteracao-tags-card.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/update-work-item.yaml
+
+write_policy: confirm

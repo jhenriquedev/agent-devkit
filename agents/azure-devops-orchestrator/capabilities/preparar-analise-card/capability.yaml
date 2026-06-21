@@ -1,0 +1,36 @@
+id: azure-devops-orchestrator.preparar-analise-card
+kind: capability
+name: Preparar Analise Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Preparar uma analise operacional de um work item, separando fatos, hipoteses,
+  lacunas, riscos, proximos passos e comentario sugerido.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/preparar-analise-card.md
+  output_template: ../../templates/preparar-analise-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+  optional:
+    - analysis_type
+    - include_comment_draft
+    - fixture
+
+outputs:
+  artifacts:
+    - analise-operacional-card.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/get-work-item-comments.yaml
+
+write_policy: read_only

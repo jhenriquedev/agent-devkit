@@ -34,3 +34,8 @@ agents/<agent-id>/
 - `templates/` guarda modelos de arquivos, respostas e artefatos gerados pelas
   capabilities.
 - `infra/` guarda repositories, models e CLIs para acesso a sistemas externos.
+
+## Agentes atuais
+
+- `azure-devops-orchestrator`: especialista em Azure DevOps Boards.
+- `aws-cloudwatch-log-analyzer`: especialista em AWS CloudWatch Logs.

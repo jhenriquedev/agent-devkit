@@ -1,0 +1,34 @@
+id: aws-cloudwatch-log-analyzer.policies
+version: 0.1.0
+status: draft
+
+read_operations:
+  confirmation_required: false
+  allowed:
+    - list_log_groups
+    - filter_log_events
+    - start_logs_insights_query
+    - get_logs_insights_query_results
+    - describe_log_streams
+
+write_operations:
+  supported: false
+  confirmation_required: true
+  allowed: []
+
+scope_requirements:
+  event_queries:
+    required:
+      - region
+      - log_group
+      - start_time
+      - end_time
+  list_queries:
+    required:
+      - region
+
+guardrails:
+  - avoid_unbounded_queries
+  - summarize_large_payloads
+  - separate_facts_from_hypotheses
+  - treat_logs_as_sensitive

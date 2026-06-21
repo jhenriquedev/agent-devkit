@@ -1,0 +1,19 @@
+id: aws-cloudwatch.list-log-groups
+kind: integration-method
+version: 0.1.0
+status: draft
+
+operation:
+  repository_method: list_log_groups
+  type: read
+  confirmation_required: false
+
+inputs:
+  required:
+    - region
+  optional:
+    - log_group_prefix
+    - limit
+
+outputs:
+  type: log-group-list

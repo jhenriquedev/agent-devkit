@@ -1,0 +1,39 @@
+id: aws-cloudwatch-log-analyzer.correlate-azure-card-logs
+kind: capability
+name: Correlate Azure Card Logs
+version: 0.1.0
+status: draft
+
+purpose: >
+  Correlacionar dados de um card Azure DevOps com eventos do CloudWatch Logs.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/correlate-azure-card-logs.md
+  output_template: ../../templates/correlate-azure-card-logs-output.md
+
+inputs:
+  required:
+    - azure_project
+    - work_item_id
+    - region
+  optional:
+    - log_group
+    - start_time
+    - end_time
+    - time_window_minutes
+    - include_comment_draft
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - azure-card-log-correlation.md
+
+integration:
+  repository: ../../infra/integrations/aws-cloudwatch/cloudwatch_repository.py
+  methods:
+    - ../../infra/integrations/aws-cloudwatch/methods/filter-log-events.yaml
+
+write_policy: read_only

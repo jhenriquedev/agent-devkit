@@ -110,6 +110,9 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`azure-devops-orchestrator`](agents/azure-devops-orchestrator/): especialista
   em Azure DevOps Boards, work items, comentarios, tags, atribuicoes e
   movimentacao de estado.
+- [`aws-cloudwatch-log-analyzer`](agents/aws-cloudwatch-log-analyzer/):
+  especialista em AWS CloudWatch Logs para busca de eventos, rastreio de
+  requests, padroes de erro e relatorios operacionais.
 
 ## CLI
 
@@ -122,9 +125,10 @@ Use o executavel da raiz para descobrir agentes e capabilities:
 ./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
 ```
 
-No estado atual, apenas capabilities com `runner.py` podem ser executadas por
-`run`. Capabilities declarativas continuam disponiveis para inspeção e para
-orquestracao por agentes consumidores.
+No estado atual, as 7 capabilities do `azure-devops-orchestrator` possuem
+`runner.py` e podem ser executadas por `run`: `listar-cards`, `ler-card`,
+`comentar-card`, `alterar-tags-card`, `atribuir-card`, `mover-card`,
+`preparar-analise-card` e `gerar-relatorio-cards`.
 
 ## Por onde comecar
 

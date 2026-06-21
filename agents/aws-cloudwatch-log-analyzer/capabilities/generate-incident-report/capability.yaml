@@ -1,0 +1,40 @@
+id: aws-cloudwatch-log-analyzer.generate-incident-report
+kind: capability
+name: Generate Incident Report
+version: 0.1.0
+status: draft
+
+purpose: >
+  Gerar relatorio operacional de incidente a partir de eventos do CloudWatch.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-incident-report.md
+  output_template: ../../templates/generate-incident-report-output.md
+
+inputs:
+  required:
+    - region
+    - service
+    - environment
+    - log_group
+    - start_time
+    - end_time
+  optional:
+    - incident_title
+    - filter_pattern
+    - include_samples
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - incident-report.md
+
+integration:
+  repository: ../../infra/integrations/aws-cloudwatch/cloudwatch_repository.py
+  methods:
+    - ../../infra/integrations/aws-cloudwatch/methods/filter-log-events.yaml
+
+write_policy: read_only

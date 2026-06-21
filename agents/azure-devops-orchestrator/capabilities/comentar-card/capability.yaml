@@ -9,6 +9,7 @@ purpose: >
   antes da escrita.
 
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/comentar-card.md
   output_template: ../../templates/comentar-card-output.md

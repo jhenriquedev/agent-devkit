@@ -1,0 +1,42 @@
+id: azure-devops-orchestrator.gerar-relatorio-cards
+kind: capability
+name: Gerar Relatorio Cards
+version: 0.1.0
+status: draft
+
+purpose: >
+  Gerar um relatorio consolidado de work items do Azure DevOps a partir de
+  filtros de listagem e leitura detalhada dos cards retornados.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/gerar-relatorio-cards.md
+  output_template: ../../templates/gerar-relatorio-cards-output.md
+
+inputs:
+  required:
+    - project
+  optional:
+    - wiql
+    - state
+    - assigned_to
+    - tags
+    - limit
+    - include_comments
+    - include_details
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - relatorio-cards.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/list-work-items.yaml
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/get-work-item-comments.yaml
+
+write_policy: read_only

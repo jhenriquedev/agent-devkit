@@ -46,6 +46,28 @@ Apenas capabilities com `entrypoint.runner` sao executaveis pela CLI. As demais
 podem ser inspecionadas e usadas por agentes consumidores como contratos
 declarativos.
 
+No `azure-devops-orchestrator`, as capabilities executaveis atuais sao:
+
+- `listar-cards`
+- `ler-card`
+- `comentar-card`
+- `alterar-tags-card`
+- `atribuir-card`
+- `mover-card`
+- `preparar-analise-card`
+- `gerar-relatorio-cards`
+
+No `aws-cloudwatch-log-analyzer`, as capabilities executaveis atuais sao:
+
+- `list-log-groups`
+- `search-log-events`
+- `analyze-service-error`
+- `trace-request`
+- `detect-error-patterns`
+- `extract-log-samples`
+- `generate-incident-report`
+- `correlate-azure-card-logs`
+
 Exemplo com fixture local:
 
 ```bash

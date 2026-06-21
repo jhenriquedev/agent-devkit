@@ -16,6 +16,152 @@ CLI = ROOT / "ai-devkit"
 
 
 class AiDevKitCliTest(unittest.TestCase):
+    def test_lists_available_agents(self) -> None:
+        result = subprocess.run(
+            [sys.executable, str(CLI), "--json", "agents"],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        agents = {item["id"] for item in payload["items"]}
+        self.assertIn("azure-devops-orchestrator", agents)
+        self.assertIn("aws-cloudwatch-log-analyzer", agents)
+
+    def test_lists_all_aws_cloudwatch_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "aws-cloudwatch-log-analyzer",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "analyze-service-error",
+                "correlate-azure-card-logs",
+                "detect-error-patterns",
+                "extract-log-samples",
+                "generate-incident-report",
+                "list-log-groups",
+                "search-log-events",
+                "trace-request",
+            },
+        )
+
+    def test_all_aws_cloudwatch_capabilities_have_runner(self) -> None:
+        for capability in (
+            "analyze-service-error",
+            "correlate-azure-card-logs",
+            "detect-error-patterns",
+            "extract-log-samples",
+            "generate-incident-report",
+            "list-log-groups",
+            "search-log-events",
+            "trace-request",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "aws-cloudwatch-log-analyzer",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
+
+    def test_lists_all_azure_devops_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "azure-devops-orchestrator",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "alterar-tags-card",
+                "atribuir-card",
+                "comentar-card",
+                "gerar-relatorio-cards",
+                "ler-card",
+                "listar-cards",
+                "mover-card",
+                "preparar-analise-card",
+            },
+        )
+
+    def test_all_azure_devops_capabilities_have_runner(self) -> None:
+        for capability in (
+            "alterar-tags-card",
+            "atribuir-card",
+            "comentar-card",
+            "gerar-relatorio-cards",
+            "ler-card",
+            "listar-cards",
+            "mover-card",
+            "preparar-analise-card",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "azure-devops-orchestrator",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
+
     def test_run_ler_card_with_fixture(self) -> None:
         fixture = {
             "work_item": {

@@ -9,6 +9,7 @@ purpose: >
   ou criterios fornecidos pelo usuario.
 
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/listar-cards.md
   output_template: ../../templates/listar-cards-output.md
