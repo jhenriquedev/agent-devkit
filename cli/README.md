@@ -20,8 +20,9 @@ python ai-devkit <comando>
 ```bash
 ./ai-devkit agents
 ./ai-devkit capabilities azure-devops-orchestrator
-./ai-devkit inspect azure-devops-orchestrator ler-card
-./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
+./ai-devkit inspect azure-devops-orchestrator read-card
+./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
 
 Aliases:
@@ -29,14 +30,14 @@ Aliases:
 ```bash
 ./ai-devkit a
 ./ai-devkit c azure-devops-orchestrator
-./ai-devkit i azure-devops-orchestrator ler-card
-./ai-devkit r azure-devops-orchestrator ler-card --project "Projeto" --id 123
+./ai-devkit i azure-devops-orchestrator read-card
+./ai-devkit r azure-devops-orchestrator read-card --project "Projeto" --id 123
 ```
 
 Use `--json` para saida estruturada:
 
 ```bash
-./ai-devkit --json inspect azure-devops-orchestrator ler-card
+./ai-devkit --json inspect azure-devops-orchestrator read-card
 ```
 
 ## Execucao
@@ -48,14 +49,14 @@ declarativos.
 
 No `azure-devops-orchestrator`, as capabilities executaveis atuais sao:
 
-- `listar-cards`
-- `ler-card`
-- `comentar-card`
-- `alterar-tags-card`
-- `atribuir-card`
-- `mover-card`
-- `preparar-analise-card`
-- `gerar-relatorio-cards`
+- `list-cards`
+- `read-card`
+- `comment-card`
+- `update-card-tags`
+- `assign-card`
+- `move-card`
+- `prepare-card-analysis`
+- `generate-cards-report`
 
 No `aws-cloudwatch-log-analyzer`, as capabilities executaveis atuais sao:
 
@@ -68,18 +69,38 @@ No `aws-cloudwatch-log-analyzer`, as capabilities executaveis atuais sao:
 - `generate-incident-report`
 - `correlate-azure-card-logs`
 
+No `topdesk-orchestrator`, as capabilities executaveis atuais sao:
+
+- `list-incidents`
+- `read-incident`
+- `create-incident`
+- `update-incident`
+- `analyze-incident-insufficiency`
+- `request-more-info`
+- `incident-report`
+
 Exemplo com fixture local:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator ler-card --fixture /tmp/card.json --include-comments
+./ai-devkit run azure-devops-orchestrator read-card --fixture /tmp/card.json --include-comments
 ```
 
 Exemplo com Azure DevOps real, usando `.env` da raiz:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
 ```
 
 Para Azure DevOps, sempre prefira informar `--project` no comando. Isso evita
 fixar o agente a um unico projeto e permite usar a mesma organizacao/token para
 varios projetos.
+
+Exemplo com TOPdesk real, usando `.env` da raiz:
+
+```bash
+./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001" --include-progress-trail
+```
+
+Para TOPdesk, escritas como `create-incident`, `update-incident` e
+`request-more-info` rodam em dry-run por padrao. Use `--execute` apenas quando a
+alteracao estiver revisada.

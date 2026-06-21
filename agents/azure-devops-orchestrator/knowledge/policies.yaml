@@ -49,6 +49,6 @@ audit:
   trace_comment_required: when_useful_for_team_context
 
 risk_levels:
-  - baixo
-  - medio
-  - alto
+  - low
+  - medium
+  - high

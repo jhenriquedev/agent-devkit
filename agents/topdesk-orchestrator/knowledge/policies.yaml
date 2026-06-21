@@ -1,0 +1,34 @@
+id: topdesk-orchestrator.policies
+version: 0.1.0
+status: draft
+
+read_operations:
+  confirmation_required: false
+  allowed:
+    - list_incidents
+    - get_incident_by_id
+    - get_incident_by_number
+    - get_progress_trail
+    - get_catalog
+    - search_persons
+
+write_operations:
+  confirmation_required: true
+  allowed:
+    - create_incident
+    - update_incident
+  dry_run_default: true
+
+unsupported_operations:
+  - archive
+  - unarchive
+  - close
+  - delete
+  - escalate
+  - deescalate
+
+guardrails:
+  - no_credentials_in_output
+  - no_sensitive_payload_dump
+  - separate_facts_from_inferences
+  - dry_run_before_write

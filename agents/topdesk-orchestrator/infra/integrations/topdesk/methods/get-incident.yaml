@@ -1,0 +1,14 @@
+id: topdesk.get-incident
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: get_incident
+  type: read
+  confirmation_required: false
+inputs:
+  optional:
+    - incident_id
+    - number
+outputs:
+  type: incident

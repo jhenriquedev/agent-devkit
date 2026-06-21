@@ -1,0 +1,14 @@
+id: topdesk.search-persons
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: search_persons
+  type: read
+  confirmation_required: false
+inputs:
+  optional:
+    - query
+    - limit
+outputs:
+  type: person-list

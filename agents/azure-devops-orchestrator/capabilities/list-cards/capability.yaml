@@ -1,0 +1,37 @@
+id: azure-devops-orchestrator.list-cards
+kind: capability
+name: List Cards
+version: 0.1.0
+status: draft
+
+purpose: >
+  List Azure DevOps work items using explicit filters, WIQL, or criteria
+  provided by the caller.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-cards.md
+  output_template: ../../templates/list-cards-output.md
+
+inputs:
+  required:
+    - project
+  optional:
+    - query_id
+    - wiql
+    - state
+    - assigned_to
+    - tags
+    - limit
+
+outputs:
+  artifacts:
+    - listed-cards.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/list-work-items.yaml
+
+write_policy: read_only

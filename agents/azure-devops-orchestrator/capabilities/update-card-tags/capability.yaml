@@ -1,0 +1,37 @@
+id: azure-devops-orchestrator.update-card-tags
+kind: capability
+name: Update Card Tags
+version: 0.1.0
+status: draft
+
+purpose: >
+  Add or remove work item tags with an explicit diff and confirmation before
+  writing.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/update-card-tags.md
+  output_template: ../../templates/update-card-tags-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+  optional:
+    - add_tags
+    - remove_tags
+    - reason
+    - execute
+
+outputs:
+  artifacts:
+    - card-tags-update.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/update-work-item.yaml
+
+write_policy: confirm

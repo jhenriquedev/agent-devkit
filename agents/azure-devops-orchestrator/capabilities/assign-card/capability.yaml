@@ -1,0 +1,38 @@
+id: azure-devops-orchestrator.assign-card
+kind: capability
+name: Assign Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Assign a work item to a person after resolving identity and showing a change
+  preview.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/assign-card.md
+  output_template: ../../templates/assign-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - assignee
+  optional:
+    - reason
+    - execute
+    - skip_identity_lookup
+
+outputs:
+  artifacts:
+    - card-assignment.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/find-users.yaml
+    - ../../infra/integrations/azure/methods/update-work-item.yaml
+
+write_policy: confirm

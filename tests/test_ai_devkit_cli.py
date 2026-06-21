@@ -31,6 +31,70 @@ class AiDevKitCliTest(unittest.TestCase):
         agents = {item["id"] for item in payload["items"]}
         self.assertIn("azure-devops-orchestrator", agents)
         self.assertIn("aws-cloudwatch-log-analyzer", agents)
+        self.assertIn("topdesk-orchestrator", agents)
+
+    def test_lists_all_topdesk_capabilities(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "--json",
+                "capabilities",
+                "topdesk-orchestrator",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
+        self.assertEqual(
+            capabilities,
+            {
+                "analyze-incident-insufficiency",
+                "create-incident",
+                "incident-report",
+                "list-incidents",
+                "read-incident",
+                "request-more-info",
+                "update-incident",
+            },
+        )
+
+    def test_all_topdesk_capabilities_have_runner(self) -> None:
+        for capability in (
+            "analyze-incident-insufficiency",
+            "create-incident",
+            "incident-report",
+            "list-incidents",
+            "read-incident",
+            "request-more-info",
+            "update-incident",
+        ):
+            with self.subTest(capability=capability):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(CLI),
+                        "--json",
+                        "inspect",
+                        "topdesk-orchestrator",
+                        capability,
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                payload = json.loads(result.stdout)
+                runner = payload["capability"]["entrypoint"]["runner"]
+                self.assertTrue(runner["exists"])
 
     def test_lists_all_aws_cloudwatch_capabilities(self) -> None:
         result = subprocess.run(
@@ -119,27 +183,27 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertEqual(
             capabilities,
             {
-                "alterar-tags-card",
-                "atribuir-card",
-                "comentar-card",
-                "gerar-relatorio-cards",
-                "ler-card",
-                "listar-cards",
-                "mover-card",
-                "preparar-analise-card",
+                "update-card-tags",
+                "assign-card",
+                "comment-card",
+                "generate-cards-report",
+                "read-card",
+                "list-cards",
+                "move-card",
+                "prepare-card-analysis",
             },
         )
 
     def test_all_azure_devops_capabilities_have_runner(self) -> None:
         for capability in (
-            "alterar-tags-card",
-            "atribuir-card",
-            "comentar-card",
-            "gerar-relatorio-cards",
-            "ler-card",
-            "listar-cards",
-            "mover-card",
-            "preparar-analise-card",
+            "update-card-tags",
+            "assign-card",
+            "comment-card",
+            "generate-cards-report",
+            "read-card",
+            "list-cards",
+            "move-card",
+            "prepare-card-analysis",
         ):
             with self.subTest(capability=capability):
                 result = subprocess.run(
@@ -162,7 +226,7 @@ class AiDevKitCliTest(unittest.TestCase):
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_run_ler_card_with_fixture(self) -> None:
+    def test_run_read_card_with_fixture(self) -> None:
         fixture = {
             "work_item": {
                 "id": 456,
@@ -187,7 +251,7 @@ class AiDevKitCliTest(unittest.TestCase):
                     str(CLI),
                     "run",
                     "azure-devops-orchestrator",
-                    "ler-card",
+                    "read-card",
                     "--project",
                     "Projeto A",
                     "--fixture",
@@ -202,9 +266,9 @@ class AiDevKitCliTest(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("# Analise do Card", result.stdout)
+        self.assertIn("# Card Analysis", result.stdout)
         self.assertIn("- ID: 456", result.stdout)
-        self.assertIn("- Titulo: Corrigir erro no login", result.stdout)
+        self.assertIn("- Title: Corrigir erro no login", result.stdout)
 
 
 if __name__ == "__main__":

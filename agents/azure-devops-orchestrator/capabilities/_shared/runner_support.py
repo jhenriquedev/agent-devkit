@@ -136,11 +136,11 @@ def render_write_result(result: dict[str, Any]) -> list[str]:
         f"- Work item: {value_or_dash(result.get('work_item_id'))}",
     ]
     if "new_rev" in result:
-        lines.append(f"- Nova revisao: {value_or_dash(result.get('new_rev'))}")
+        lines.append(f"- New revision: {value_or_dash(result.get('new_rev'))}")
     if result.get("changed_fields"):
-        lines.append(f"- Campos alterados: {', '.join(result.get('changed_fields') or [])}")
+        lines.append(f"- Changed fields: {', '.join(result.get('changed_fields') or [])}")
     if result.get("comment_id"):
-        lines.append(f"- Comentario ID: {value_or_dash(result.get('comment_id'))}")
+        lines.append(f"- Comment ID: {value_or_dash(result.get('comment_id'))}")
     if result.get("url"):
         lines.append(f"- URL: {value_or_dash(result.get('url'))}")
     return lines

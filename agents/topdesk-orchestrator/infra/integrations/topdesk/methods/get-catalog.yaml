@@ -1,0 +1,13 @@
+id: topdesk.get-catalog
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: get_catalog
+  type: read
+  confirmation_required: false
+inputs:
+  required:
+    - catalog
+outputs:
+  type: catalog

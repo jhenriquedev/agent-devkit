@@ -47,7 +47,7 @@ Sem `--execute`, metodos de escrita rodam como dry-run.
 Para validar o comportamento completo de uma capability, prefira a CLI raiz:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
 ```
 
 O repository normaliza work items com campos como `id`, `work_item_type`,

@@ -1,0 +1,17 @@
+id: topdesk.update-incident
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: update_incident
+  type: write
+  confirmation_required: true
+inputs:
+  required:
+    - fields
+  optional:
+    - incident_id
+    - number
+    - dry_run
+outputs:
+  type: write-result

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TOPdesk Incident",
+  "type": "object",
+  "properties": {
+    "id": { "type": ["string", "null"] },
+    "number": { "type": ["string", "null"] },
+    "brief_description": { "type": ["string", "null"] },
+    "request": { "type": ["string", "null"] },
+    "status": { "type": ["string", "null"] },
+    "category": { "type": ["string", "null"] },
+    "subcategory": { "type": ["string", "null"] },
+    "priority": { "type": ["string", "null"] },
+    "operator": { "type": ["string", "null"] },
+    "operator_group": { "type": ["string", "null"] },
+    "caller": { "type": ["string", "null"] },
+    "creation_date": { "type": ["string", "null"] },
+    "modification_date": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}

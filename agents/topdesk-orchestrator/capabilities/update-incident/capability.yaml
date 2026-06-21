@@ -1,0 +1,22 @@
+id: topdesk-orchestrator.update-incident
+kind: capability
+name: Update Incident
+version: 0.1.0
+status: draft
+purpose: >
+  Atualizar campos controlados de incidente TOPdesk com dry-run por padrao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/update-incident.md
+  output_template: ../../templates/update-incident-output.md
+inputs:
+  required: [fields_json]
+  optional: [id, number, execute, fixture, output]
+outputs:
+  artifacts: [incident-update-plan.md]
+integration:
+  repository: ../../infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - ../../infra/integrations/topdesk/methods/update-incident.yaml
+write_policy: confirm

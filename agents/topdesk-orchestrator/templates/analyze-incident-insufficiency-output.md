@@ -1,0 +1,5 @@
+# analyze-incident-insufficiency
+
+## Resultado
+
+- 

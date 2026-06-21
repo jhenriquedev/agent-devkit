@@ -14,9 +14,10 @@ O AI DevKit e um repositorio agent-native. Seu produto principal nao e uma pasta
 de prompts soltos: e uma biblioteca de **agentes especialistas** que podem ser
 acionados por Codex, Claude, Cursor ou outro agente compativel.
 
-Cada agente encapsula um dominio de atuacao, como Azure DevOps, AWS CloudWatch
-ou criacao de PowerPoint. Dentro do proprio agente ficam sua superficie externa
-de capabilities, seu conhecimento de dominio e sua infraestrutura especializada.
+Cada agente encapsula um dominio de atuacao, como Azure DevOps, AWS CloudWatch,
+TOPdesk ou criacao de PowerPoint. Dentro do proprio agente ficam sua superficie
+externa de capabilities, seu conhecimento de dominio e sua infraestrutura
+especializada.
 
 ## Principios
 
@@ -113,6 +114,9 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`aws-cloudwatch-log-analyzer`](agents/aws-cloudwatch-log-analyzer/):
   especialista em AWS CloudWatch Logs para busca de eventos, rastreio de
   requests, padroes de erro e relatorios operacionais.
+- [`topdesk-orchestrator`](agents/topdesk-orchestrator/): especialista em
+  TOPdesk para incidentes, triagem, enriquecimento, pedidos de informacao e
+  relatorios operacionais.
 
 ## CLI
 
@@ -121,14 +125,19 @@ Use o executavel da raiz para descobrir agentes e capabilities:
 ```bash
 ./ai-devkit agents
 ./ai-devkit capabilities azure-devops-orchestrator
-./ai-devkit inspect azure-devops-orchestrator ler-card
-./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
+./ai-devkit inspect azure-devops-orchestrator read-card
+./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
 
-No estado atual, as 7 capabilities do `azure-devops-orchestrator` possuem
-`runner.py` e podem ser executadas por `run`: `listar-cards`, `ler-card`,
-`comentar-card`, `alterar-tags-card`, `atribuir-card`, `mover-card`,
-`preparar-analise-card` e `gerar-relatorio-cards`.
+No estado atual, as 8 capabilities do `azure-devops-orchestrator` possuem
+`runner.py` e podem ser executadas por `run`: `list-cards`, `read-card`,
+`comment-card`, `update-card-tags`, `assign-card`, `move-card`,
+`prepare-card-analysis` e `generate-cards-report`.
+
+O `topdesk-orchestrator` tambem possui runners para `list-incidents`,
+`read-incident`, `create-incident`, `update-incident`,
+`analyze-incident-insufficiency`, `request-more-info` e `incident-report`.
 
 ## Por onde comecar
 

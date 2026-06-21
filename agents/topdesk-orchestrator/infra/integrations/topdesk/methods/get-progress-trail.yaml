@@ -1,0 +1,14 @@
+id: topdesk.get-progress-trail
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: get_progress_trail
+  type: read
+  confirmation_required: false
+inputs:
+  optional:
+    - incident_id
+    - number
+outputs:
+  type: progress-trail

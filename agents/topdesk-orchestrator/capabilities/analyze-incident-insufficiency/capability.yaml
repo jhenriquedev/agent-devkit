@@ -1,0 +1,21 @@
+id: topdesk-orchestrator.analyze-incident-insufficiency
+kind: capability
+name: Analyze Incident Insufficiency
+version: 0.1.0
+status: draft
+purpose: >
+  Identificar chamados com pouco insumo e gerar perguntas objetivas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/analyze-incident-insufficiency.md
+  output_template: ../../templates/analyze-incident-insufficiency-output.md
+inputs:
+  optional: [id, number, fixture, output]
+outputs:
+  artifacts: [incident-insufficiency-analysis.md]
+integration:
+  repository: ../../infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - ../../infra/integrations/topdesk/methods/get-incident.yaml
+write_policy: read_only

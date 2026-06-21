@@ -1,0 +1,15 @@
+id: topdesk.create-incident
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: create_incident
+  type: write
+  confirmation_required: true
+inputs:
+  required:
+    - fields
+  optional:
+    - dry_run
+outputs:
+  type: write-result

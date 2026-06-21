@@ -1,0 +1,16 @@
+id: topdesk.list-incidents
+kind: integration-method
+version: 0.1.0
+status: draft
+operation:
+  repository_method: list_incidents
+  type: read
+  confirmation_required: false
+inputs:
+  optional:
+    - query
+    - status
+    - operator_group
+    - limit
+outputs:
+  type: incident-list

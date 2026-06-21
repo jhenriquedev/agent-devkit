@@ -1,0 +1,21 @@
+id: topdesk-orchestrator.list-incidents
+kind: capability
+name: List Incidents
+version: 0.1.0
+status: draft
+purpose: >
+  Listar incidentes TOPdesk por filtros simples.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/list-incidents.md
+  output_template: ../../templates/list-incidents-output.md
+inputs:
+  optional: [query, status, operator_group, limit, fixture, output]
+outputs:
+  artifacts: [incidents-list.md]
+integration:
+  repository: ../../infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - ../../infra/integrations/topdesk/methods/list-incidents.yaml
+write_policy: read_only

@@ -9,6 +9,8 @@
 ## Execution & Validation (Highest Priority)
 1. **[2026-06-20] Validate agent capabilities through `ai-devkit`**
    Do instead: when testing a capability, execute it through `./ai-devkit run <agent> <capability>` before using lower-level integration CLIs.
+2. **[2026-06-21] `unittest discover` does not find repo tests**
+   Do instead: run `python3 -m unittest $(rg --files -g 'test*.py' -g '!vendor/**')` for the project suite.
 
 ## Shell & Command Reliability
 1. **[2026-06-20] Azure DevOps SSL can fail through Python urllib**

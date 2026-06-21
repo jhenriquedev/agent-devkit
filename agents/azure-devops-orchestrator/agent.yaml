@@ -6,9 +6,8 @@ status: draft
 owner: jhss
 
 purpose: >
-  Gerenciar work items, cards, comentarios, tags, atribuicoes e movimentacao de
-  estado no Azure DevOps Boards como um pacote especialista para agentes
-  consumidores.
+  Manage Azure DevOps Boards work items, cards, comments, tags, assignments,
+  and state transitions as a specialist package for consuming agents.
 
 default_context:
   - knowledge/context.md
@@ -23,14 +22,14 @@ env:
     - AZURE_DEVOPS_PROJECT
 
 capabilities:
-  - listar-cards
-  - ler-card
-  - comentar-card
-  - alterar-tags-card
-  - atribuir-card
-  - mover-card
-  - preparar-analise-card
-  - gerar-relatorio-cards
+  - list-cards
+  - read-card
+  - comment-card
+  - update-card-tags
+  - assign-card
+  - move-card
+  - prepare-card-analysis
+  - generate-cards-report
 
 agent_surface:
   repositories:

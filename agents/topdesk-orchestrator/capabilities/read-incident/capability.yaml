@@ -1,0 +1,22 @@
+id: topdesk-orchestrator.read-incident
+kind: capability
+name: Read Incident
+version: 0.1.0
+status: draft
+purpose: >
+  Ler incidente TOPdesk por ID ou numero e opcionalmente carregar progress trail.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/read-incident.md
+  output_template: ../../templates/read-incident-output.md
+inputs:
+  optional: [id, number, include_progress_trail, fixture, output]
+outputs:
+  artifacts: [incident.md]
+integration:
+  repository: ../../infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - ../../infra/integrations/topdesk/methods/get-incident.yaml
+    - ../../infra/integrations/topdesk/methods/get-progress-trail.yaml
+write_policy: read_only

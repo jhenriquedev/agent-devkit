@@ -1,0 +1,22 @@
+id: topdesk-orchestrator.request-more-info
+kind: capability
+name: Request More Info
+version: 0.1.0
+status: draft
+purpose: >
+  Preparar atualizacao TOPdesk solicitando informacoes faltantes do solicitante.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/request-more-info.md
+  output_template: ../../templates/request-more-info-output.md
+inputs:
+  optional: [id, number, execute, fixture, output]
+outputs:
+  artifacts: [request-more-info-plan.md]
+integration:
+  repository: ../../infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - ../../infra/integrations/topdesk/methods/get-incident.yaml
+    - ../../infra/integrations/topdesk/methods/update-incident.yaml
+write_policy: confirm

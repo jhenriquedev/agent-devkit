@@ -1,0 +1,37 @@
+id: azure-devops-orchestrator.comment-card
+kind: capability
+name: Comment Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Prepare and add a comment to a work item with explicit confirmation before
+  writing.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/comment-card.md
+  output_template: ../../templates/comment-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - comment_intent
+  optional:
+    - comment_body
+    - tone
+    - include_context_summary
+
+outputs:
+  artifacts:
+    - planned-comment.md
+    - executed-comment.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/add-comment.yaml
+
+write_policy: confirm

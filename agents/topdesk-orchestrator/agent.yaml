@@ -1,0 +1,52 @@
+id: topdesk-orchestrator
+kind: specialist-agent
+name: TOPdesk Orchestrator
+version: 0.1.0
+status: draft
+owner: jhss
+
+purpose: >
+  Operar TOPdesk via API como pacote especialista para agentes consumidores,
+  com foco inicial em incidentes, triagem e enriquecimento de chamados.
+
+default_context:
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required:
+    - TOPDESK_BASE_URL
+    - TOPDESK_USERNAME
+    - TOPDESK_APP_PASSWORD
+  optional:
+    - TOPDESK_PASSWORD
+    - TOPDESK_ALLOW_RAW_MUTATIONS
+
+capabilities:
+  - list-incidents
+  - read-incident
+  - create-incident
+  - update-incident
+  - analyze-incident-insufficiency
+  - request-more-info
+  - incident-report
+
+agent_surface:
+  repositories:
+    - infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - infra/integrations/topdesk/methods/list-incidents.yaml
+    - infra/integrations/topdesk/methods/get-incident.yaml
+    - infra/integrations/topdesk/methods/create-incident.yaml
+    - infra/integrations/topdesk/methods/update-incident.yaml
+    - infra/integrations/topdesk/methods/get-progress-trail.yaml
+    - infra/integrations/topdesk/methods/get-catalog.yaml
+    - infra/integrations/topdesk/methods/search-persons.yaml
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  read_operations: auto
+  create_operations: confirm
+  update_operations: confirm
+  destructive_operations: unsupported

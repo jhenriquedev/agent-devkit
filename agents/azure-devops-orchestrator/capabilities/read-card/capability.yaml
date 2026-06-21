@@ -1,0 +1,35 @@
+id: azure-devops-orchestrator.read-card
+kind: capability
+name: Read Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Read a work item by ID and summarize context, acceptance criteria, comments,
+  risks, and next steps.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/read-card.md
+  output_template: ../../templates/read-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+  optional:
+    - include_comments
+    - include_relations
+
+outputs:
+  artifacts:
+    - card-analysis.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/get-work-item-comments.yaml
+
+write_policy: read_only

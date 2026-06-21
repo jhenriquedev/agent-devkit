@@ -1,0 +1,42 @@
+id: azure-devops-orchestrator.generate-cards-report
+kind: capability
+name: Generate Cards Report
+version: 0.1.0
+status: draft
+
+purpose: >
+  Generate a consolidated Azure DevOps work item report from list filters and
+  detailed reads of returned cards.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/generate-cards-report.md
+  output_template: ../../templates/generate-cards-report-output.md
+
+inputs:
+  required:
+    - project
+  optional:
+    - wiql
+    - state
+    - assigned_to
+    - tags
+    - limit
+    - include_comments
+    - include_details
+    - fixture
+    - output
+
+outputs:
+  artifacts:
+    - cards-report.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/list-work-items.yaml
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/get-work-item-comments.yaml
+
+write_policy: read_only

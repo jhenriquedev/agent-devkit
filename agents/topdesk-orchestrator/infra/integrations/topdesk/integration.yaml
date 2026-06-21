@@ -1,0 +1,27 @@
+id: topdesk
+version: 0.1.0
+status: draft
+
+provider: topdesk
+scope:
+  - incidents
+  - progress-trail
+  - persons
+  - catalogs
+
+env:
+  required:
+    - TOPDESK_BASE_URL
+    - TOPDESK_USERNAME
+    - TOPDESK_APP_PASSWORD
+  optional:
+    - TOPDESK_PASSWORD
+
+repository:
+  language: python
+  path: topdesk_repository.py
+  cli: cli.py
+  dependencies: stdlib-plus-curl
+
+auth:
+  method: basic-auth-application-password

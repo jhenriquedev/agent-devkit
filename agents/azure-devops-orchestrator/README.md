@@ -60,20 +60,20 @@ azure-devops-orchestrator/
 Use a CLI raiz quando quiser validar uma capability completa:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
 ```
 
 Capabilities executaveis atuais:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator listar-cards --project "Projeto" --limit 20
-./ai-devkit run azure-devops-orchestrator ler-card --project "Projeto" --id 123 --include-comments
-./ai-devkit run azure-devops-orchestrator comentar-card --project "Projeto" --id 123 --comment "Atualizacao."
-./ai-devkit run azure-devops-orchestrator alterar-tags-card --project "Projeto" --id 123 --add-tag Bugfix
-./ai-devkit run azure-devops-orchestrator atribuir-card --project "Projeto" --id 123 --assignee pessoa@example.com
-./ai-devkit run azure-devops-orchestrator mover-card --project "Projeto" --id 123 --state Active
-./ai-devkit run azure-devops-orchestrator preparar-analise-card --project "Projeto" --id 123 --include-comment-draft
-./ai-devkit run azure-devops-orchestrator gerar-relatorio-cards --project "Projeto" --state "To Do" --limit 50 --include-comments
+./ai-devkit run azure-devops-orchestrator list-cards --project "Projeto" --limit 20
+./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
+./ai-devkit run azure-devops-orchestrator comment-card --project "Projeto" --id 123 --comment "Atualizacao."
+./ai-devkit run azure-devops-orchestrator update-card-tags --project "Projeto" --id 123 --add-tag Bugfix
+./ai-devkit run azure-devops-orchestrator assign-card --project "Projeto" --id 123 --assignee pessoa@example.com
+./ai-devkit run azure-devops-orchestrator move-card --project "Projeto" --id 123 --state Active
+./ai-devkit run azure-devops-orchestrator prepare-card-analysis --project "Projeto" --id 123 --include-comment-draft
+./ai-devkit run azure-devops-orchestrator generate-cards-report --project "Projeto" --state "To Do" --limit 50 --include-comments
 ```
 
 Use a CLI da integracao apenas quando precisar testar diretamente o repository:

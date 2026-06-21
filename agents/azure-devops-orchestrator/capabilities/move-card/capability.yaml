@@ -1,0 +1,37 @@
+id: azure-devops-orchestrator.move-card
+kind: capability
+name: Move Card
+version: 0.1.0
+status: draft
+
+purpose: >
+  Move a work item to another state and optionally another board column, with a
+  preview and confirmation before writing.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/move-card.md
+  output_template: ../../templates/move-card-output.md
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - state
+  optional:
+    - board_column
+    - reason
+    - execute
+
+outputs:
+  artifacts:
+    - card-move.md
+
+integration:
+  repository: ../../infra/integrations/azure/azure_repository.py
+  methods:
+    - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/update-work-item.yaml
+
+write_policy: confirm
