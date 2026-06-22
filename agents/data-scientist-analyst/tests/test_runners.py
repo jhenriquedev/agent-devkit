@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -209,6 +210,7 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
                 "generate-reconciliation-report",
                 "generate-data-report",
                 "analyze-sql-source",
+                "run-data-pipeline",
                 "run-exploratory-analysis",
                 "detect-outliers",
                 "analyze-correlation",
@@ -230,6 +232,36 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
                 "detect-data-leakage",
                 "monitor-model-drift",
             },
+        )
+
+    def test_operational_docs_and_contracts_are_versioned(self) -> None:
+        agent_root = ROOT / "agents" / "data-scientist-analyst"
+        readme = (agent_root / "README.md").read_text(encoding="utf-8")
+        runbook = (agent_root / "knowledge" / "operational-runbook.md").read_text(encoding="utf-8")
+        health = (agent_root / "knowledge" / "health-checklist.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Operacao", readme)
+        self.assertIn("--max-rows", readme)
+        self.assertIn("run-data-pipeline", readme)
+        self.assertIn("Quality gates", runbook)
+        self.assertIn("Troubleshooting", runbook)
+        self.assertIn("Riscos residuais", health)
+
+        contract_dir = agent_root / "knowledge" / "contracts"
+        for name in [
+            "profile-dataset.schema.json",
+            "run-data-pipeline.schema.json",
+            "evaluate-model.schema.json",
+            "analyze-sql-source.schema.json",
+        ]:
+            contract = json.loads((contract_dir / name).read_text(encoding="utf-8"))
+            self.assertEqual(contract["schema_version"], "0.1.0")
+            self.assertIn("required_top_level_keys", contract)
+            self.assertTrue(contract["quality_gates"])
+        sql_contract = json.loads((contract_dir / "analyze-sql-source.schema.json").read_text(encoding="utf-8"))
+        self.assertGreaterEqual(
+            set(sql_contract["required_top_level_keys"]),
+            {"delegation", "analysis", "quality_gates"},
         )
 
     def test_profile_dataset_reports_schema_quality_and_sensitive_fields(self) -> None:
@@ -330,6 +362,9 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertIn("# Relatorio de Dados", content)
         self.assertIn("Linhas: 4", content)
         self.assertIn("Dados sensiveis", content)
+        self.assertIn("## Reprodutibilidade", content)
+        self.assertIn("## Limitacoes", content)
+        self.assertIn("## Base para PDF", content)
 
     def test_common_json_output_creates_parent_directories(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -352,6 +387,72 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
             written = json.loads(output.read_text(encoding="utf-8"))
 
         self.assertEqual(written["dataset"]["row_count"], 4)
+
+    def test_profile_dataset_reads_selected_xlsx_sheet(self) -> None:
+        from openpyxl import Workbook
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "multi-sheet.xlsx"
+            workbook = Workbook()
+            first = workbook.active
+            first.title = "Ignored"
+            first.append(["id", "amount"])
+            first.append([1, 999])
+            selected = workbook.create_sheet("Selected")
+            selected.append(["id", "amount"])
+            selected.append([10, 100])
+            selected.append([20, 200])
+            workbook.save(source)
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "profile-dataset",
+                "--source",
+                str(source),
+                "--sheet",
+                "Selected",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["dataset"]["row_count"], 2)
+        self.assertEqual(payload["columns"]["amount"]["numeric"]["mean"], 150.0)
+
+    def test_profile_dataset_reads_json_path_records(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "nested.json"
+            source.write_text(
+                json.dumps(
+                    {
+                        "metadata": {"source": "unit-test"},
+                        "payload": {
+                            "items": [
+                                {"id": 1, "amount": 10},
+                                {"id": 2, "amount": 20},
+                            ]
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "profile-dataset",
+                "--source",
+                str(source),
+                "--json-path",
+                "payload.items",
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        self.assertEqual(payload["dataset"]["row_count"], 2)
+        self.assertEqual(payload["columns"]["amount"]["numeric"]["mean"], 15.0)
 
     def test_detect_sensitive_data_does_not_classify_phone_as_cpf(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -989,6 +1090,8 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertEqual(payload["metrics"], payload["test_metrics"])
         self.assertIn("train_metrics", payload)
         self.assertIn("confusion_matrix", payload["test_metrics"])
+        self.assertIn("quality_gates", payload)
+        self.assertTrue(any(gate["name"] == "holdout_available" for gate in payload["quality_gates"]))
 
     def test_evaluate_model_reports_class_balance_and_configurable_holdout(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1050,6 +1153,109 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertEqual(result["dataset"]["row_count"], 2)
         self.assertEqual(result["columns"], ["id", "amount"])
         self.assertEqual(result["rows"][0]["amount"], "10.5")
+
+    def test_sql_tabular_result_writes_reusable_dataset_artifact(self) -> None:
+        module = self.load_dataset_module("sql_result")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "artifacts" / "sql-dataset.json"
+            normalized = module.normalize_sql_result(
+                {
+                    "table": "customers",
+                    "columns": ["id", "amount"],
+                    "rows": [{"id": 1, "amount": 10.5}, {"id": 2, "amount": 20}],
+                }
+            )
+            artifact = module.write_tabular_artifact(normalized, str(output))
+
+            self.assertTrue(output.exists())
+            payload = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(artifact["format"], "json")
+        self.assertEqual(payload["rows"][0]["amount"], "10.5")
+
+    def test_analyze_sql_source_returns_operational_contract(self) -> None:
+        module = self.load_runner_support_module()
+
+        class Completed:
+            returncode = 0
+            stderr = ""
+            stdout = json.dumps(
+                {
+                    "stdout": json.dumps(
+                        {
+                            "table": "customers",
+                            "columns": ["id", "amount"],
+                            "rows": [{"id": 1, "amount": 10.5}],
+                        }
+                    )
+                }
+            )
+
+        original_run = module.subprocess.run
+        module.subprocess.run = lambda *args, **kwargs: Completed()
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                args = SimpleNamespace(
+                    database_agent="postgres-data-analyzer",
+                    database_capability="query-table",
+                    database=None,
+                    schema=None,
+                    table="customers",
+                    query=None,
+                    limit=None,
+                    dataset_output=str(Path(tmpdir) / "sql-dataset.json"),
+                )
+                payload = module.analyze_sql_source(args)
+        finally:
+            module.subprocess.run = original_run
+
+        self.assertEqual(payload["delegation"]["status"], "success")
+        self.assertEqual(payload["analysis"]["kind"], "tabular_dataset")
+        self.assertTrue(payload["quality_gates"])
+        self.assertEqual(payload["artifact"]["format"], "json")
+
+    def test_run_data_pipeline_generates_profile_eda_and_report_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = self.write_analytics_csv(root)
+            output_dir = root / "pipeline"
+            result = self.run_cli(
+                "--json",
+                "run",
+                "data-scientist-analyst",
+                "run-data-pipeline",
+                "--source",
+                str(source),
+                "--target-column",
+                "converted",
+                "--segment-column",
+                "segment",
+                "--output",
+                str(output_dir),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = self.parse_payload(result)
+            manifest_path = Path(payload["artifacts"]["manifest"])
+            profile_path = Path(payload["artifacts"]["profile"])
+            exploratory_path = Path(payload["artifacts"]["exploratory"])
+            report_path = Path(payload["artifacts"]["report"])
+
+            self.assertTrue(manifest_path.exists())
+            self.assertTrue(profile_path.exists())
+            self.assertTrue(exploratory_path.exists())
+            self.assertTrue(report_path.exists())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(payload["pipeline"]["steps"], ["ingest", "profile", "exploratory_analysis", "data_report"])
+        self.assertIn(payload["pipeline"]["status"], {"success", "warning"})
+        self.assertIn("created_at", payload["pipeline"])
+        self.assertIn("inputs", payload)
+        self.assertIn("quality_gates", payload)
+        self.assertEqual(manifest["dataset"]["row_count"], 5)
+        self.assertEqual(manifest["artifacts"]["profile"], str(profile_path))
+        self.assertEqual(manifest["quality_gates"], payload["quality_gates"])
 
     def test_explain_model_results_describes_selected_driver(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

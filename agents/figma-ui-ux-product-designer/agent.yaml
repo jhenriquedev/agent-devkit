@@ -17,12 +17,15 @@ default_context:
   - knowledge/context.md
   - knowledge/policies.yaml
   - knowledge/figma-workflow.md
+  - knowledge/figma-mcp-setup.md
+  - knowledge/direct-mode-requirements.md
   - knowledge/design-quality-checklist.md
 
 env:
   required: []
   optional:
-    - FIGMA_ACCESS_TOKEN
+    - FIGMA_MCP_BRIDGE_COMMAND
+    - FIGMA_MCP_BRIDGE_TIMEOUT_SECONDS
     - FIGMA_DEFAULT_PLAN_KEY
     - FIGMA_DEFAULT_PROJECT_ID
     - FIGMA_MCP_ENABLED
@@ -31,6 +34,7 @@ env:
     - AZURE_DEVOPS_PAT
 
 capabilities:
+  - setup-figma-mcp-bridge
   - conduct-design-interview
   - ingest-design-source
   - read-azure-card-for-design
@@ -54,6 +58,10 @@ capabilities:
 agent_surface:
   repositories:
     - infra/integrations/figma/figma_repository.py
+    - infra/integrations/figma/figma_mcp_adapter.py
+    - infra/integrations/figma/figma_mode.py
+    - infra/integrations/figma/figma_operation_log.py
+    - infra/integrations/figma/bin/figma-codex-bridge.py
   methods:
     - infra/integrations/figma/methods/create-new-file.yaml
     - infra/integrations/figma/methods/inspect-file.yaml
@@ -73,8 +81,21 @@ agent_surface:
 write_policy:
   read_operations: auto
   local_artifacts: ask_before_creating_output_directory
-  figma_create_file: confirm
-  figma_update_existing_file: confirm
+  figma_create_file: confirm_with_yes_figma_write
+  figma_update_existing_file: confirm_with_yes_figma_write
   figma_comments: confirm
   azure_card_comment: confirm
   destructive_design_changes: forbidden_by_default
+
+execution_quality_gates:
+  direct_mode_requires:
+    - FIGMA_MCP_BRIDGE_COMMAND
+    - FIGMA_MCP_ENABLED_OR_FIGMA_DIRECT_MODE
+  real_execution_evidence:
+    - file_key
+    - file_url
+    - created_node_ids
+    - mutated_node_ids
+    - inspected_node_ids
+  forbidden_claims:
+    - claim_created_or_updated_figma_without_bridge_result

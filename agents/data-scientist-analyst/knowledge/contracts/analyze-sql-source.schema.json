@@ -1,0 +1,14 @@
+{
+  "capability": "analyze-sql-source",
+  "schema_version": "0.1.0",
+  "required_top_level_keys": ["delegation", "analysis", "quality_gates"],
+  "required_delegation_keys": ["agent", "capability", "status"],
+  "optional_artifacts": ["dataset_output"],
+  "quality_gates": [
+    "delegation.status must be success before reusing analysis",
+    "source database agent output must be reviewed for truncation or execution warnings",
+    "dataset_output must be hashed and profiled before downstream statistical use",
+    "queries with mutations must not be routed through this analytical capability"
+  ],
+  "compatible_artifacts": ["json", "json dataset_output"]
+}

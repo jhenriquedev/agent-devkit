@@ -3,7 +3,7 @@ kind: capability
 name: Create Mobile App Design
 version: 0.1.0
 status: draft
-purpose: Criar design mobile com telas, estados, navegacao e handoff, usando Figma direct ou plano executavel.
+purpose: Criar design mobile com telas, estados, navegacao e handoff, usando Figma direct_mcp ou plano executavel.
 entrypoint:
   runner: runner.py
   workflow: workflow.md

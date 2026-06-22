@@ -1,0 +1,15 @@
+{
+  "capability": "evaluate-model",
+  "schema_version": "0.1.0",
+  "required_top_level_keys": ["dataset", "target_column", "model", "metrics", "confusion_matrix", "evaluation_scope", "split", "class_balance", "validity_warnings", "quality_gates"],
+  "required_metric_keys": ["accuracy", "precision", "recall", "f1", "balanced_accuracy", "specificity", "negative_predictive_value"],
+  "required_confusion_matrix_keys": ["tp", "tn", "fp", "fn"],
+  "required_split_keys": ["strategy", "test_size", "train_rows", "test_rows"],
+  "quality_gates": [
+    "evaluation.validity_warnings must be reviewed before accepting model quality",
+    "evaluation.class_balance must be checked for severe imbalance",
+    "confusion_matrix must include true_positive, true_negative, false_positive and false_negative",
+    "metrics.balanced_accuracy must be preferred over accuracy when classes are imbalanced"
+  ],
+  "compatible_artifacts": ["json"]
+}

@@ -2,9 +2,11 @@
 
 ## Direct Mode
 
-Use quando o ambiente expuser ferramentas Figma e o usuario autorizar escrita.
+Use quando o ambiente expuser ferramentas Figma por MCP bridge e o usuario
+autorizar escrita.
 
-1. Detectar `FIGMA_MCP_ENABLED=true` ou capacidade equivalente no ambiente.
+1. Detectar `FIGMA_MCP_BRIDGE_COMMAND` e `FIGMA_MCP_ENABLED=true` ou
+   `FIGMA_DIRECT_MODE=true`.
 2. Para novo arquivo, usar o fluxo `figma-create-new-file`.
 3. Para arquivo existente, extrair `fileKey` e `nodeId` da URL.
 4. Inspecionar com metadata/screenshot antes de escrever.
@@ -13,9 +15,14 @@ Use quando o ambiente expuser ferramentas Figma e o usuario autorizar escrita.
 7. Retornar node IDs criados/alterados.
 8. Gerar handoff e quality report.
 
+No CLI local, a escrita real passa por `FIGMA_MCP_BRIDGE_COMMAND`. O bridge
+recebe JSON em stdin e deve retornar JSON com `status` e pelo menos uma
+evidencia real: `file_key`, `file_url`, `created_node_ids`, `mutated_node_ids`
+ou `inspected_node_ids`.
+
 ## Plan Only
 
-Use quando nao houver MCP, token, plano Figma ou permissao de escrita.
+Use quando nao houver MCP bridge, plano Figma ou permissao de escrita.
 
 1. Gerar `figma-action-plan.md`.
 2. Gerar `design-brief.md`, inventario de telas e mapas.

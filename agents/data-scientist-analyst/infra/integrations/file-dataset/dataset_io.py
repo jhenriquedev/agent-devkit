@@ -26,9 +26,11 @@ def read_csv(path: Path) -> tuple[list[dict[str, str]], list[str]]:
     return rows, columns
 
 
-def read_json(path: Path) -> tuple[list[dict[str, str]], list[str]]:
+def read_json(path: Path, json_path: str | None = None) -> tuple[list[dict[str, str]], list[str]]:
     raw = json.loads(path.read_text(encoding="utf-8"))
-    if isinstance(raw, dict):
+    if json_path:
+        raw = select_json_path(raw, json_path)
+    elif isinstance(raw, dict):
         for value in raw.values():
             if isinstance(value, list):
                 raw = value
@@ -38,6 +40,25 @@ def read_json(path: Path) -> tuple[list[dict[str, str]], list[str]]:
     rows = [flatten_record(item) for item in raw if isinstance(item, dict)]
     columns = merge_columns([], *[list(row.keys()) for row in rows])
     return rows, columns
+
+
+def select_json_path(raw: Any, json_path: str) -> Any:
+    current = raw
+    for segment in [item for item in json_path.split(".") if item]:
+        if isinstance(current, dict):
+            if segment not in current:
+                raise DataScientistError(f"json path segment not found: {segment}")
+            current = current[segment]
+            continue
+        if isinstance(current, list) and segment.isdigit():
+            index = int(segment)
+            try:
+                current = current[index]
+            except IndexError as exc:
+                raise DataScientistError(f"json path index out of range: {segment}") from exc
+            continue
+        raise DataScientistError(f"json path cannot traverse segment: {segment}")
+    return current
 
 
 def read_jsonl(path: Path) -> tuple[list[dict[str, str]], list[str]]:
@@ -51,13 +72,18 @@ def read_jsonl(path: Path) -> tuple[list[dict[str, str]], list[str]]:
     return rows, columns
 
 
-def read_xlsx(path: Path) -> tuple[list[dict[str, str]], list[str]]:
+def read_xlsx(path: Path, sheet_name: str | None = None) -> tuple[list[dict[str, str]], list[str]]:
     try:
         from openpyxl import load_workbook  # type: ignore
     except ImportError as exc:
         raise DataScientistError("xlsx support requires local dependency openpyxl") from exc
     workbook = load_workbook(path, read_only=True, data_only=True)
-    sheet = workbook[workbook.sheetnames[0]]
+    if sheet_name:
+        if sheet_name not in workbook.sheetnames:
+            raise DataScientistError(f"xlsx sheet not found: {sheet_name}")
+        sheet = workbook[sheet_name]
+    else:
+        sheet = workbook[workbook.sheetnames[0]]
     iterator = sheet.iter_rows(values_only=True)
     try:
         headers = next(iterator)

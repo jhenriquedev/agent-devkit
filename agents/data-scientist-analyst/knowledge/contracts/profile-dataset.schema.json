@@ -1,0 +1,13 @@
+{
+  "capability": "profile-dataset",
+  "schema_version": "0.1.0",
+  "required_top_level_keys": ["dataset", "schema", "quality", "columns", "sensitive_data"],
+  "required_dataset_keys": ["source", "name", "format", "row_count", "original_row_count", "truncated", "column_count", "sha256", "warnings"],
+  "quality_gates": [
+    "dataset.sha256 must be present",
+    "dataset.warnings must be reviewed",
+    "quality.quality_score must be present",
+    "sensitive_data.has_sensitive_data must be reviewed before sharing output"
+  ],
+  "compatible_artifacts": ["json", "markdown via generate-data-report"]
+}

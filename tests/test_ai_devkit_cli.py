@@ -235,10 +235,114 @@ class AiDevKitCliTest(unittest.TestCase):
                 "read-azure-card-for-design",
                 "recreate-legacy-design",
                 "review-design-quality",
+                "setup-figma-mcp-bridge",
                 "triage-design-feedback",
                 "update-existing-figma-design",
             },
         )
+
+    def test_figma_ui_ux_product_designer_setup_installs_bridge_wrappers_and_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            output_dir = tmp / "setup"
+            env_file = tmp / ".env"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "figma-ui-ux-product-designer",
+                    "setup-figma-mcp-bridge",
+                    "--output-dir",
+                    str(output_dir),
+                    "--yes-create-dir",
+                    "--install-bridge",
+                    "--write-env",
+                    "--env-file",
+                    str(env_file),
+                    "--default-plan-key",
+                    "team::123",
+                    "--codex-command",
+                    sys.executable,
+                    "--skip-codex-mcp-check",
+                ],
+                cwd=ROOT,
+                env=os.environ | {"AI_DEVKIT_IGNORE_ENV_FILE": "true"},
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((output_dir / "figma-mcp-setup-report.md").exists())
+            self.assertTrue((output_dir / "figma-env.generated").exists())
+            bridge_py = ROOT / "agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge.py"
+            bridge_sh = ROOT / "agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge"
+            bridge_cmd = ROOT / "agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge.cmd"
+            self.assertTrue(bridge_py.exists())
+            self.assertTrue(bridge_sh.exists())
+            self.assertTrue(bridge_cmd.exists())
+            env_text = env_file.read_text(encoding="utf-8")
+            self.assertIn("FIGMA_MCP_ENABLED=true", env_text)
+            self.assertIn("FIGMA_DIRECT_MODE=true", env_text)
+            self.assertIn("FIGMA_MCP_BRIDGE_COMMAND=", env_text)
+            self.assertIn("FIGMA_DEFAULT_PLAN_KEY=team::123", env_text)
+            report = (output_dir / "figma-mcp-setup-report.md").read_text(encoding="utf-8")
+            self.assertIn("Login solicitado: nao", report)
+
+    def test_figma_codex_bridge_diagnostic_uses_codex_exec_command(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            fake_codex = tmp / "fake_codex.py"
+            output_file = tmp / "last-message.json"
+            fake_codex.write_text(
+                """
+import json
+import pathlib
+import sys
+
+args = sys.argv[1:]
+output = pathlib.Path(args[args.index("--output-last-message") + 1])
+payload = {
+    "status": "inspected",
+    "file_key": "diagnostic",
+    "file_url": "https://figma.com/design/diagnostic/Bridge",
+    "created_node_ids": [],
+    "mutated_node_ids": [],
+    "inspected_node_ids": ["0:1"],
+}
+output.write_text(json.dumps(payload), encoding="utf-8")
+print(json.dumps({"event": "done"}))
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+            bridge = ROOT / "agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge.py"
+            request = json.dumps(
+                {
+                    "kind": "figma_mcp_operation",
+                    "operation": {"capability": "setup-figma-mcp-bridge", "action": "diagnose"},
+                    "env": {"FIGMA_MCP_BRIDGE_TEST_OUTPUT": str(output_file)},
+                },
+                ensure_ascii=False,
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(bridge), "--codex-command", f"{sys.executable} {fake_codex}"],
+                cwd=ROOT,
+                input=request,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["status"], "inspected")
+            self.assertEqual(payload["inspected_node_ids"], ["0:1"])
 
     def test_figma_ui_ux_product_designer_generates_plan_only_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -265,6 +369,7 @@ class AiDevKitCliTest(unittest.TestCase):
                     "--yes-create-dir",
                 ],
                 cwd=ROOT,
+                env=os.environ | {"AI_DEVKIT_IGNORE_ENV_FILE": "true"},
                 check=False,
                 text=True,
                 stdout=subprocess.PIPE,
@@ -279,6 +384,119 @@ class AiDevKitCliTest(unittest.TestCase):
             brief_text = (output_dir / "design-brief.md").read_text(encoding="utf-8")
             self.assertIn("Figma mode: `plan_only`", brief_text)
             self.assertIn("Portal de Sustentacao", brief_text)
+
+    def test_figma_ui_ux_product_designer_requires_real_bridge_for_direct_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            brief = Path(tmpdir) / "brief.md"
+            output_dir = Path(tmpdir) / "design"
+            brief.write_text("Criar painel web de KPIs.", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "figma-ui-ux-product-designer",
+                    "create-web-app-design",
+                    "--brief",
+                    str(brief),
+                    "--output-dir",
+                    str(output_dir),
+                    "--yes-create-dir",
+                    "--require-direct",
+                ],
+                cwd=ROOT,
+                env=os.environ | {"AI_DEVKIT_IGNORE_ENV_FILE": "true"},
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Figma direct_mcp requerido", result.stderr)
+            self.assertIn("FIGMA_MCP_BRIDGE_COMMAND", result.stderr)
+
+    def test_figma_ui_ux_product_designer_executes_direct_bridge_and_logs_result(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            brief = tmp / "brief.md"
+            output_dir = tmp / "design"
+            bridge_log = tmp / "bridge-request.json"
+            bridge = tmp / "fake_figma_bridge.py"
+            brief.write_text("Criar dashboard web para KPIs de sustentacao no Azure DevOps.", encoding="utf-8")
+            bridge.write_text(
+                """
+import json
+import pathlib
+import sys
+
+request = json.loads(sys.stdin.read())
+pathlib.Path(request["env"]["TEST_BRIDGE_LOG"]).write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+json.dump(
+    {
+        "status": "executed",
+        "file_key": "FIGMA123",
+        "file_url": "https://figma.com/design/FIGMA123/Projeto",
+        "page_name": request["operation"]["page_name"],
+        "created_node_ids": ["10:1", "10:2"],
+        "mutated_node_ids": [],
+        "screenshot_refs": ["frame-dashboard.png"],
+    },
+    sys.stdout,
+)
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+            env = os.environ | {
+                "FIGMA_MCP_BRIDGE_COMMAND": f"{sys.executable} {bridge}",
+                "FIGMA_MCP_ENABLED": "true",
+                "TEST_BRIDGE_LOG": str(bridge_log),
+            }
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "figma-ui-ux-product-designer",
+                    "create-web-app-design",
+                    "--brief",
+                    str(brief),
+                    "--platform",
+                    "web",
+                    "--figma-file-name",
+                    "Sustentacao Azure KPIs",
+                    "--output-dir",
+                    str(output_dir),
+                    "--yes-create-dir",
+                    "--yes-figma-write",
+                    "--require-direct",
+                ],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((output_dir / "figma-execution-result.json").exists())
+            self.assertTrue((output_dir / "design-operation-log.md").exists())
+            execution = json.loads((output_dir / "figma-execution-result.json").read_text(encoding="utf-8"))
+            self.assertEqual(execution["status"], "executed")
+            self.assertEqual(execution["file_key"], "FIGMA123")
+            self.assertEqual(execution["created_node_ids"], ["10:1", "10:2"])
+            brief_text = (output_dir / "design-brief.md").read_text(encoding="utf-8")
+            self.assertIn("Figma mode: `direct_mcp`", brief_text)
+            action_plan = (output_dir / "figma-action-plan.md").read_text(encoding="utf-8")
+            self.assertIn("Execucao Real", action_plan)
+            request = json.loads(bridge_log.read_text(encoding="utf-8"))
+            self.assertEqual(request["operation"]["capability"], "create-web-app-design")
+            self.assertEqual(request["operation"]["file_name"], "Sustentacao Azure KPIs")
+            self.assertIn("Dashboard", request["operation"]["screens"])
 
     def test_register_template_creates_versioned_template_assets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

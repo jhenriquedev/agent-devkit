@@ -21,7 +21,7 @@ sys.path.insert(0, str(DATASET_DIR))
 
 from artifacts import write_artifact  # pylint: disable=import-error
 from data_repository import DataRepository, DataScientistError  # pylint: disable=import-error
-from sql_result import normalize_sql_result  # pylint: disable=import-error
+from sql_result import normalize_sql_result, write_tabular_artifact  # pylint: disable=import-error
 
 
 def run_dataset_capability(capability: str) -> int:
@@ -31,7 +31,7 @@ def run_dataset_capability(capability: str) -> int:
     try:
         payload = execute(capability, args)
         content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
-        if args.output and capability not in {"generate-data-report", "generate-reconciliation-report"}:
+        if args.output and capability not in {"generate-data-report", "generate-reconciliation-report", "run-data-pipeline"}:
             write_artifact(content, args.output)
         print(content, end="")
     except (DataScientistError, ValueError) as exc:
@@ -83,6 +83,9 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--max-rows", type=int)
     parser.add_argument("--sample-rows", type=int)
     parser.add_argument("--max-file-mb", type=float)
+    parser.add_argument("--sheet")
+    parser.add_argument("--json-path")
+    parser.add_argument("--dataset-output")
     parser.add_argument("--database-agent", choices=["postgres-data-analyzer", "sqlserver-data-analyzer"])
     parser.add_argument("--database-capability", default="profile-table")
     parser.add_argument("--database")
@@ -98,6 +101,8 @@ def execute(capability: str, args: argparse.Namespace) -> dict[str, Any]:
         max_rows=args.max_rows,
         sample_rows=args.sample_rows,
         max_file_mb=args.max_file_mb,
+        sheet=args.sheet,
+        json_path=args.json_path,
     )
     if capability == "ingest-dataset":
         require(args.source, "--source")
@@ -115,6 +120,15 @@ def execute(capability: str, args: argparse.Namespace) -> dict[str, Any]:
         require(args.source, "--source")
         return repo.run_exploratory_analysis(
             source=args.source,
+            target_column=args.target_column,
+            segment_column=args.segment_column,
+        )
+    if capability == "run-data-pipeline":
+        require(args.source, "--source")
+        require(args.output, "--output")
+        return repo.run_data_pipeline(
+            source=args.source,
+            output=args.output,
             target_column=args.target_column,
             segment_column=args.segment_column,
         )
@@ -371,11 +385,40 @@ def analyze_sql_source(args: argparse.Namespace) -> dict[str, Any]:
         result = json.loads(stdout)
     except json.JSONDecodeError:
         result = {"raw_output": stdout}
-    return {
+    normalized = normalize_sql_result(result)
+    artifact = write_tabular_artifact(normalized, args.dataset_output)
+    quality_gates = [
+        {
+            "name": "delegation_success",
+            "status": "pass",
+            "message": f"{args.database_agent}.{args.database_capability} executado com sucesso.",
+        },
+        {
+            "name": "tabular_result_available",
+            "status": "pass" if normalized.get("kind") == "tabular_dataset" else "warning",
+            "message": "Resultado tabular normalizado." if normalized.get("kind") == "tabular_dataset" else "Resultado SQL nao tabular; revisar raw_output.",
+        },
+        {
+            "name": "dataset_artifact_written",
+            "status": "pass" if artifact else "warning",
+            "message": "Artifact tabular gravado." if artifact else "Nenhum --dataset-output informado ou resultado nao tabular.",
+        },
+    ]
+    response = {
+        "delegation": {
+            "agent": args.database_agent,
+            "capability": args.database_capability,
+            "status": "success",
+        },
+        "analysis": normalized,
+        "quality_gates": quality_gates,
         "delegated_to": args.database_agent,
         "database_capability": args.database_capability,
-        "result": normalize_sql_result(result),
+        "result": normalized,
     }
+    if artifact:
+        response["artifact"] = artifact
+    return response
 
 
 def parse_columns(value: str | None) -> list[str] | None:

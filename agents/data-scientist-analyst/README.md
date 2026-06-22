@@ -33,6 +33,7 @@ relatorios tecnicos ou executivos.
 - `generate-reconciliation-report`: gera relatorio markdown de conciliacao.
 - `generate-data-report`: gera relatorio markdown de perfil da base.
 - `analyze-sql-source`: delega analises SQL para agentes de banco existentes.
+- `run-data-pipeline`: executa pipeline local com perfil, EDA e relatorio versionado.
 
 ## Exemplos
 
@@ -43,8 +44,15 @@ relatorios tecnicos ou executivos.
   --numeric-tolerance 0.02
 ./ai-devkit run data-scientist-analyst generate-data-report \
   --source dados.csv --output docs/data-report.md
+./ai-devkit run data-scientist-analyst run-data-pipeline \
+  --source dados.csv --target-column converted --segment-column channel \
+  --output docs/pipeline
 ./ai-devkit run data-scientist-analyst run-exploratory-analysis \
   --source dados.csv --target-column converted --segment-column channel
+./ai-devkit run data-scientist-analyst profile-dataset \
+  --source dados.xlsx --sheet Base --max-rows 1000
+./ai-devkit run data-scientist-analyst profile-dataset \
+  --source nested.json --json-path payload.items --sample-rows 25
 ./ai-devkit run data-scientist-analyst detect-outliers \
   --source dados.csv --columns amount --method iqr
 ./ai-devkit run data-scientist-analyst analyze-correlation \
@@ -89,3 +97,41 @@ relatorios tecnicos ou executivos.
 ./ai-devkit run data-scientist-analyst monitor-model-drift \
   --reference-source treino.csv --source producao.csv --columns score,income
 ```
+
+## Operacao
+
+Use `--max-file-mb`, `--max-rows` e `--sample-rows` para controlar custo,
+memoria e tempo em bases grandes. Para XLSX, use `--sheet` quando a aba correta
+nao for a primeira. Para JSON aninhado, use `--json-path` apontando para a lista
+de registros que deve virar dataset tabular.
+
+Os fluxos recomendados para uso real sao:
+
+- `profile-dataset` antes de qualquer conclusao, para registrar hash, tamanho,
+  truncamento, qualidade e dados sensiveis.
+- `run-data-pipeline` quando precisar de um pacote reprodutivel com
+  `manifest.json`, perfil, EDA e relatorio Markdown.
+- `analyze-sql-source --dataset-output` quando a consulta delegada para banco
+  precisar virar artifact tabular reutilizavel por outras capabilities.
+- `generate-data-report` como base Markdown pronta para revisao tecnica e
+  conversao posterior para PDF.
+
+Quality gates operacionais:
+
+- revisar `dataset.warnings`, `dataset.truncated` e `quality.quality_score`;
+- tratar `validity_warnings` como bloqueio para conclusoes fortes;
+- revisar `sensitive_data.has_sensitive_data` antes de compartilhar artefatos;
+- preferir metricas balanceadas quando houver desbalanceamento de classes.
+
+Troubleshooting rapido:
+
+- CSV carregado como uma coluna: informe o delimitador na origem ou normalize o
+  arquivo; o leitor tenta fallback automatico, mas nao corrige arquivos ambiguos.
+- XLSX com aba incorreta: reexecute com `--sheet`.
+- JSON sem registros: reexecute com `--json-path` ate uma lista de objetos.
+- Modelo baseline instavel: reduza conclusoes, revise `class_balance` e aumente
+  a amostra.
+
+Contratos versionados ficam em `knowledge/contracts/`. O checklist operacional
+fica em `knowledge/health-checklist.md` e o runbook em
+`knowledge/operational-runbook.md`.

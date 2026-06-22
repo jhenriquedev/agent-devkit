@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 
@@ -34,6 +36,35 @@ def normalize_sql_result(result: dict[str, Any]) -> dict[str, Any]:
         },
         "columns": columns,
         "rows": normalized_rows,
+    }
+
+
+def write_tabular_artifact(normalized: dict[str, Any], output: str | None) -> dict[str, Any] | None:
+    if not output:
+        return None
+    if normalized.get("kind") != "tabular_dataset":
+        return {
+            "format": None,
+            "output": None,
+            "written": False,
+            "warnings": ["only tabular_dataset results can be written as reusable dataset artifacts"],
+        }
+    path = Path(output).expanduser().resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "kind": "tabular_dataset",
+        "source": normalized.get("source", {}),
+        "columns": normalized.get("columns", []),
+        "rows": normalized.get("rows", []),
+        "dataset": normalized.get("dataset", {}),
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {
+        "format": "json",
+        "output": str(path),
+        "written": True,
+        "row_count": len(payload["rows"]),
+        "column_count": len(payload["columns"]),
     }
 
 

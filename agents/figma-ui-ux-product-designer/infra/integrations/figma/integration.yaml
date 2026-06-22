@@ -2,16 +2,22 @@ id: figma-ui-ux-product-designer.figma
 provider: figma
 version: 0.1.0
 mode:
-  direct:
+  direct_mcp:
     requires:
-      - figma_mcp_tooling
+      - FIGMA_MCP_BRIDGE_COMMAND
+      - FIGMA_MCP_ENABLED_OR_FIGMA_DIRECT_MODE
       - user_permission
     env_optional:
-      - FIGMA_ACCESS_TOKEN
+      - FIGMA_MCP_BRIDGE_COMMAND
+      - FIGMA_MCP_BRIDGE_TIMEOUT_SECONDS
       - FIGMA_DEFAULT_PLAN_KEY
       - FIGMA_DEFAULT_PROJECT_ID
       - FIGMA_MCP_ENABLED
       - FIGMA_DIRECT_MODE
+  local_mcp_bridge:
+    requires:
+      - FIGMA_MCP_BRIDGE_COMMAND
+    behavior: bridge_configured_but_direct_flag_disabled
   plan_only:
     requires: []
     behavior: generate_executable_action_plan
@@ -28,5 +34,6 @@ guardrails:
   credentials_in_env_only: true
   confirm_create_file: true
   confirm_update_existing_file: true
+  require_execution_evidence: true
   forbid_destructive_changes_by_default: true
   clone_third_party_without_permission: false

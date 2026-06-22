@@ -24,6 +24,7 @@ capabilities:
   - inspect-dataset-schema
   - profile-dataset
   - detect-sensitive-data
+  - run-data-pipeline
   - run-exploratory-analysis
   - detect-outliers
   - analyze-correlation
@@ -66,6 +67,7 @@ agent_surface:
     - infra/integrations/file-dataset/methods/inspect-dataset-schema.yaml
     - infra/integrations/file-dataset/methods/profile-dataset.yaml
     - infra/integrations/file-dataset/methods/detect-sensitive-data.yaml
+    - infra/integrations/file-dataset/methods/run-data-pipeline.yaml
     - infra/integrations/file-dataset/methods/run-exploratory-analysis.yaml
     - infra/integrations/file-dataset/methods/detect-outliers.yaml
     - infra/integrations/file-dataset/methods/analyze-correlation.yaml

@@ -1,0 +1,14 @@
+{
+  "capability": "run-data-pipeline",
+  "schema_version": "0.1.0",
+  "required_top_level_keys": ["pipeline", "inputs", "dataset", "artifacts", "quality_gates"],
+  "required_pipeline_keys": ["status", "steps", "cache_key", "created_at"],
+  "required_artifacts": ["manifest", "profile", "exploratory", "report"],
+  "quality_gates": [
+    "pipeline.status must be success or warning",
+    "pipeline.cache_key must be present for reproducibility",
+    "all artifact paths must point to files written by the capability",
+    "profile.dataset.truncated must be reviewed before using conclusions"
+  ],
+  "compatible_artifacts": ["json", "markdown"]
+}

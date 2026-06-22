@@ -13,5 +13,5 @@ outputs:
   artifacts: [figma-action-plan.md, design-brief.md, screen-inventory.md]
 integration:
   provider: figma
-  mode: direct_or_plan_only
+  mode: direct_mcp_or_plan_only
 write_policy: read_only

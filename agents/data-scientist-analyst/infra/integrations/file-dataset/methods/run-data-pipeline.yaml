@@ -1,0 +1,27 @@
+id: run-data-pipeline
+name: Run Data Pipeline
+repository: file-dataset
+method: DataRepository.run_data_pipeline
+description: >
+  Executa ingestao, profile, analise exploratoria e relatorio em um pacote de
+  artifacts reproduziveis.
+inputs:
+  source:
+    type: string
+    required: true
+  output:
+    type: string
+    required: true
+  target_column:
+    type: string
+    required: false
+  segment_column:
+    type: string
+    required: false
+outputs:
+  type: object
+  artifacts:
+    - manifest.json
+    - profile.json
+    - exploratory.json
+    - data-report.md

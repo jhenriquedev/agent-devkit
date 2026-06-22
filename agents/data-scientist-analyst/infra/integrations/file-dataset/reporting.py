@@ -18,8 +18,11 @@ def render_data_report(payload: dict[str, Any]) -> str:
         f"- Arquivo: {dataset['name']}",
         f"- Formato: {dataset['format']}",
         f"- Linhas: {dataset['row_count']}",
+        f"- Linhas originais: {dataset.get('original_row_count', dataset['row_count'])}",
+        f"- Truncado/amostrado: {'sim' if dataset.get('truncated') else 'nao'}",
         f"- Colunas: {dataset['column_count']}",
         f"- SHA-256: {dataset['sha256']}",
+        f"- Warnings de leitura: {', '.join(dataset.get('warnings', [])) or 'nenhum'}",
         "",
         "## Qualidade",
         "",
@@ -39,6 +42,27 @@ def render_data_report(payload: dict[str, Any]) -> str:
         lines.append(
             f"- {column}: tipo={details['inferred_type']}, nulos={details['missing_count']}, unicos={details['unique_count']}"
         )
+    lines.extend(
+        [
+            "",
+            "## Reprodutibilidade",
+            "",
+            f"- Dataset hash: {dataset['sha256']}",
+            "- Fonte nao e alterada pela capability.",
+            "- Reexecute o mesmo comando com os mesmos controles de leitura para reproduzir o perfil.",
+            "",
+            "## Limitacoes",
+            "",
+            "- Inferencia de tipos e qualidade e baseline e depende dos dados carregados.",
+            "- Analises sobre amostra truncada devem ser tratadas como indicativas.",
+            "- Deteccao de dados sensiveis usa heuristicas e pode gerar falso positivo ou falso negativo.",
+            "",
+            "## Base para PDF",
+            "",
+            "- Este markdown e o formato canonico para conversao posterior em PDF.",
+            "- Preserve as secoes Fonte, Qualidade, Dados sensiveis, Colunas, Reprodutibilidade e Limitacoes na exportacao.",
+        ]
+    )
     return "\n".join(lines) + "\n"
 
 

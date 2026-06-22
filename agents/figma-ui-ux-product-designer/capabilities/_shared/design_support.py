@@ -18,6 +18,14 @@ from typing import Any
 
 AGENT_DIR = Path(__file__).resolve().parents[2]
 ROOT = AGENT_DIR.parents[1]
+FIGMA_INFRA_DIR = AGENT_DIR / "infra" / "integrations" / "figma"
+sys.path.insert(0, str(FIGMA_INFRA_DIR))
+
+from figma_mcp_adapter import FigmaMcpAdapter  # noqa: E402
+from figma_mode import detect_mode, merged_env, read_env_file  # noqa: E402
+from figma_models import FigmaOperation  # noqa: E402
+from figma_operation_log import write_execution_artifacts  # noqa: E402
+
 IGNORED_DIRS = {
     ".git",
     ".hg",
@@ -59,6 +67,32 @@ CAPABILITY_TITLES = {
     "review-design-quality": "Design Quality Review",
 }
 
+FIGMA_EXECUTION_OPERATIONS = {
+    "analyze-existing-figma-project",
+    "apply-design-feedback",
+    "capture-url-to-figma",
+    "create-design-system-foundation",
+    "create-figma-project",
+    "create-mobile-app-design",
+    "create-web-app-design",
+    "facelift-existing-product",
+    "recreate-legacy-design",
+    "review-design-quality",
+    "update-existing-figma-design",
+}
+
+FIGMA_WRITE_OPERATIONS = {
+    "apply-design-feedback",
+    "capture-url-to-figma",
+    "create-design-system-foundation",
+    "create-figma-project",
+    "create-mobile-app-design",
+    "create-web-app-design",
+    "facelift-existing-product",
+    "recreate-legacy-design",
+    "update-existing-figma-design",
+}
+
 
 @dataclass(frozen=True)
 class SourceItem:
@@ -93,15 +127,22 @@ def run(operation: str) -> int:
             "design_style": args.design_style,
             "depth": resolve_depth(args.depth, source_items, brief_text, operation),
             "vendor_skills": select_vendor_skills(operation),
+            "figma_execution": None,
         }
         if figma_mode["mode"] == "blocked":
             raise ValueError(figma_mode["reason"])
-        documents = render_documents(context)
         if args.stdout:
+            documents = render_documents(context)
             print(documents["design-brief.md"], end="")
             return 0
         output_dir = resolve_output_dir(args.output_dir, operation, context["depth"]["slug"])
         ensure_output_dir(output_dir, args.yes_create_dir)
+        if should_execute_figma(operation, figma_mode):
+            require_figma_write_confirmation(operation, args.yes_figma_write)
+            execution = execute_figma_operation(operation, args, context)
+            context["figma_execution"] = execution
+            write_execution_artifacts(output_dir, execution)
+        documents = render_documents(context)
         write_documents(output_dir, documents, args.yes_overwrite)
         print_summary(output_dir, documents, figma_mode)
     except KeyboardInterrupt:
@@ -122,9 +163,14 @@ def build_parser(operation: str) -> argparse.ArgumentParser:
     parser.add_argument("--stdout", action="store_true")
     parser.add_argument("--yes-create-dir", action="store_true")
     parser.add_argument("--yes-overwrite", action="store_true")
-    parser.add_argument("--require-direct", action="store_true", help="falha se Figma direct mode nao estiver disponivel")
+    parser.add_argument("--require-direct", action="store_true", help="falha se Figma direct_mcp nao estiver disponivel")
     parser.add_argument("--figma-file-url")
     parser.add_argument("--figma-project-url")
+    parser.add_argument("--figma-file-name", help="nome do novo arquivo Figma quando aplicavel")
+    parser.add_argument("--figma-page", default="AI DevKit Design", help="pagina alvo no Figma")
+    parser.add_argument("--figma-node-id", help="node/frame alvo para atualizacoes")
+    parser.add_argument("--figma-plan-key", help="planKey Figma quando o bridge exigir")
+    parser.add_argument("--yes-figma-write", action="store_true", help="confirma criacao/alteracao real no Figma")
     parser.add_argument("--url", help="URL de app/site para captura ou benchmark")
     parser.add_argument("--azure-card", help="identificador do card Azure DevOps")
     parser.add_argument("--platform", choices=["web", "mobile", "both"], default="both")
@@ -136,41 +182,123 @@ def build_parser(operation: str) -> argparse.ArgumentParser:
 
 
 def detect_figma_mode(require_direct: bool) -> dict[str, str]:
-    env = read_env_file(ROOT / ".env") | dict(os.environ)
-    explicit_direct = env.get("FIGMA_MCP_ENABLED", "").lower() in {"1", "true", "yes", "sim"}
-    explicit_direct = explicit_direct or env.get("FIGMA_DIRECT_MODE", "").lower() in {"1", "true", "yes", "sim"}
-    has_token = bool(env.get("FIGMA_ACCESS_TOKEN"))
-    has_plan = bool(env.get("FIGMA_DEFAULT_PLAN_KEY"))
-    if explicit_direct and (has_token or has_plan):
-        return {
-            "mode": "direct",
-            "reason": "Figma direct mode sinalizado por ambiente. Credenciais nao sao exibidas.",
-            "credentials": "present",
-        }
-    if require_direct:
-        return {
-            "mode": "blocked",
-            "reason": "Figma direct mode requerido, mas FIGMA_MCP_ENABLED/FIGMA_DIRECT_MODE e credenciais/plano nao foram detectados.",
-            "credentials": "missing_or_not_declared",
-        }
-    return {
-        "mode": "plan_only",
-        "reason": "Figma MCP/credenciais nao detectados no processo CLI; gerando plano executavel.",
-        "credentials": "missing_or_not_declared",
-    }
+    return detect_mode(ROOT, require_direct).as_dict()
 
 
-def read_env_file(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    values: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        values[key.strip()] = value.strip().strip('"').strip("'")
-    return values
+def should_execute_figma(operation: str, figma_mode: dict[str, str]) -> bool:
+    return figma_mode["mode"] == "direct_mcp" and operation in FIGMA_EXECUTION_OPERATIONS
+
+
+def require_figma_write_confirmation(operation: str, yes_figma_write: bool) -> None:
+    if operation not in FIGMA_WRITE_OPERATIONS:
+        return
+    if yes_figma_write:
+        return
+    print("Esta capability vai criar ou alterar conteudo real no Figma.")
+    answer = input("Autoriza escrita no Figma? [s/N] ").strip().lower()
+    if answer not in {"s", "sim", "y", "yes"}:
+        raise ValueError("escrita no Figma nao autorizada")
+
+
+def execute_figma_operation(operation: str, args: argparse.Namespace, context: dict[str, Any]) -> dict[str, Any]:
+    env = merged_env(ROOT)
+    command = env.get("FIGMA_MCP_BRIDGE_COMMAND", "")
+    timeout = parse_int(env.get("FIGMA_MCP_BRIDGE_TIMEOUT_SECONDS"), 120)
+    adapter = FigmaMcpAdapter(command=command, project_root=ROOT, timeout_seconds=timeout)
+    operation_payload = build_figma_operation(operation, args, context, env)
+    return adapter.execute(operation_payload)
+
+
+def build_figma_operation(
+    operation: str,
+    args: argparse.Namespace,
+    context: dict[str, Any],
+    env: dict[str, str],
+) -> FigmaOperation:
+    file_name = args.figma_file_name or default_figma_file_name(context)
+    page_name = args.figma_page or default_figma_page(operation)
+    file_key = extract_figma_file_key(args.figma_file_url)
+    action = action_for_operation(operation, bool(file_key))
+    return FigmaOperation(
+        capability=operation,
+        action=action,
+        file_name=file_name,
+        page_name=page_name,
+        platform=context["platform"],
+        scope=context["scope"],
+        screens=infer_screens(context),
+        components=infer_components(context),
+        brief=context["brief"],
+        feedback=context["feedback"],
+        figma_file_url=args.figma_file_url,
+        figma_project_url=args.figma_project_url,
+        figma_file_key=file_key,
+        figma_node_id=args.figma_node_id,
+        plan_key=args.figma_plan_key or env.get("FIGMA_DEFAULT_PLAN_KEY"),
+        url=args.url,
+        design_style=args.design_style,
+        target_audience=args.target_audience,
+        source_summaries=[
+            {"path": item.path, "kind": item.kind, "preview": item.text[:600]}
+            for item in context["sources"][:12]
+        ],
+    )
+
+
+def default_figma_file_name(context: dict[str, Any]) -> str:
+    title = context["title"]
+    source_hint = first_non_empty_line(context["brief"]) or context["scope"] or "Design"
+    return f"{title} - {source_hint[:48]}".strip()
+
+
+def default_figma_page(operation: str) -> str:
+    if operation == "create-design-system-foundation":
+        return "Design System"
+    if operation in {"review-design-quality", "conduct-design-review-session"}:
+        return "Review"
+    if operation in {"generate-user-journey-diagram", "analyze-product-context"}:
+        return "Flows"
+    return "AI DevKit Design"
+
+
+def first_non_empty_line(text: str) -> str:
+    for line in text.splitlines():
+        stripped = line.strip().strip("#").strip()
+        if stripped:
+            return stripped
+    return ""
+
+
+def extract_figma_file_key(url: str | None) -> str | None:
+    if not url:
+        return None
+    match = re.search(r"figma\.com/(?:file|design|board|slides)/([^/?#]+)", url)
+    return match.group(1) if match else None
+
+
+def action_for_operation(operation: str, has_file_key: bool) -> str:
+    if operation == "analyze-existing-figma-project":
+        return "inspect_file"
+    if operation == "review-design-quality":
+        return "review_file"
+    if operation in {"update-existing-figma-design", "apply-design-feedback"}:
+        return "update_screen"
+    if operation == "capture-url-to-figma":
+        return "capture_url_to_figma"
+    if operation == "create-figma-project":
+        return "create_file"
+    if operation == "create-design-system-foundation":
+        return "create_design_system"
+    if operation in {"facelift-existing-product", "recreate-legacy-design"}:
+        return "create_versioned_redesign" if has_file_key else "create_recreation_file"
+    return "update_or_create_screen" if has_file_key else "create_file_with_screens"
+
+
+def parse_int(value: str | None, default: int) -> int:
+    try:
+        return int(value) if value else default
+    except ValueError:
+        return default
 
 
 def load_sources(paths: list[str]) -> list[SourceItem]:
@@ -379,6 +507,7 @@ def render_screen_inventory(context: dict[str, Any]) -> str:
 
 def render_figma_action_plan(context: dict[str, Any]) -> str:
     mode = context["figma_mode"]["mode"]
+    execution = context.get("figma_execution")
     direct_steps = [
         "Carregar skill figma-use antes de qualquer escrita.",
         "Se novo arquivo for necessario, carregar figma-create-new-file e resolver planKey.",
@@ -394,11 +523,24 @@ def render_figma_action_plan(context: dict[str, Any]) -> str:
         "Aplicar screen inventory e design-system-spec.",
         "Validar com design-quality-report antes de aprovar.",
     ]
+    execution_section = ""
+    if execution:
+        execution_section = f"""
+## Execucao Real
+
+- Status: `{execution.get('status', '-')}`
+- Figma file: {execution.get('file_url') or execution.get('file_key') or '-'}
+- Page: {execution.get('page_name') or '-'}
+- Created node IDs: {', '.join(execution.get('created_node_ids') or []) or '-'}
+- Mutated node IDs: {', '.join(execution.get('mutated_node_ids') or []) or '-'}
+- Screenshots: {', '.join(execution.get('screenshot_refs') or []) or '-'}
+"""
     return f"""# Figma Action Plan
 
 ## Modo
 
 `{mode}`
+{execution_section}
 
 ## Direct Mode Steps
 
@@ -539,13 +681,16 @@ flowchart LR
 
 
 def render_dev_handoff(context: dict[str, Any]) -> str:
+    execution = context.get("figma_execution") or {}
     return f"""# Developer Handoff
 
 ## Escopo
 
 - Plataforma: {context['platform']}
 - Figma mode: {context['figma_mode']['mode']}
-- Arquivo Figma: {context['figma_file_url'] or 'A definir'}
+- Arquivo Figma: {execution.get('file_url') or context['figma_file_url'] or 'A definir'}
+- Node IDs criados: {', '.join(execution.get('created_node_ids') or []) or '-'}
+- Node IDs alterados: {', '.join(execution.get('mutated_node_ids') or []) or '-'}
 
 ## Entregaveis Esperados
 
@@ -565,9 +710,11 @@ def render_dev_handoff(context: dict[str, Any]) -> str:
 
 
 def render_quality_report(context: dict[str, Any]) -> str:
+    execution = context.get("figma_execution")
     checks = [
         ["Brief claro", "pass" if context["brief"] or context["sources"] else "needs_input"],
         ["Figma strategy definida", "pass"],
+        ["Execucao Figma real", "pass" if execution else ("planned" if context["figma_mode"]["mode"] == "plan_only" else "needs_input")],
         ["Estados principais cobertos", "planned"],
         ["Design system considerado", "planned"],
         ["Acessibilidade basica", "planned"],

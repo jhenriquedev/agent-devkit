@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import math
+import hashlib
+import json
 import statistics
 from collections import defaultdict
+from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -82,6 +85,8 @@ class DataRepository:
         max_rows: int | None = None,
         sample_rows: int | None = None,
         max_file_mb: float | None = None,
+        sheet: str | None = None,
+        json_path: str | None = None,
     ) -> None:
         try:
             self.max_rows = positive_int_or_none(max_rows, "max_rows")
@@ -89,6 +94,8 @@ class DataRepository:
         except DatasetControlError as exc:
             raise DataScientistError(str(exc)) from exc
         self.max_file_mb = max_file_mb
+        self.sheet = sheet
+        self.json_path = json_path
 
     def ingest_dataset(self, source: str) -> dict[str, Any]:
         dataset = self.load_dataset(source)
@@ -803,6 +810,24 @@ class DataRepository:
     ) -> dict[str, Any]:
         payload = self.baseline_predictive_model(source, target_column, feature_columns, test_size)
         model = payload["model"]
+        imbalance_ratio = payload["class_balance"]["imbalance_ratio"]
+        quality_gates = [
+            {
+                "name": "holdout_available",
+                "status": "pass" if payload["evaluation_scope"] == "holdout_baseline" else "warning",
+                "message": "Holdout baseline usado." if payload["evaluation_scope"] == "holdout_baseline" else "Metricas calculadas in-sample.",
+            },
+            {
+                "name": "validity_warnings_reviewed",
+                "status": "warning" if payload["validity_warnings"] else "pass",
+                "message": f"{len(payload['validity_warnings'])} warning(s) de validade.",
+            },
+            {
+                "name": "class_balance_reviewed",
+                "status": "warning" if imbalance_ratio is not None and imbalance_ratio < 0.5 else "pass",
+                "message": "Balanceamento de classes revisado.",
+            },
+        ]
         return {
             "dataset": payload["dataset"],
             "target_column": target_column,
@@ -816,6 +841,7 @@ class DataRepository:
             "warnings": payload["warnings"],
             "class_balance": payload["class_balance"],
             "validity_warnings": payload["validity_warnings"],
+            "quality_gates": quality_gates,
             "assumptions": payload["assumptions"],
             "limitations": payload["limitations"],
         }
@@ -1017,6 +1043,94 @@ class DataRepository:
         written = write_artifact(content, output)
         return {"profile": payload, "report": {"format": "markdown", "output": written, "content": content}}
 
+    def run_data_pipeline(
+        self,
+        source: str,
+        output: str,
+        target_column: str | None = None,
+        segment_column: str | None = None,
+    ) -> dict[str, Any]:
+        output_dir = Path(output).expanduser().resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        ingest = self.ingest_dataset(source)
+        profile = self.profile_dataset(source)
+        exploratory = self.run_exploratory_analysis(
+            source=source,
+            target_column=target_column,
+            segment_column=segment_column,
+        )
+        report = render_data_report(profile)
+        cache_key = derived_cache_key(profile["dataset"], ["ingest", "profile", "exploratory_analysis", "data_report"])
+        profile_path = output_dir / "profile.json"
+        exploratory_path = output_dir / "exploratory.json"
+        report_path = output_dir / "data-report.md"
+        manifest_path = output_dir / "manifest.json"
+        artifacts = {
+            "manifest": str(manifest_path),
+            "profile": str(profile_path),
+            "exploratory": str(exploratory_path),
+            "report": str(report_path),
+        }
+        quality_gates = [
+            {
+                "name": "dataset_loaded",
+                "status": "pass" if profile["dataset"]["row_count"] > 0 else "fail",
+                "message": "Dataset carregado com linhas tabulares.",
+            },
+            {
+                "name": "profile_quality_review",
+                "status": "pass" if profile["quality"]["quality_score"] >= 80 else "warning",
+                "message": f"Quality score: {profile['quality']['quality_score']}.",
+            },
+            {
+                "name": "read_warnings_review",
+                "status": "warning" if profile["dataset"]["warnings"] else "pass",
+                "message": f"{len(profile['dataset']['warnings'])} warning(s) de leitura.",
+            },
+            {
+                "name": "sensitive_data_review",
+                "status": "warning" if profile["sensitive_data"]["has_sensitive_data"] else "pass",
+                "message": "Revisar dados sensiveis antes de compartilhar artifacts.",
+            },
+        ]
+        pipeline_status = "warning" if any(gate["status"] == "warning" for gate in quality_gates) else "success"
+        manifest = {
+            "pipeline": {
+                "status": pipeline_status,
+                "steps": ["ingest", "profile", "exploratory_analysis", "data_report"],
+                "cache_key": cache_key,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
+            "inputs": {
+                "source": str(Path(source).expanduser().resolve()),
+                "target_column": target_column,
+                "segment_column": segment_column,
+                "controls": {
+                    "max_rows": self.max_rows,
+                    "sample_rows": self.sample_rows,
+                    "max_file_mb": self.max_file_mb,
+                    "sheet": self.sheet,
+                    "json_path": self.json_path,
+                },
+            },
+            "dataset": profile["dataset"],
+            "artifacts": artifacts,
+            "quality_gates": quality_gates,
+        }
+        write_artifact(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", str(profile_path))
+        write_artifact(json.dumps(exploratory, ensure_ascii=False, indent=2) + "\n", str(exploratory_path))
+        write_artifact(report, str(report_path))
+        write_artifact(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", str(manifest_path))
+        return {
+            **manifest,
+            "ingest": ingest,
+            "summary": {
+                "row_count": profile["dataset"]["row_count"],
+                "quality_score": profile["quality"]["quality_score"],
+                "hypothesis_count": len(exploratory.get("hypotheses", [])),
+            },
+        }
+
     def load_dataset(self, source: str) -> Dataset:
         path = Path(source).expanduser().resolve()
         if not path.exists():
@@ -1064,11 +1178,11 @@ class DataRepository:
         if suffix == ".csv":
             rows, columns = read_csv(path)
         elif suffix == ".json":
-            rows, columns = read_json(path)
+            rows, columns = read_json(path, self.json_path)
         elif suffix == ".jsonl":
             rows, columns = read_jsonl(path)
         elif suffix == ".xlsx":
-            rows, columns = read_xlsx(path)
+            rows, columns = read_xlsx(path, self.sheet)
         else:
             raise DataScientistError(f"unsupported dataset format: {suffix or path.name}")
         rows, warnings, original_row_count = apply_row_controls(
@@ -1099,3 +1213,14 @@ class DataRepository:
             "sha256": dataset.sha256,
             "warnings": dataset.warnings,
         }
+
+
+def derived_cache_key(dataset: dict[str, Any], steps: list[str]) -> str:
+    payload = {
+        "source": dataset.get("source"),
+        "sha256": dataset.get("sha256"),
+        "row_count": dataset.get("row_count"),
+        "steps": steps,
+    }
+    encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()

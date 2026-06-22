@@ -1,0 +1,23 @@
+id: data-scientist-analyst.run-data-pipeline
+kind: capability
+name: Run Data Pipeline
+version: 0.1.0
+status: draft
+purpose: >
+  Encadear ingestao, perfil, analise exploratoria e relatorio tecnico em um
+  pacote local de artifacts reproduziveis.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-data-pipeline.md
+  output_template: null
+inputs:
+  required: [source, output]
+  optional: [target-column, segment-column, sheet, json-path, max-rows, sample-rows, max-file-mb]
+outputs:
+  artifacts: [json, markdown]
+integration:
+  repository: ../../infra/integrations/file-dataset/data_repository.py
+  methods:
+    - ../../infra/integrations/file-dataset/methods/run-data-pipeline.yaml
+write_policy: generated_artifacts_only

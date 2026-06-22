@@ -2,7 +2,8 @@ id: figma-ui-ux-product-designer.policies
 version: 0.1.0
 figma_policy:
   credentials_source: env_only
-  direct_mode_requires_mcp: true
+  direct_mode_requires_mcp_bridge: true
+  direct_mode_requires_execution_evidence: true
   plan_only_when_mcp_missing: true
   create_file_requires_confirmation: true
   update_existing_requires_confirmation: true
@@ -52,3 +53,9 @@ quality_gates:
     artifact: dev-handoff.md
   quality_review_created:
     artifact: design-quality-report.md
+  real_figma_execution_logged:
+    artifact: design-operation-log.md
+    when: direct_mcp
+  figma_execution_result_saved:
+    artifact: figma-execution-result.json
+    when: direct_mcp
