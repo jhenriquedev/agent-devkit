@@ -28,13 +28,35 @@ class TraceRequestRunnerTest(unittest.TestCase):
         self.assertIn("# Request Trace", result.stdout)
         self.assertIn("Eventos encontrados: 2", result.stdout)
 
+    def test_masks_sensitive_identifier_from_fixture_output(self) -> None:
+        fixture = {
+            "identifier": "user@example.com",
+            "events": [
+                {"timestamp": 1, "log_stream_name": "s1", "message": "request user@example.com failed"},
+            ],
+        }
+        result = run_fixture(fixture)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("user@example.com", result.stdout)
+        self.assertIn("u***@example.com", result.stdout)
 
-def run_fixture(fixture: dict) -> subprocess.CompletedProcess[str]:
+    def test_rejects_sensitive_cli_identifier(self) -> None:
+        fixture = {
+            "events": [
+                {"timestamp": 1, "log_stream_name": "s1", "message": "request user@example.com failed"},
+            ],
+        }
+        result = run_fixture(fixture, "--identifier", "user@example.com")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("sensitive identifier", result.stderr)
+
+
+def run_fixture(fixture: dict, *args: str) -> subprocess.CompletedProcess[str]:
     with tempfile.TemporaryDirectory() as tmpdir:
         path = Path(tmpdir) / "fixture.json"
         path.write_text(json.dumps(fixture), encoding="utf-8")
         return subprocess.run(
-            [sys.executable, str(RUNNER), "--fixture", str(path)],
+            [sys.executable, str(RUNNER), "--fixture", str(path), *args],
             check=False,
             text=True,
             stdout=subprocess.PIPE,

@@ -1,0 +1,38 @@
+id: azure-devops.attach-file
+kind: integration-method
+version: 0.1.0
+status: draft
+
+description: >
+  Faz upload de um arquivo local e adiciona a relacao AttachedFile em um work
+  item do Azure DevOps.
+
+operation:
+  repository_method: attach_file
+  type: write
+  confirmation_required: true
+
+inputs:
+  required:
+    - work_item_id
+    - project
+    - file_path
+  optional:
+    - comment
+    - dry_run
+
+outputs:
+  type: attachment-write-result
+  fields:
+    - work_item_id
+    - file_name
+    - attachment_url
+    - new_rev
+    - dry_run
+
+guardrails:
+  - exigir confirmacao explicita antes de dry_run=false
+  - validar existencia do arquivo local antes do upload
+  - adicionar somente relacao AttachedFile ao work item
+  - nao anexar dados sensiveis sem solicitacao explicita
+  - retornar plano quando dry_run=true

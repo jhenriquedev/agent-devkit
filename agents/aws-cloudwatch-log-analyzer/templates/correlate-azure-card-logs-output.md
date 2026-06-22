@@ -9,3 +9,12 @@
 ## Analise
 
 ## Proximos passos
+
+## Comentario sugerido
+
+```text
+```
+
+## Escrita
+
+- Nenhuma escrita foi executada.

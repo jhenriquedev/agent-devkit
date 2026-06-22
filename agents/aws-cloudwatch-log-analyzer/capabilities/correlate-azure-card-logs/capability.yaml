@@ -18,10 +18,10 @@ inputs:
     - azure_project
     - work_item_id
     - region
-  optional:
     - log_group
     - start_time
     - end_time
+  optional:
     - time_window_minutes
     - include_comment_draft
     - fixture

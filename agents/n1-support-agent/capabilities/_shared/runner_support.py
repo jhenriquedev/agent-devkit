@@ -476,7 +476,7 @@ def parse_field(markdown: str, label: str) -> str | None:
 def extract_entities(text: str) -> dict[str, Any]:
     cpf = first_match(text, r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
     proposal = first_match(text, r"(?i)\b(?:proposta|proposal)\D{0,20}(\d{4,})\b")
-    contract = first_match(text, r"(?i)\b(?:contrato|contract)\D{0,20}([A-Za-z0-9-]{4,})\b")
+    contract = first_match(text, r"(?i)\b(?:contrato|contract)[\s:#-]{0,20}([A-Za-z0-9-]{4,})\b")
     topdesk = first_match(text, r"\b(?:T|I)\s?\d{4}[- ]?\d{3,}\b")
     request_id = first_match(text, r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
     return {
@@ -487,6 +487,56 @@ def extract_entities(text: str) -> dict[str, Any]:
         "topdeskTicket": topdesk,
         "requestId": request_id,
         "correlationId": request_id,
+    }
+
+
+def fixture_text(fixture: dict[str, Any]) -> str:
+    work_item = fixture.get("work_item") or fixture.get("card") or {}
+    comments = fixture.get("comments") or {}
+    comment_items = comments.get("comments", []) if isinstance(comments, dict) else comments or []
+    return "\n".join(
+        [
+            str(fixture.get("text") or ""),
+            str(work_item.get("title") or ""),
+            str(work_item.get("description") or ""),
+            *[str(item.get("text") or item.get("body") or "") for item in comment_items],
+        ]
+    )
+
+
+def diagnostic_gap_payload(
+    *,
+    capability: str,
+    check_id: str,
+    source: str,
+    reason: str,
+    cpf: str | None = None,
+    proposal_number: str | None = None,
+    request_id: str | None = None,
+    orchestrated_agent: str | None = None,
+    orchestrated_capability: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "capability": capability,
+        "status": "unavailable",
+        "checkStatus": "unavailable",
+        "reason": reason,
+        "agent": "n1-support-agent",
+        "orchestratedAgent": orchestrated_agent,
+        "orchestratedCapability": orchestrated_capability,
+        "facts": {
+            "cpfMasked": mask_cpf(cpf) if cpf else None,
+            "proposalNumber": proposal_number,
+            "requestId": request_id,
+        },
+        "diagnosticGaps": [
+            {
+                "id": f"unavailable-{check_id}",
+                "source": source,
+                "reason": reason,
+            }
+        ],
+        "errors": [{"error": reason}],
     }
 
 
@@ -551,21 +601,27 @@ def build_checks(
         },
         {
             "id": "cognito-user",
-            "status": "ready_to_execute" if entities.get("cpfPresent") else "skipped",
-            "agent": "future-cognito-analyzer",
-            "capability": "read-user",
+            "status": "unavailable" if entities.get("cpfPresent") else "skipped",
+            "agent": "n1-support-agent",
+            "capability": "analyze-cognito-user",
+            "source": "cognito",
+            "reason": "Cognito integration is not configured for this agent",
         },
         {
             "id": "onboarding-status",
-            "status": "ready_to_execute" if has_customer_ref else "skipped",
-            "agent": "postgres-data-analyzer",
-            "capability": "run-readonly-query",
+            "status": "unavailable" if has_customer_ref else "skipped",
+            "agent": "n1-support-agent",
+            "capability": "analyze-onboarding-status",
+            "source": "core-database",
+            "reason": "Canonical onboarding query is not configured for this agent",
         },
         {
             "id": "proposal-status",
-            "status": "ready_to_execute" if entities.get("proposalNumber") else "skipped",
-            "agent": "postgres-data-analyzer",
-            "capability": "run-readonly-query",
+            "status": "unavailable" if entities.get("proposalNumber") else "skipped",
+            "agent": "n1-support-agent",
+            "capability": "analyze-proposal-status",
+            "source": "core-database",
+            "reason": "Canonical proposal query is not configured for this agent",
         },
         {
             "id": "bpo-proposal",
@@ -577,9 +633,11 @@ def build_checks(
         },
         {
             "id": "customer-logs",
-            "status": "ready_to_execute" if has_customer_ref or entities.get("requestId") else "skipped",
-            "agent": "elasticsearch-log-analyzer",
-            "capability": "search-log-events",
+            "status": "unavailable" if has_customer_ref or entities.get("requestId") else "skipped",
+            "agent": "n1-support-agent",
+            "capability": "collect-customer-logs",
+            "source": "customer-logs",
+            "reason": "Log source and time window are not configured for this symptom",
         },
     ]
 
@@ -598,6 +656,7 @@ def decide(
             "summary": "Card nao contem CPF, proposta ou request id suficientes para executar o roteiro N1 completo.",
         }
     ready = [item for item in checks if item["status"] == "ready_to_execute"]
+    unavailable = [item for item in checks if item["status"] == "unavailable"]
     restrictive = next((item for item in checks if item["id"] == "restrictive-base"), None)
     if restrictive and restrictive.get("status") == "hit":
         return {
@@ -612,7 +671,8 @@ def decide(
         "confidence": 0.68,
         "summary": (
             f"Entidades minimas encontradas. Rota {symptom_route.get('routeId') if symptom_route else '-'} "
-            f"selecionada. {len(ready)} checks operacionais devem ser executados na sequencia do runbook."
+            f"selecionada. {len(ready)} checks operacionais devem ser executados e "
+            f"{len(unavailable)} checks indisponiveis devem ser tratados como lacunas diagnosticas."
         ),
     }
 

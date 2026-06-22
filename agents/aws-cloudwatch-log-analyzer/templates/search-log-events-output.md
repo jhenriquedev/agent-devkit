@@ -4,10 +4,13 @@
 
 - Regiao:
 - Log group:
-- Janela:
+- Inicio:
+- Fim:
 - Filtro:
+- Total retornado:
+- Next token:
 
-## Eventos
+## Amostras
 
 | Timestamp | Stream | Message |
 |---|---|---|

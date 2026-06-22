@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import sys
 
 
@@ -38,6 +39,8 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
+        if args.identifier and is_sensitive_identifier(args.identifier):
+            raise ValueError("sensitive identifier must be replaced by a technical request id, correlation id or masked value")
         if not args.identifier and not args.fixture:
             raise ValueError("--identifier is required when --fixture is not provided")
         payload = load_events_payload(args)
@@ -55,6 +58,7 @@ def render(payload: dict, args: argparse.Namespace) -> str:
         if not identifier or identifier in event_message(event)
     ]
     events = sort_events(events)
+    rendered_events = [mask_event(event) for event in events]
     error_count = sum(1 for event in events if is_error_event(event))
     lines = [
         "# Request Trace",
@@ -62,19 +66,60 @@ def render(payload: dict, args: argparse.Namespace) -> str:
         "## Identificador",
         "",
         f"- Tipo: {value_or_dash(args.identifier_type or payload.get('identifier_type'))}",
-        f"- Valor: {value_or_dash(identifier)}",
+        f"- Valor: {value_or_dash(mask_sensitive_text(identifier))}",
         f"- Eventos encontrados: {len(events)}",
         f"- Eventos com erro: {error_count}",
         "",
         "## Timeline",
         "",
-        *render_events_table(events, limit=args.limit),
+        *render_events_table(rendered_events, limit=args.limit),
         "",
         "## Lacunas",
         "",
         "- Validar se outros log groups tambem participam do fluxo.",
     ]
     return "\n".join(lines).rstrip() + "\n"
+
+
+def mask_event(event: dict) -> dict:
+    masked = dict(event)
+    masked["message"] = mask_sensitive_text(event.get("message"))
+    return masked
+
+
+def is_sensitive_identifier(value: str) -> bool:
+    text = value.strip()
+    return any(
+        [
+            bool(EMAIL_RE.search(text)),
+            bool(CPF_RE.search(text)),
+            bool(JWT_RE.search(text)),
+            bool(SECRET_RE.search(text)),
+            len(text) > 80,
+        ]
+    )
+
+
+def mask_sensitive_text(value: object) -> str:
+    text = "" if value is None else str(value)
+    text = EMAIL_RE.sub(mask_email_match, text)
+    text = CPF_RE.sub("***.***.***-**", text)
+    text = JWT_RE.sub("<jwt-masked>", text)
+    text = SECRET_RE.sub(r"\1=<masked>", text)
+    return text
+
+
+def mask_email_match(match: re.Match[str]) -> str:
+    local = match.group("local")
+    domain = match.group("domain")
+    prefix = local[:1] if local else "*"
+    return f"{prefix}***@{domain}"
+
+
+EMAIL_RE = re.compile(r"(?P<local>[A-Za-z0-9._%+-]+)@(?P<domain>[A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+CPF_RE = re.compile(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
+JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b")
+SECRET_RE = re.compile(r"\b(token|secret|password|authorization)\s*[:=]\s*[^,\s;]+", re.IGNORECASE)
 
 
 if __name__ == "__main__":

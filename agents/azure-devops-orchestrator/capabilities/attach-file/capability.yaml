@@ -33,6 +33,7 @@ integration:
   repository: ../../infra/integrations/azure/azure_repository.py
   methods:
     - ../../infra/integrations/azure/methods/get-work-item.yaml
+    - ../../infra/integrations/azure/methods/attach-file.yaml
     - ../../infra/integrations/azure/methods/update-work-item.yaml
 
 write_policy: confirm

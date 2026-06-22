@@ -9,7 +9,8 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/update-azure-card.md
 inputs:
-  optional: [fixture, output, format]
+  required: [project, card]
+  optional: [tag, target-state, target-column, current-state, reason, execute, fixture, output, format]
 outputs:
   artifacts: [n1-azure-update.md]
 integration:

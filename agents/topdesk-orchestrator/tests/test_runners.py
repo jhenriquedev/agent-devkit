@@ -113,6 +113,103 @@ class TopdeskRunnerSmokeTest(unittest.TestCase):
         self.assertIn("# Pedido de Mais Informacoes", result.stdout)
         self.assertIn("- Dry-run: True", result.stdout)
         self.assertIn("Descreva em uma frase", result.stdout)
+        self.assertIn("action", result.stdout)
+        self.assertNotIn('"request"', result.stdout)
+
+    def test_request_more_info_does_not_plan_update_when_incident_is_sufficient(self) -> None:
+        sufficient = {
+            **INCIDENT,
+            "brief_description": "Portal financeiro retorna erro 503 no login",
+            "request": "Equipe financeira nao acessa o portal desde 10h. Erro 503 ao autenticar. Chamado afeta fechamento diario.",
+            "category": "Software",
+            "priority": "P2",
+        }
+
+        result = run_capability("request-more-info", {"incident": sufficient})
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("- Dry-run: False", result.stdout)
+        self.assertIn("Nenhuma lacuna", result.stdout)
+        self.assertNotIn("```json", result.stdout)
+
+    def test_update_incident_rejects_unsupported_status_change(self) -> None:
+        result = run_capability(
+            "update-incident",
+            {"result": {"dry_run": True, "target": "abc-123"}},
+            "--id",
+            "abc-123",
+            "--fields-json",
+            '{"status":{"name":"Closed"}}',
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unsupported", result.stderr)
+
+    def test_update_incident_rejects_status_aliases_that_close_or_resolve(self) -> None:
+        for fields_json in (
+            '{"statusName":"Closed"}',
+            '{"statusId":"resolved"}',
+            '{"processingStatus":{"name":"Closed"}}',
+        ):
+            with self.subTest(fields_json=fields_json):
+                result = run_capability(
+                    "update-incident",
+                    {"result": {"dry_run": True, "target": "abc-123"}},
+                    "--id",
+                    "abc-123",
+                    "--fields-json",
+                    fields_json,
+                )
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("unsupported", result.stderr)
+
+    def test_triage_incident_from_fixture_uses_catalog_and_persons(self) -> None:
+        fixture = {
+            "incident": {
+                **INCIDENT,
+                "brief_description": "Portal corporativo indisponivel para equipe financeira",
+                "request": "Equipe financeira sem acesso ao portal desde 10h. Erro 503 ao autenticar.",
+                "caller": "Ana Silva",
+            },
+            "catalogs": {
+                "categories": {"items": [{"name": "Software"}, {"name": "Acesso"}]},
+                "priorities": {"items": [{"name": "P1"}, {"name": "P2"}, {"name": "P3"}, {"name": "P4"}]},
+            },
+            "persons": {"items": [{"id": "person-1", "name": "Ana Silva"}]},
+            "result": {"dry_run": True, "target": "abc-123"},
+        }
+
+        result = run_capability("triage-incident", fixture, "--id", "abc-123")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Triagem de Incidente TOPdesk", result.stdout)
+        self.assertIn("Software", result.stdout)
+        self.assertIn("P2", result.stdout)
+        self.assertIn("person-1", result.stdout)
+
+    def test_triage_incident_does_not_default_category_or_priority_without_evidence(self) -> None:
+        fixture = {
+            "incident": {
+                **INCIDENT,
+                "brief_description": "Solicitacao generica",
+                "request": "Favor verificar quando possivel.",
+                "caller": "",
+            },
+            "catalogs": {
+                "categories": {"items": [{"name": "Software"}, {"name": "Acesso"}]},
+                "priorities": {"items": [{"name": "P1"}, {"name": "P2"}, {"name": "P3"}, {"name": "P4"}]},
+            },
+            "persons": {"items": []},
+            "result": {"dry_run": True, "target": "abc-123"},
+        }
+
+        result = run_capability("triage-incident", fixture, "--id", "abc-123")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("category: -", result.stdout)
+        self.assertIn("priority: -", result.stdout)
+        self.assertIn("{}", result.stdout)
 
     def test_incident_report_from_fixture(self) -> None:
         result = run_capability("incident-report", INCIDENTS)

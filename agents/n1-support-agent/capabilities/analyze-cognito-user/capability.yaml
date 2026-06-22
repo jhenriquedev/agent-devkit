@@ -9,7 +9,7 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/analyze-cognito-user.md
 inputs:
-  optional: [fixture, output, format]
+  optional: [cpf, email, phone, fixture, output, format]
 outputs:
   artifacts: [n1-cognito-check.json]
 write_policy: read_only

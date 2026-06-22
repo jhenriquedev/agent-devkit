@@ -2735,6 +2735,7 @@ json.dump(
                 "list-incidents",
                 "read-incident",
                 "request-more-info",
+                "triage-incident",
                 "update-incident",
             },
         )
@@ -2747,6 +2748,7 @@ json.dump(
             "list-incidents",
             "read-incident",
             "request-more-info",
+            "triage-incident",
             "update-incident",
         ):
             with self.subTest(capability=capability):
@@ -2798,6 +2800,8 @@ json.dump(
                 "extract-log-samples",
                 "generate-incident-report",
                 "list-log-groups",
+                "list-log-streams",
+                "run-insights-query",
                 "search-log-events",
                 "trace-request",
             },
@@ -2811,6 +2815,8 @@ json.dump(
             "extract-log-samples",
             "generate-incident-report",
             "list-log-groups",
+            "list-log-streams",
+            "run-insights-query",
             "search-log-events",
             "trace-request",
         ):

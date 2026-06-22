@@ -519,7 +519,14 @@ def latest_integrated_or_approved(proposals: list[dict[str, Any]]) -> dict[str, 
     ]
     if not candidates:
         return None
-    return sorted(candidates, key=lambda item: parse_date_key(item.get("last_due_date")), reverse=True)[0]
+    return sorted(
+        candidates,
+        key=lambda item: (
+            1 if item.get("situation_kind") == "integrada" else 0,
+            parse_date_key(item.get("last_due_date")),
+        ),
+        reverse=True,
+    )[0]
 
 
 def parse_observations(return_node: ET.Element) -> list[dict[str, Any]]:

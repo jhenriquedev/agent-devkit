@@ -1,11 +1,15 @@
-# Workflow: update-incident
+# Update Incident Workflow
 
-## Objetivo
+## Fluxo
 
-Atualizar campos controlados de incidente com dry-run.
+1. Receber `--id` ou `--number`, `fields_json` e flags.
+2. Parsear JSON de campos.
+3. Validar campos contra operacoes unsupported.
+4. Bloquear `request`, fechamento, resolucao, arquivamento e escalonamento.
+5. Sem fixture, exigir alvo explicito.
+6. Chamar update em dry-run por padrao.
+7. Renderizar alvo, campos e proxima acao.
 
-## Guardrails
+## Saida
 
-- Separar fatos de inferencias.
-- Escritas exigem `--execute`.
-- Nao expor credenciais ou dados sensiveis.
+Retorna `incident-update-plan.md`.

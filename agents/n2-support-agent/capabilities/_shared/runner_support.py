@@ -638,12 +638,15 @@ def card_summary(project: str | None, card_id: int | None, work_item: dict[str, 
 def extract_entities(text: str) -> dict[str, Any]:
     cpf = first_match(text, r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
     proposal = first_match(text, r"(?i)\b(?:proposta|proposal)\D{0,20}(\d{4,})\b")
-    contract = first_match(text, r"(?i)\b(?:contrato|contract)\D{0,20}([A-Za-z0-9-]{4,})\b")
+    contract = first_match(text, r"(?i)\b(?:contrato|contract)[\s:#-]{0,20}([A-Za-z0-9-]{4,})\b")
+    request_id = first_match(text, r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
     return {
         "cpfMasked": mask_cpf(cpf) if cpf else None,
         "cpfPresent": bool(cpf),
         "proposalNumber": proposal,
         "contractNumber": contract,
+        "requestId": request_id,
+        "correlationId": request_id,
     }
 
 
@@ -683,14 +686,27 @@ def collect_evidence(fixture: dict[str, Any], n1_contract: dict[str, Any] | None
     evidence.extend(sanitize_text(str(item)) for item in support.get("evidence") or [])
     for check in (n1_contract or {}).get("checks") or []:
         evidence.append(sanitize_text(f"{check.get('id')}: {check.get('status')} {check.get('reason') or ''}".strip()))
+    for gap in (n1_contract or {}).get("diagnosticGaps") or []:
+        evidence.append(sanitize_text(f"diagnosticGap {gap.get('id')}: {gap.get('reason') or ''}".strip()))
     return evidence
 
 
 def validate_handoff(n1_contract: dict[str, Any] | None) -> dict[str, Any]:
     if not n1_contract:
-        return {"accepted": False, "missingRequiredEvidence": ["n1_contract"]}
-    missing = [key for key in ("entities", "checks", "decision") if key not in n1_contract]
-    return {"accepted": not missing, "missingRequiredEvidence": missing}
+        return {
+            "accepted": False,
+            "missingRequiredEvidence": ["n1_contract"],
+            "openDiagnosticGaps": [],
+            "needsN1Rerun": True,
+        }
+    missing = [key for key in ("entities", "checks", "decision", "diagnosticGaps") if key not in n1_contract]
+    open_gaps = list(n1_contract.get("diagnosticGaps") or [])
+    return {
+        "accepted": not missing and not open_gaps,
+        "missingRequiredEvidence": missing,
+        "openDiagnosticGaps": open_gaps,
+        "needsN1Rerun": bool(missing or open_gaps),
+    }
 
 
 def iter_code_files(root: Path) -> list[Path]:
@@ -772,6 +788,8 @@ def missing_evidence(context: dict[str, Any], code_analysis: dict[str, Any]) -> 
     missing = []
     if not context.get("n1ContractLoaded"):
         missing.append("Contrato N1 nao foi informado; diagnostico usa apenas contexto N2/card.")
+    for gap in (context.get("handoff") or {}).get("openDiagnosticGaps") or []:
+        missing.append(sanitize_text(f"Gap N1 aberto: {gap.get('id')} - {gap.get('reason') or '-'}"))
     if not code_analysis.get("filesInspected"):
         missing.append("Nenhum arquivo de codigo relacionado foi localizado.")
     return missing
@@ -889,27 +907,66 @@ def finding_sort_key(item: dict[str, Any]) -> tuple[int, int, str]:
 def validate_handoff_payload(context: dict[str, Any]) -> dict[str, Any]:
     handoff = context.get("handoff") or {}
     missing = handoff.get("missingRequiredEvidence") or []
+    open_gaps = handoff.get("openDiagnosticGaps") or []
     return {
         "accepted": bool(handoff.get("accepted")),
         "missingRequiredEvidence": missing,
+        "openDiagnosticGaps": open_gaps,
         "n1ContractLoaded": bool(context.get("n1ContractLoaded")),
         "entities": context.get("entities") or {},
-        "needsN1Rerun": bool(missing),
+        "needsN1Rerun": bool(handoff.get("needsN1Rerun") or missing or open_gaps),
     }
 
 
 def select_specialist_checks(context: dict[str, Any], root_cause: dict[str, Any]) -> dict[str, Any]:
     text = " ".join([context.get("symptom") or "", json.dumps(context.get("evidence") or [], ensure_ascii=False)]).lower()
+    params = specialist_inputs(context)
     selected = []
+    if (context.get("handoff") or {}).get("needsN1Rerun"):
+        selected.append({"agent": "n1-support-agent", "capability": "execute-n1-card-runbook", "reason": "Handoff N1 ausente, incompleto ou com diagnostic gaps abertos."})
     if "bpo" in text or "proposta" in text or "proposal" in text:
         selected.append({"agent": "bpo-analyser", "capability": "analyze-proposal", "reason": "Validar proposta/documentos BPO."})
     if "log" in text or "erro" in text or root_cause.get("category") in {"backend_bug", "integration_failure"}:
-        selected.append({"agent": "elasticsearch-log-analyzer", "capability": "search-log-events", "reason": "Validar erro runtime no periodo do chamado."})
-    if root_cause.get("category") in {"data_inconsistency", "backend_bug"}:
-        selected.append({"agent": "postgres-data-analyzer", "capability": "run-readonly-query", "reason": "Validar estado persistido relacionado ao fluxo."})
+        if has_cloudwatch_inputs(params, text):
+            selected.append({"agent": "aws-cloudwatch-log-analyzer", "capability": "search-log-events", "reason": "Validar erro runtime no CloudWatch no periodo do chamado."})
+        else:
+            selected.append({"agent": "elasticsearch-log-analyzer", "capability": "search-log-events", "reason": "Validar erro runtime no periodo do chamado."})
+    if root_cause.get("category") in {"data_inconsistency", "backend_bug"} or has_database_inputs(params, text):
+        if prefers_sqlserver(params, text):
+            selected.append({"agent": "sqlserver-data-analyzer", "capability": "run-readonly-query", "reason": "Validar estado persistido relacionado ao fluxo em SQL Server."})
+        else:
+            selected.append({"agent": "postgres-data-analyzer", "capability": "run-readonly-query", "reason": "Validar estado persistido relacionado ao fluxo."})
     if not selected:
         selected.append({"agent": "n1-support-agent", "capability": "execute-n1-card-runbook", "reason": "Handoff insuficiente para especializacao N2."})
     return {"selectedChecks": selected}
+
+
+def specialist_inputs(context: dict[str, Any]) -> dict[str, Any]:
+    support = context.get("fixtureSupportContext") or {}
+    params: dict[str, Any] = {}
+    if isinstance(support, dict):
+        nested = support.get("specialistInputs")
+        if isinstance(nested, dict):
+            params.update(nested)
+        params.update({key: value for key, value in support.items() if key != "specialistInputs"})
+    return params
+
+
+def has_cloudwatch_inputs(params: dict[str, Any], text: str) -> bool:
+    if any(params.get(key) for key in ("region", "aws_region", "log_group", "logGroup")):
+        return True
+    return "cloudwatch" in text or "aws logs" in text
+
+
+def has_database_inputs(params: dict[str, Any], text: str) -> bool:
+    if any(params.get(key) for key in ("readonly_query", "sql_query", "database_query", "postgres_query", "sqlserver_query")):
+        return True
+    return any(token in text for token in ("sql server", "sqlserver", "postgres", "database", "banco"))
+
+
+def prefers_sqlserver(params: dict[str, Any], text: str) -> bool:
+    provider = str(params.get("database_provider") or params.get("db_provider") or "").lower()
+    return bool(params.get("sqlserver_query") or provider in {"sqlserver", "sql_server", "mssql"} or "sql server" in text or "sqlserver" in text)
 
 
 def execute_specialist_validation_payload(context: dict[str, Any], root_cause: dict[str, Any]) -> dict[str, Any]:

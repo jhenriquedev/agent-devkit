@@ -11,10 +11,12 @@ purpose: >
   customer context checks while producing a fixed output contract.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
   - knowledge/runbooks/customer-onboarding-triage.md
   - knowledge/domains/meucashcard/index.json
+  - knowledge/domains/meucashcard/contracts/n1-support-triage-contract.json
 
 env:
   required: []

@@ -11,7 +11,7 @@ import sys
 SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
 sys.path.insert(0, str(SHARED_DIR))
 
-from runner_support import get_repository, load_fixture, print_error, value_or_dash, write_output
+from runner_support import get_repository, load_fixture, print_error, validate_update_fields, value_or_dash, write_output
 
 
 def main() -> int:
@@ -25,6 +25,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         fields = json.loads(args.fields_json)
+        validate_update_fields(fields)
         if not args.fixture and not (args.id or args.number):
             raise ValueError("--id or --number is required")
         result = load_fixture(args.fixture).get("result") if args.fixture else get_repository().update_incident(fields, incident_id=args.id, number=args.number, dry_run=not args.execute)

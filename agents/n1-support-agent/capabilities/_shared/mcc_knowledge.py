@@ -83,12 +83,15 @@ def evaluate_quality_gate(
 ) -> dict[str, Any]:
     failures = []
     pending = [item["id"] for item in checks if item.get("status") == "ready_to_execute"]
+    unavailable = [item["id"] for item in checks if item.get("status") == "unavailable"]
     if not (entities.get("cpfPresent") or entities.get("proposalNumber") or entities.get("requestId")):
         failures.append("card possui poucos identificadores objetivos")
     if not symptom_route.get("routeId"):
         failures.append("routeId nao foi selecionado")
     if pending:
         failures.append("minimumChecks ainda pendentes: " + ", ".join(pending))
+    if unavailable:
+        failures.append("minimumChecks indisponiveis: " + ", ".join(unavailable))
     return {
         "understandableByN2": bool(symptom_route.get("routeId")),
         "understandableByN3": len(failures) == 0,
@@ -106,15 +109,24 @@ def build_diagnostic_gaps(
     checks: list[dict[str, Any]],
     symptom_route: dict[str, Any],
 ) -> list[dict[str, str]]:
-    gaps = [
-        {
-            "id": f"pending-{check['id']}",
-            "source": check.get("agent") or "-",
-            "reason": check.get("reason") or "Check operacional ainda nao executado.",
-        }
-        for check in checks
-        if check.get("status") == "ready_to_execute"
-    ]
+    gaps = []
+    for check in checks:
+        if check.get("status") == "ready_to_execute":
+            gaps.append(
+                {
+                    "id": f"pending-{check['id']}",
+                    "source": check.get("agent") or "-",
+                    "reason": check.get("reason") or "Check operacional ainda nao executado.",
+                }
+            )
+        if check.get("status") == "unavailable":
+            gaps.append(
+                {
+                    "id": f"unavailable-{check['id']}",
+                    "source": check.get("source") or check.get("agent") or "-",
+                    "reason": check.get("reason") or "Ferramenta necessaria nao esta disponivel para este check.",
+                }
+            )
     if not symptom_route.get("matchedAliases") and symptom_route.get("domain") == "unknown":
         gaps.append(
             {

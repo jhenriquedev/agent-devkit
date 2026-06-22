@@ -11,6 +11,7 @@ purpose: >
   operacionais para sustentacao.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 
@@ -32,6 +33,8 @@ capabilities:
   - extract-log-samples
   - generate-incident-report
   - correlate-azure-card-logs
+  - list-log-streams
+  - run-insights-query
 
 agent_surface:
   repositories:

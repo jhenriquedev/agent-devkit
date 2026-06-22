@@ -23,9 +23,24 @@ scope_requirements:
       - log_group
       - start_time
       - end_time
+  insights_start_queries:
+    required:
+      - region
+      - log_group
+      - start_time
+      - end_time
+      - query
+  insights_result_queries:
+    required:
+      - region
+      - query_id
   list_queries:
     required:
       - region
+  stream_queries:
+    required:
+      - region
+      - log_group
 
 guardrails:
   - avoid_unbounded_queries

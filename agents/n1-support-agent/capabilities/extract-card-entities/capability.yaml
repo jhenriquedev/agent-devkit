@@ -9,7 +9,7 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/extract-card-entities.md
 inputs:
-  optional: [fixture, output, format]
+  optional: [text, fixture, output, format]
 outputs:
   artifacts: [n1-card-entities.json]
 write_policy: read_only

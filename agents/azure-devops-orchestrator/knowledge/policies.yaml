@@ -5,9 +5,6 @@ status: draft
 read_operations:
   confirmation_required: false
   allowed:
-    - list_projects
-    - list_boards
-    - list_queries
     - list_work_items
     - get_work_item
     - get_work_item_comments
@@ -22,6 +19,7 @@ write_operations:
     - remove_tags
     - assign_user
     - move_state
+    - attach_file
   confirmation_block:
     required_fields:
       - target
@@ -42,11 +40,16 @@ bulk_operations:
     - generate_final_summary
 
 audit:
+  enforcement: host_guidance
   add_trace_comment_when:
     - state_changed
     - tags_changed
     - assignee_changed
   trace_comment_required: when_useful_for_team_context
+  note: >
+    Runners atuais nao adicionam comentario de trace automaticamente. O host deve
+    propor comentario de rastreio quando for util para o contexto do time e
+    executa-lo pela capability comment-card apos confirmacao.
 
 risk_levels:
   - low

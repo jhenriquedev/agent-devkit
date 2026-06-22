@@ -179,6 +179,37 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         self.assertIn("evidenceLedger", payload)
         self.assertIn("diagnosticGaps", payload)
 
+    def test_execute_card_runbook_marks_unavailable_checks_as_open_quality_gate(self) -> None:
+        fixture = {
+            "work_item": {
+                "id": 7713,
+                "title": "Cliente 123.456.789-09 nao consegue concluir cadastro proposta 987654",
+                "state": "New",
+                "board_column": "A Iniciar",
+                "tags": [],
+                "description": "Onboarding travado para CPF 12345678909.",
+            },
+            "comments": {"comments": []},
+            "restrictive_base": {
+                "checkStatus": "clear",
+                "findings": [],
+                "candidatesChecked": [],
+            },
+        }
+
+        result = run_capability(
+            "execute-n1-card-runbook",
+            fixture,
+            ["--project", "Sustentacao", "--card", "7713", "--format", "json"],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["qualityGate"]["passed"])
+        self.assertTrue(payload["qualityGate"]["hasOpenQuestions"])
+        self.assertTrue(any("minimumChecks indisponiveis" in item for item in payload["qualityGate"]["failures"]))
+        self.assertIn("checks indisponiveis", payload["decision"]["summary"])
+
     def test_analyze_bpo_proposal_from_fixture_maps_pending_proposal(self) -> None:
         fixture = {
             "proposal": {
@@ -346,6 +377,137 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         self.assertIn("Consultar Onboarding por CPF e validar se existe finalizado ou em andamento.", payload["minimumChecks"])
         rule_ids = {rule["id"] for rule in payload["businessRules"]}
         self.assertIn("onboarding.start.restrictive_base_blocks", rule_ids)
+
+    def test_extract_card_entities_masks_cpf_and_finds_operational_ids(self) -> None:
+        fixture = {
+            "text": (
+                "Cliente CPF 12345678909 com proposta 987654, contrato ABCD-1234, "
+                "TOPdesk T2606-1234 e erro request 123e4567-e89b-12d3-a456-426614174000."
+            )
+        }
+
+        result = run_capability("extract-card-entities", fixture, ["--format", "json"])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["capability"], "extract-card-entities")
+        self.assertEqual(payload["entities"]["cpfMasked"], "123.***.***-09")
+        self.assertEqual(payload["entities"]["proposalNumber"], "987654")
+        self.assertEqual(payload["entities"]["contractNumber"], "ABCD-1234")
+        self.assertEqual(payload["entities"]["topdeskTicket"], "T2606-1234")
+        self.assertNotIn("12345678909", result.stdout)
+        self.assertNotEqual(payload["status"], "contract_ready")
+
+    def test_decide_n1_outcome_applies_domain_rules(self) -> None:
+        fixture = {
+            "entities": {"cpfPresent": True, "cpfMasked": "123.***.***-09", "proposalNumber": "987654"},
+            "symptomRoute": {
+                "routeId": "symptom.onboarding_stuck_or_step_error",
+                "domain": "onboarding",
+                "businessRules": [
+                    {
+                        "id": "onboarding.start.restrictive_base_blocks",
+                        "supportImpact": "Restritiva clear/hit/unavailable muda o diagnostico.",
+                    }
+                ],
+            },
+            "checks": [
+                {"id": "azure-card", "status": "completed", "agent": "azure-devops-orchestrator"},
+                {"id": "restrictive-base", "status": "clear", "agent": "sqlserver-data-analyzer"},
+                {"id": "onboarding-status", "status": "unavailable", "agent": "n1-support-agent"},
+            ],
+        }
+
+        result = run_capability("decide-n1-outcome", fixture, ["--format", "json"])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["capability"], "decide-n1-outcome")
+        self.assertEqual(payload["decision"]["status"], "pending_n1_checks")
+        rule_ids = {rule["id"] for rule in payload["businessRulesApplied"]}
+        self.assertIn("onboarding.start.restrictive_base_blocks", rule_ids)
+        self.assertIn("qualityGate", payload)
+        self.assertNotEqual(payload["status"], "contract_ready")
+
+    def test_generate_n1_artifacts_uses_masked_entities(self) -> None:
+        fixture = {
+            "card": {"id": 7710, "title": "Cliente nao conclui onboarding"},
+            "entities": {"cpfMasked": "123.***.***-09", "proposalNumber": "987654"},
+            "decision": {
+                "status": "pending_n1_checks",
+                "category": "onboarding",
+                "confidence": 0.68,
+                "summary": "Continuar checks N1.",
+            },
+            "checks": [
+                {"id": "cognito-user", "status": "unavailable"},
+                {"id": "onboarding-status", "status": "unavailable"},
+            ],
+        }
+
+        result = run_capability("generate-n1-artifacts", fixture, ["--format", "json"])
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        artifacts = payload["artifacts"]
+        self.assertIn("internalComment", artifacts)
+        self.assertIn("customerReply", artifacts)
+        self.assertIn("n2Escalation", artifacts)
+        self.assertIn("123.***.***-09", artifacts["internalComment"])
+        self.assertNotIn("12345678909", result.stdout)
+        self.assertNotEqual(payload["status"], "contract_ready")
+
+    def test_update_azure_card_plans_dry_run_by_default(self) -> None:
+        fixture = {
+            "work_item": {
+                "id": 7710,
+                "title": "Cliente nao conclui onboarding",
+                "state": "New",
+                "board_column": "A Iniciar",
+                "tags": [],
+            }
+        }
+
+        result = run_capability(
+            "update-azure-card",
+            fixture,
+            [
+                "--project",
+                "Sustentacao",
+                "--card",
+                "7710",
+                "--tag",
+                "Analise N1",
+                "--target-column",
+                "Em Analise N1",
+                "--current-state",
+                "New",
+                "--format",
+                "json",
+            ],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["capability"], "update-azure-card")
+        self.assertEqual([action["mode"] for action in payload["azureActions"]], ["dry_run", "dry_run"])
+        self.assertNotEqual(payload["status"], "contract_ready")
+
+    def test_analyze_cognito_user_reports_unavailable_diagnostic_gap(self) -> None:
+        result = run_capability(
+            "analyze-cognito-user",
+            {"cpf": "12345678909"},
+            ["--cpf", "12345678909", "--format", "json"],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["capability"], "analyze-cognito-user")
+        self.assertEqual(payload["checkStatus"], "unavailable")
+        self.assertEqual(payload["diagnosticGaps"][0]["source"], "cognito")
+        self.assertEqual(payload["facts"]["cpfMasked"], "123.***.***-09")
+        self.assertNotIn("future-" + "cognito-analyzer", result.stdout)
+        self.assertNotIn("12345678909", result.stdout)
 
 
 def run_capability(capability: str, fixture: dict, extra_args: list[str]) -> subprocess.CompletedProcess[str]:

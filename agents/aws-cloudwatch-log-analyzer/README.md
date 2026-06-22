@@ -24,6 +24,9 @@ fica em portugues.
 ./ai-devkit run aws-cloudwatch-log-analyzer extract-log-samples --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
 ./ai-devkit run aws-cloudwatch-log-analyzer generate-incident-report --region us-east-1 --service mcc-api --environment prd --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
 ./ai-devkit run aws-cloudwatch-log-analyzer correlate-azure-card-logs --azure-project "Sustentação" --work-item-id 7710 --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+./ai-devkit run aws-cloudwatch-log-analyzer list-log-streams --region us-east-1 --log-group "/aws/example" --log-stream-prefix "app/"
+./ai-devkit run aws-cloudwatch-log-analyzer run-insights-query --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00" --query "fields @timestamp, @message | sort @timestamp desc | limit 20"
+./ai-devkit run aws-cloudwatch-log-analyzer run-insights-query --region us-east-1 --query-id "query-id-retornado"
 ```
 
 ## Infra
@@ -39,3 +42,6 @@ SSO, env vars ou configuracao local).
 - Capabilities sao read-only.
 - Logs podem conter dados sensiveis; respostas humanas devem privilegiar resumo
   e amostras controladas.
+- `correlate-azure-card-logs` nao le Azure DevOps diretamente e nao escreve
+  comentarios; ela correlaciona dados de card fornecidos por argumento ou
+  fixture com eventos CloudWatch.

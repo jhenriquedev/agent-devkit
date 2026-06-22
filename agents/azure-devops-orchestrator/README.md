@@ -20,8 +20,8 @@ O MVP e read-first:
 - Preparar comentario com confirmacao antes de escrita.
 
 Tambem existem capabilities de escrita controlada para alterar tags, atribuir
-responsavel e mover estado/coluna. Todas executam dry-run por padrao e exigem
-`--execute` para escrita real.
+responsavel, mover estado/coluna e anexar arquivos. Todas executam dry-run por
+padrao e exigem `--execute` para escrita real.
 
 ## Estrutura
 
@@ -74,6 +74,7 @@ Capabilities executaveis atuais:
 ./ai-devkit run azure-devops-orchestrator move-card --project "Projeto" --id 123 --state Active
 ./ai-devkit run azure-devops-orchestrator prepare-card-analysis --project "Projeto" --id 123 --include-comment-draft
 ./ai-devkit run azure-devops-orchestrator generate-cards-report --project "Projeto" --state "To Do" --limit 50 --include-comments
+./ai-devkit run azure-devops-orchestrator attach-file --project "Projeto" --id 123 --file evidencia.txt --comment "Evidencia operacional."
 ```
 
 Use a CLI da integracao apenas quando precisar testar diretamente o repository:

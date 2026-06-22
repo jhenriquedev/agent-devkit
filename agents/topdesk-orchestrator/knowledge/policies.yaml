@@ -32,3 +32,4 @@ guardrails:
   - no_sensitive_payload_dump
   - separate_facts_from_inferences
   - dry_run_before_write
+  - no_request_overwrite

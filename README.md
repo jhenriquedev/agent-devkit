@@ -183,10 +183,10 @@ Use o executavel da raiz para descobrir agentes e capabilities:
 ./ai-devkit run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
 
-No estado atual, as 8 capabilities do `azure-devops-orchestrator` possuem
+No estado atual, as 9 capabilities do `azure-devops-orchestrator` possuem
 `runner.py` e podem ser executadas por `run`: `list-cards`, `read-card`,
 `comment-card`, `update-card-tags`, `assign-card`, `move-card`,
-`prepare-card-analysis` e `generate-cards-report`.
+`prepare-card-analysis`, `generate-cards-report` e `attach-file`.
 
 O `topdesk-orchestrator` tambem possui runners para `list-incidents`,
 `read-incident`, `create-incident`, `update-incident`,

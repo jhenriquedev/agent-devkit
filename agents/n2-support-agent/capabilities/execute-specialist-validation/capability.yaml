@@ -9,7 +9,7 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/execute-specialist-validation.md
 inputs:
-  optional: [project, card, n1_contract, codebase_path, fixture, output, format]
+  optional: [project, card, n1_contract, codebase_path, fixture, output, execute, format]
 outputs:
   artifacts: [n2-specialist-validations.json]
 write_policy: read_only

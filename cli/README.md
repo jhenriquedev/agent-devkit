@@ -69,6 +69,7 @@ No `azure-devops-orchestrator`, as capabilities executaveis atuais sao:
 - `move-card`
 - `prepare-card-analysis`
 - `generate-cards-report`
+- `attach-file`
 
 No `aws-cloudwatch-log-analyzer`, as capabilities executaveis atuais sao:
 

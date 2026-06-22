@@ -214,6 +214,202 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                     payload = json.loads(result.stdout)
                     self.assertIn(expected_key, payload)
 
+    def test_validate_n1_handoff_reports_open_diagnostic_gaps(self) -> None:
+        fixture = {
+            "n1_contract": {
+                "entities": {"cpfMasked": "123.***.***-09", "proposalNumber": "987654"},
+                "checks": [{"id": "customer-logs", "status": "unavailable"}],
+                "decision": {"status": "pending_n1_checks", "category": "onboarding"},
+                "diagnosticGaps": [
+                    {
+                        "id": "unavailable-customer-logs",
+                        "source": "customer-logs",
+                        "reason": "Log source and time window are not configured.",
+                    }
+                ],
+            }
+        }
+
+        result = run_capability(
+            "validate-n1-handoff",
+            fixture,
+            ["--format", "json"],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["accepted"])
+        self.assertTrue(payload["needsN1Rerun"])
+        self.assertEqual(payload["openDiagnosticGaps"][0]["id"], "unavailable-customer-logs")
+
+    def test_execute_specialist_validation_skips_logs_and_database_with_specific_missing_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture = {
+                "work_item": {
+                    "id": 8806,
+                    "title": "Erro backend ao avancar onboarding",
+                    "description": "Falha backend sem janela de logs nem query definida.",
+                    "state": "Em Analise N2",
+                },
+                "supportContext": {
+                    "symptom": "Erro backend ao avancar onboarding.",
+                    "evidence": ["Falha backend observada no fluxo de documentos."],
+                },
+            }
+
+            result = run_capability(
+                "execute-specialist-validation",
+                fixture,
+                [
+                    "--project",
+                    "Sustentacao",
+                    "--card",
+                    "8806",
+                    "--codebase-path",
+                    str(create_codebase(Path(tmpdir))),
+                    "--format",
+                    "json",
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            by_agent = {item["agent"]: item for item in payload["validations"]}
+            self.assertEqual(by_agent["elasticsearch-log-analyzer"]["status"], "skipped")
+            self.assertIn("from_time", by_agent["elasticsearch-log-analyzer"]["missingInputs"])
+            self.assertIn("readonly_query", by_agent["postgres-data-analyzer"]["missingInputs"])
+            self.assertIn("contrato executavel seguro", by_agent["postgres-data-analyzer"]["resultSummary"])
+
+    def test_execute_specialist_validation_does_not_treat_log_query_as_database_query(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture = {
+                "work_item": {
+                    "id": 8807,
+                    "title": "Erro backend com request id em logs",
+                    "description": "Falha backend deve ser confirmada nos logs da aplicacao.",
+                    "state": "Em Analise N2",
+                },
+                "supportContext": {
+                    "symptom": "Erro backend ao avancar onboarding.",
+                    "evidence": ["Erro 500 localizado por request id nos logs."],
+                    "specialistInputs": {
+                        "source": "app-logs",
+                        "from_time": "2026-06-22T10:00:00Z",
+                        "to_time": "2026-06-22T10:30:00Z",
+                        "query": "request_id:abc123 AND level:error",
+                    },
+                },
+            }
+
+            result = run_capability(
+                "execute-specialist-validation",
+                fixture,
+                [
+                    "--project",
+                    "Sustentacao",
+                    "--card",
+                    "8807",
+                    "--codebase-path",
+                    str(create_codebase(Path(tmpdir))),
+                    "--format",
+                    "json",
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            by_agent = {item["agent"]: item for item in payload["validations"]}
+            self.assertEqual(by_agent["elasticsearch-log-analyzer"]["status"], "planned")
+            self.assertIn("--query request_id:abc123 AND level:error", by_agent["elasticsearch-log-analyzer"]["commandPreview"])
+            self.assertEqual(by_agent["postgres-data-analyzer"]["status"], "skipped")
+            self.assertIn("readonly_query", by_agent["postgres-data-analyzer"]["missingInputs"])
+
+    def test_execute_specialist_validation_selects_cloudwatch_when_cloudwatch_inputs_are_present(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture = {
+                "work_item": {
+                    "id": 8808,
+                    "title": "Erro backend no CloudWatch",
+                    "description": "Falha precisa ser confirmada nos logs CloudWatch.",
+                    "state": "Em Analise N2",
+                },
+                "supportContext": {
+                    "symptom": "Erro backend registrado no CloudWatch.",
+                    "evidence": ["CloudWatch aponta falha no fluxo de onboarding."],
+                    "specialistInputs": {
+                        "region": "us-east-1",
+                        "log_group": "/aws/lambda/onboarding",
+                        "start_time": "2026-06-22T10:00:00Z",
+                        "end_time": "2026-06-22T10:30:00Z",
+                        "log_query": "ERROR abc123",
+                    },
+                },
+            }
+
+            result = run_capability(
+                "execute-specialist-validation",
+                fixture,
+                [
+                    "--project",
+                    "Sustentacao",
+                    "--card",
+                    "8808",
+                    "--codebase-path",
+                    str(create_codebase(Path(tmpdir))),
+                    "--format",
+                    "json",
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            by_agent = {item["agent"]: item for item in payload["validations"]}
+            self.assertEqual(by_agent["aws-cloudwatch-log-analyzer"]["status"], "planned")
+            self.assertIn("aws-cloudwatch-log-analyzer search-log-events", by_agent["aws-cloudwatch-log-analyzer"]["commandPreview"])
+            self.assertNotIn("elasticsearch-log-analyzer", by_agent)
+
+    def test_execute_specialist_validation_selects_sqlserver_when_sqlserver_query_is_present(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fixture = {
+                "work_item": {
+                    "id": 8809,
+                    "title": "Inconsistencia de dados SQL Server",
+                    "description": "Estado da proposta diverge no SQL Server.",
+                    "state": "Em Analise N2",
+                },
+                "supportContext": {
+                    "symptom": "Inconsistencia de dados no SQL Server.",
+                    "evidence": ["Proposta aparece com estado divergente."],
+                    "rootCauseHint": "data inconsistency in persisted proposal status",
+                    "specialistInputs": {
+                        "database_provider": "sqlserver",
+                        "sqlserver_query": "select top 1 status from propostas where id = 987654",
+                    },
+                },
+            }
+
+            result = run_capability(
+                "execute-specialist-validation",
+                fixture,
+                [
+                    "--project",
+                    "Sustentacao",
+                    "--card",
+                    "8809",
+                    "--codebase-path",
+                    str(create_codebase(Path(tmpdir))),
+                    "--format",
+                    "json",
+                ],
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            by_agent = {item["agent"]: item for item in payload["validations"]}
+            self.assertEqual(by_agent["sqlserver-data-analyzer"]["status"], "planned")
+            self.assertIn("sqlserver-data-analyzer run-readonly-query", by_agent["sqlserver-data-analyzer"]["commandPreview"])
+            self.assertNotIn("postgres-data-analyzer", by_agent)
+
     def test_execute_specialist_validation_executes_selected_agent_when_requested(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             fixture = {

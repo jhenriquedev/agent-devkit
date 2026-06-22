@@ -10,8 +10,10 @@ purpose: >
   com foco inicial em incidentes, triagem e enriquecimento de chamados.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
+  - knowledge/triage-rules.md
 
 env:
   required:
@@ -20,7 +22,6 @@ env:
     - TOPDESK_APP_PASSWORD
   optional:
     - TOPDESK_PASSWORD
-    - TOPDESK_ALLOW_RAW_MUTATIONS
 
 capabilities:
   - list-incidents
@@ -30,6 +31,7 @@ capabilities:
   - analyze-incident-insufficiency
   - request-more-info
   - incident-report
+  - triage-incident
 
 agent_surface:
   repositories:

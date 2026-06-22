@@ -22,7 +22,6 @@ class TopdeskConfig:
     base_url: str
     username: str
     app_password: str
-    allow_raw_mutations: bool = False
 
     @classmethod
     def from_env(cls) -> "TopdeskConfig":
@@ -43,7 +42,6 @@ class TopdeskConfig:
             base_url=os.environ["TOPDESK_BASE_URL"].rstrip("/"),
             username=os.environ["TOPDESK_USERNAME"],
             app_password=password or "",
-            allow_raw_mutations=os.environ.get("TOPDESK_ALLOW_RAW_MUTATIONS") == "true",
         )
 
 

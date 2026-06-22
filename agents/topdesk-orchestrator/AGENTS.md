@@ -14,6 +14,8 @@ e solicitar mais informacoes.
 - Operacoes de escrita devem usar dry-run por padrao.
 - Escrita real exige `--execute`.
 - Nunca fechar, resolver, arquivar ou escalar chamado sem confirmacao explicita.
+- Nunca sobrescrever o campo `request` original; pedidos de informacao devem ir
+  como nota/acao adicional.
 - Separar fatos vindos do TOPdesk de inferencias do agente.
 - Nao expor credenciais ou payloads sensiveis em respostas humanas.
 - Preferir operar incidentes por ID ou numero explicito.

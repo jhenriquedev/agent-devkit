@@ -14,6 +14,7 @@ O MVP cobre incidentes:
 - atualizar campos controlados;
 - analisar chamados com pouco insumo;
 - gerar pedido de mais informacoes;
+- triar categoria, prioridade e solicitante com catalogos TOPdesk;
 - gerar relatorio operacional de incidentes.
 
 ## Como usar
@@ -25,10 +26,13 @@ O MVP cobre incidentes:
 ./ai-devkit run topdesk-orchestrator update-incident --id <id> --fields-json '{"briefDescription":"Novo resumo"}'
 ./ai-devkit run topdesk-orchestrator analyze-incident-insufficiency --fixture /tmp/incident.json
 ./ai-devkit run topdesk-orchestrator request-more-info --id <id>
+./ai-devkit run topdesk-orchestrator triage-incident --id <id>
 ./ai-devkit run topdesk-orchestrator incident-report --fixture /tmp/incidents.json
 ```
 
 Escritas reais exigem `--execute`.
+`request-more-info` nunca sobrescreve o campo `request`; o pedido e planejado como
+nota/acao adicional.
 
 ## Configuracao
 

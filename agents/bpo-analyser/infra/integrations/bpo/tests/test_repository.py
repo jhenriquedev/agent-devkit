@@ -20,9 +20,11 @@ from bpo_repository import (  # noqa: E402
     build_consult_proposal_envelope,
     build_list_proposals_by_cpf_envelope,
     build_proposal_analysis,
+    is_core_eligible,
     parse_attached_documents_response,
     parse_proposal_response,
     parse_proposals_by_cpf_response,
+    situation_kind,
 )
 
 
@@ -234,6 +236,59 @@ class BpoRepositoryTest(unittest.TestCase):
         self.assertEqual(analysis["facts"]["total"], 2)
         self.assertEqual(analysis["facts"]["eligible_count"], 1)
         self.assertEqual(analysis["facts"]["under_analysis_count"], 1)
+        self.assertEqual(
+            analysis["facts"]["latest_integrated_or_approved"]["proposal_number"],
+            123456,
+        )
+
+    def test_situation_kind_maps_known_bpo_codes(self) -> None:
+        self.assertEqual(situation_kind("INT"), "integrada")
+        self.assertEqual(situation_kind("INTEGRADA"), "integrada")
+        self.assertEqual(situation_kind("APR"), "aprovada")
+        self.assertEqual(situation_kind("APROVADA"), "aprovada")
+        self.assertEqual(situation_kind("CAD"), "cadastrada")
+        self.assertEqual(situation_kind("PEN"), "pendente")
+        self.assertEqual(situation_kind("AND"), "andamento")
+        self.assertEqual(situation_kind("REP"), "reprovada")
+        self.assertEqual(situation_kind("DESCONHECIDA"), "desconhecida")
+
+    def test_core_eligibility_requires_status_type_and_withdraw_limit(self) -> None:
+        self.assertTrue(is_core_eligible("INT", "3", 1.0))
+        self.assertTrue(is_core_eligible("APR", 3, 1.0))
+        self.assertFalse(is_core_eligible("PEN", "3", 1.0))
+        self.assertFalse(is_core_eligible("INT", "2", 1.0))
+        self.assertFalse(is_core_eligible("INT", "3", 0.0))
+        self.assertFalse(is_core_eligible("DESCONHECIDA", "3", 1.0))
+
+    def test_latest_integrated_or_approved_prioritizes_integrated_over_newer_approved(self) -> None:
+        payload = {
+            "cpf": "12345678901",
+            "masked_cpf": "123.***.***-01",
+            "count": 2,
+            "proposals": [
+                {
+                    "proposal_number": 123456,
+                    "situation": "INT",
+                    "situation_kind": "integrada",
+                    "proposal_type": "3",
+                    "is_eligible": True,
+                    "last_due_date": "2026-01-10T00:00:00",
+                    "withdraw_limit": 500.0,
+                },
+                {
+                    "proposal_number": 123457,
+                    "situation": "APR",
+                    "situation_kind": "aprovada",
+                    "proposal_type": "3",
+                    "is_eligible": True,
+                    "last_due_date": "2026-12-10T00:00:00",
+                    "withdraw_limit": 500.0,
+                },
+            ],
+        }
+
+        analysis = build_cpf_proposals_analysis(payload)
+
         self.assertEqual(
             analysis["facts"]["latest_integrated_or_approved"]["proposal_number"],
             123456,

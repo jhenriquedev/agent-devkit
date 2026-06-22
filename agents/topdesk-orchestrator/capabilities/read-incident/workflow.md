@@ -1,11 +1,15 @@
-# Workflow: read-incident
+# Read Incident Workflow
 
-## Objetivo
+## Fluxo
 
-Ler incidente TOPdesk e progress trail opcional.
+1. Receber `--id` ou `--number`, ou fixture.
+2. Bloquear execucao real sem identificador.
+3. Ler incidente por ID ou numero.
+4. Carregar progress trail somente com `--include-progress-trail`.
+5. Normalizar campos para resumo humano.
+6. Renderizar solicitacao original.
+7. Limitar progress trail a 20 entradas.
 
-## Guardrails
+## Saida
 
-- Separar fatos de inferencias.
-- Escritas exigem `--execute`.
-- Nao expor credenciais ou dados sensiveis.
+Retorna `incident.md`.

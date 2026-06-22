@@ -10,6 +10,7 @@ purpose: >
   and state transitions as a specialist package for consuming agents.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 
@@ -30,6 +31,7 @@ capabilities:
   - move-card
   - prepare-card-analysis
   - generate-cards-report
+  - attach-file
 
 agent_surface:
   repositories:
@@ -41,6 +43,7 @@ agent_surface:
     - infra/integrations/azure/methods/add-comment.yaml
     - infra/integrations/azure/methods/update-work-item.yaml
     - infra/integrations/azure/methods/find-users.yaml
+    - infra/integrations/azure/methods/attach-file.yaml
   policies:
     - knowledge/policies.yaml
 

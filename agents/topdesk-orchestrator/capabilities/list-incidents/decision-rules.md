@@ -1,5 +1,10 @@
-# Decision Rules: list-incidents
+# Decision Rules - list-incidents
 
-- Capability do TOPdesk Orchestrator.
-- Leitura automatica, escrita com dry-run por padrao.
-- Validar ID ou numero quando aplicavel.
+- `list-incidents` e somente leitura.
+- Respeitar `limit`; nao paginar automaticamente.
+- Filtros ausentes significam consulta ampla, nao erro.
+- Nao inferir que a amostra representa todo o backlog.
+- Marcar incidentes sem grupo ou prioridade como candidatos a triagem.
+- Nao alterar chamados nesta capability.
+- Nao expor payload raw.
+- Separar contagens de interpretacoes operacionais.

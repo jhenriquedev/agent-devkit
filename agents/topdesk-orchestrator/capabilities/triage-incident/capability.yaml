@@ -1,0 +1,25 @@
+id: topdesk-orchestrator.triage-incident
+kind: capability
+name: Triage Incident
+version: 0.1.0
+status: draft
+purpose: >
+  Sugerir categoria, prioridade e solicitante de incidente TOPdesk com base em
+  evidencias do chamado, catalogos e pessoas conhecidas, planejando update seguro.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/triage-incident.md
+  output_template: ../../templates/triage-incident-output.md
+inputs:
+  optional: [id, number, execute, fixture, output]
+outputs:
+  artifacts: [incident-triage-plan.md]
+integration:
+  repository: ../../infra/integrations/topdesk/topdesk_repository.py
+  methods:
+    - ../../infra/integrations/topdesk/methods/get-incident.yaml
+    - ../../infra/integrations/topdesk/methods/get-catalog.yaml
+    - ../../infra/integrations/topdesk/methods/search-persons.yaml
+    - ../../infra/integrations/topdesk/methods/update-incident.yaml
+write_policy: confirm

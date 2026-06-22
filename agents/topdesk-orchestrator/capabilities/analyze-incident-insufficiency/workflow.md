@@ -1,11 +1,15 @@
-# Workflow: analyze-incident-insufficiency
+# Analyze Incident Insufficiency Workflow
 
-## Objetivo
+## Fluxo
 
-Analisar se incidente possui pouco insumo.
+1. Receber ID, numero ou fixture.
+2. Carregar incidente.
+3. Aplicar fallback deterministico `analyze_insufficiency`.
+4. Avaliar resumo, request, categoria, prioridade e evidencia especifica.
+5. Gerar campos faltantes sem duplicidade.
+6. Gerar perguntas especificas.
+7. Renderizar confianca e perguntas.
 
-## Guardrails
+## Saida
 
-- Separar fatos de inferencias.
-- Escritas exigem `--execute`.
-- Nao expor credenciais ou dados sensiveis.
+Retorna `incident-insufficiency-analysis.md`.

@@ -9,7 +9,7 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/analyze-proposal-status.md
 inputs:
-  optional: [fixture, output, format]
+  optional: [cpf, proposal-number, fixture, output, format]
 outputs:
   artifacts: [n1-proposal-check.json]
 write_policy: read_only

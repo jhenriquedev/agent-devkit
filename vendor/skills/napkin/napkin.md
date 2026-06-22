@@ -27,7 +27,9 @@
    Do instead: map BPO production env from AWS Secrets Manager `CORE-PRD` in `us-east-1` using profile `access-to-vscode`; use `BPO_USER`, `BPO_PASSWORD`, `BpoPropostaUrl`, `MCC_BPOCONSIG_SERVICOAPI_ENDPOINT`, `MCC_BPOCONSIG_FORMALIZACAO_ENDPOINT`, and `MCC_BPOCONSIG_CONSIGNACAO_ENDPOINT`.
 
 ## User Directives
-1. **[2026-06-22] Use AI DevKit agents for work**
+1. **[2026-06-22] Implement agentic specs individually**
+   Do instead: process one `docs/agentic/*_plan.md` spec at a time with agent-specific analysis, tests, implementation, and review; do not use broad multi-agent waves or mechanical generation.
+2. **[2026-06-22] Use AI DevKit agents for work**
    Do instead: route every current and future activity through the relevant `/Users/jhss/dev/ai-devkit` agent/capability before doing direct ad-hoc work.
-2. **[2026-06-20] Keep generated docs out of final project versioning**
+3. **[2026-06-20] Keep generated docs out of final project versioning**
    Do instead: treat `docs/` as local development/generated artifact space and keep it ignored.

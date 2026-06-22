@@ -1,6 +1,8 @@
 # Decision Rules: Analyze Service Error
 
-- Use evidencias dos logs como fatos.
-- Hipoteses devem ser marcadas como hipoteses.
-- Eventos com `ERROR`, `Exception`, `Fatal`, `Fail` ou `Warning` sao relevantes.
-- Esta capability e read-only.
+- Filtrar eventos que indiquem error, exception, fail, fatal ou warning.
+- Agrupar mensagens normalizadas para reduzir ids e numeros variaveis.
+- Listar status codes e endpoints quando forem encontrados nos eventos.
+- Hipoteses devem ser condicionais e baseadas nos padroes observados.
+- Nao afirmar causa raiz sem evidencia convergente de logs, deploy ou dependencia externa.
+- Resumir stack traces, payloads e campos potencialmente sensiveis.

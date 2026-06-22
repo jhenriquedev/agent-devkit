@@ -16,3 +16,30 @@ integration_rules:
 write_policy:
   read_operations: auto
   mutation_operations: unsupported
+
+decision_policy:
+  prefer_proposal_number: >
+    Quando a pergunta for sobre uma proposta especifica, prefira consultar por
+    numero de proposta. Se houver apenas CPF, liste ou analise as propostas do
+    CPF antes de escolher uma proposta para detalhar.
+  processing_status_false: >
+    Quando processing_status.status == false, reporte falha de processamento BPO
+    como fato e inclua error_message quando existir.
+  missing_situation: >
+    Quando situacao estiver ausente, reporte ausencia de dado e nao infira
+    aprovacao, reprovacao ou elegibilidade.
+  rejection_reason_present: >
+    Quando motivoReprovacao estiver preenchido, reporte reprovacao registrada
+    como fato e recomende verificacao humana do motivo.
+  missing_documents: >
+    Quando nao houver documentos anexados, reporte ausencia como fato. Se a
+    proposta estiver integrada ou aprovada, rotule possivel pendencia de
+    formalizacao como inferencia.
+  document_content_boundary: >
+    Capabilities de documentos tratam metadados e presenca de conteudo. Elas nao
+    interpretam o conteudo binario do arquivo.
+  human_escalation:
+    - falha de processamento BPO
+    - proposta em analise que exige decisao operacional
+    - proposta reprovada com motivo a avaliar
+    - necessidade de leitura do conteudo de documento

@@ -112,3 +112,75 @@ def render_counter(counter: Counter[str]) -> list[str]:
     if not counter:
         return ["- Nenhum item."]
     return [f"- {key}: {count}" for key, count in sorted(counter.items())]
+
+
+UNSUPPORTED_UPDATE_KEYS = {
+    "archive",
+    "archived",
+    "dearchive",
+    "delete",
+    "escalate",
+    "escalated",
+    "deescalate",
+    "closed",
+    "closure",
+    "resolved",
+    "resolution",
+    "request",
+}
+
+UNSUPPORTED_STATUS_KEYS = {
+    "status",
+    "statusid",
+    "statusname",
+    "processingstatus",
+    "processingstatusid",
+    "processingstatusname",
+}
+
+UNSUPPORTED_STATUS_VALUES = {
+    "closed",
+    "resolved",
+    "archived",
+    "cancelled",
+    "canceled",
+    "fechado",
+    "resolvido",
+    "arquivado",
+    "cancelado",
+}
+
+
+def validate_update_fields(fields: dict[str, Any]) -> None:
+    blocked = sorted(set(find_unsupported_update_fields(fields)))
+    if blocked:
+        raise ValueError(f"unsupported TOPdesk update fields: {', '.join(blocked)}")
+
+
+def find_unsupported_update_fields(value: Any, path: str = "") -> list[str]:
+    blocked: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            normalized_key = normalize_field_token(key)
+            nested_path = f"{path}.{key}" if path else str(key)
+            if normalized_key in UNSUPPORTED_UPDATE_KEYS:
+                blocked.append(nested_path)
+            if normalized_key in UNSUPPORTED_STATUS_KEYS and status_value_is_unsupported(nested):
+                blocked.append(nested_path)
+            blocked.extend(find_unsupported_update_fields(nested, nested_path))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            blocked.extend(find_unsupported_update_fields(item, f"{path}[{index}]"))
+    return blocked
+
+
+def status_value_is_unsupported(value: Any) -> bool:
+    if isinstance(value, dict):
+        candidates = [value.get("name"), value.get("id"), value.get("value")]
+    else:
+        candidates = [value]
+    return any(normalize_field_token(candidate) in UNSUPPORTED_STATUS_VALUES for candidate in candidates)
+
+
+def normalize_field_token(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())

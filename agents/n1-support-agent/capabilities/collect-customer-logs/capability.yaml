@@ -9,7 +9,7 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/collect-customer-logs.md
 inputs:
-  optional: [fixture, output, format]
+  optional: [cpf, request-id, correlation-id, from-time, to-time, fixture, output, format]
 outputs:
   artifacts: [n1-customer-logs.json]
 integration:

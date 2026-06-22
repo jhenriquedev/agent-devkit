@@ -1,0 +1,53 @@
+id: aws-cloudwatch-log-analyzer.run-insights-query
+kind: capability
+name: Run Insights Query
+version: 0.1.0
+status: draft
+
+purpose: >
+  Iniciar ou consultar resultados de uma query CloudWatch Logs Insights em modo
+  somente leitura, preservando escopo explicito e rastreabilidade do query id.
+
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/prompts/run-insights-query.md
+  output_template: ../../templates/run-insights-query-output.md
+
+inputs:
+  required:
+    - region
+  optional:
+    - log_group
+    - start_time
+    - end_time
+    - query
+    - query_id
+    - limit
+    - fixture
+    - output
+
+input_modes:
+  - id: start_query
+    required:
+      - region
+      - log_group
+      - start_time
+      - end_time
+      - query
+  - id: get_results
+    required:
+      - region
+      - query_id
+
+outputs:
+  artifacts:
+    - insights-query.md
+
+integration:
+  repository: ../../infra/integrations/aws-cloudwatch/cloudwatch_repository.py
+  methods:
+    - ../../infra/integrations/aws-cloudwatch/methods/start-logs-insights-query.yaml
+    - ../../infra/integrations/aws-cloudwatch/methods/get-logs-insights-query-results.yaml
+
+write_policy: read_only

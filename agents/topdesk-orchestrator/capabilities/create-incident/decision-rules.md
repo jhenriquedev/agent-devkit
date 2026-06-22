@@ -1,5 +1,10 @@
-# Decision Rules: create-incident
+# Decision Rules - create-incident
 
-- Capability do TOPdesk Orchestrator.
-- Leitura automatica, escrita com dry-run por padrao.
-- Validar ID ou numero quando aplicavel.
+- `create-incident` exige resumo e request.
+- Dry-run e obrigatorio por padrao.
+- Escrita real exige `--execute`.
+- Categoria, prioridade e grupo precisam de evidencia ou catalogo.
+- Caller exige ID explicito ou resolucao confiavel por pessoa.
+- Nao criar quando o request for insuficiente.
+- Nao preencher campos de fechamento ou resolucao.
+- Suspeita de duplicidade deve bloquear criacao automatica.
