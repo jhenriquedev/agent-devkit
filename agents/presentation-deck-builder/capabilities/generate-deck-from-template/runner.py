@@ -36,9 +36,30 @@ def main() -> int:
     parser.add_argument("--output")
     parser.add_argument("--title")
     parser.add_argument("--subtitle")
+    parser.add_argument(
+        "--skip-skill-check",
+        action="store_true",
+        help="(testing only) skip the presentations skill pre-check",
+    )
     args = parser.parse_args()
 
     try:
+        # PRE-CHECK: verify presentations skill is available before doing any work.
+        # This surfaces the dependency error early with a clear message.
+        if not args.skip_skill_check:
+            try:
+                resolve_presentations_skill_dir()
+            except ValueError as skill_err:
+                print(
+                    f"Dependencia ausente: {skill_err}\n"
+                    "Configure a variavel de ambiente PRESENTATIONS_SKILL_DIR apontando\n"
+                    "para o diretorio da presentations skill (@oai/artifact-tool).\n"
+                    "Exemplo: export PRESENTATIONS_SKILL_DIR=~/.codex/plugins/cache/"
+                    "openai-primary-runtime/presentations/<version>/skills/presentations",
+                    file=sys.stderr,
+                )
+                return 1
+
         template_id = slugify(args.template_id)
         input_path = Path(args.input).expanduser().resolve()
         if not input_path.exists():

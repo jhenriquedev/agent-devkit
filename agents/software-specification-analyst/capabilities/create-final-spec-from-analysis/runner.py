@@ -17,6 +17,7 @@ DOCUMENTS = {
     "user-stories.md": "render_user_stories",
     "journey-flows.md": "render_journey_flows",
     "requirements-traceability.md": "render_traceability",
+    "open-questions.md": "render_open_questions",
 }
 
 
@@ -64,6 +65,7 @@ def render_documents(title: str, analysis: str) -> dict[str, str]:
         "render_user_stories": render_user_stories,
         "render_journey_flows": render_journey_flows,
         "render_traceability": render_traceability,
+        "render_open_questions": render_open_questions,
     }
     return {name: renderers[renderer](context) for name, renderer in DOCUMENTS.items()}
 
@@ -71,23 +73,32 @@ def render_documents(title: str, analysis: str) -> dict[str, str]:
 def render_software_spec(context: dict) -> str:
     return f"""# Especificacao De Software: {context['title']}
 
-## Base Da Especificacao
+## Resumo Executivo
 
 Esta especificacao foi gerada a partir de documentos de analise refinada,
 feedback e decisoes registradas.
 
-## Decisoes Confirmadas
+## Contexto E Problema
 
-{render_bullets(context['decisions'])}
+Pergunta Aberta: descrever o problema de negocio confirmado na analise.
 
-## Perguntas Ainda Abertas
-
-{render_bullets(context['questions'][:12])}
-
-## Escopo Funcional
+## Objetivos
 
 - Implementar a capacidade descrita e validada na analise.
 - Preservar rastreabilidade entre decisoes, historias e criterios de aceite.
+
+## Escopo
+
+- Capacidade descrita e validada na analise.
+
+## Fora De Escopo
+
+- Implementacao de codigo.
+- Efeitos colaterais em sistemas externos nao confirmados.
+
+## Atores E Personas
+
+Pergunta Aberta: confirmar atores e permissoes identificados na analise.
 
 ## Requisitos Funcionais
 
@@ -96,11 +107,77 @@ feedback e decisoes registradas.
 | RF-001 | Permitir a jornada principal confirmada na analise. | Analise refinada |
 | RF-002 | Aplicar regras, status e permissoes confirmadas. | Feedback |
 
-## Handoff
+## Requisitos Nao Funcionais
 
-Usar os arquivos `functional-spec.md`, `technical-spec.md`, `user-stories.md`,
-`journey-flows.md` e `requirements-traceability.md` como pacote de entrega para
-desenvolvimento e QA.
+Pergunta Aberta: confirmar requisitos de seguranca, desempenho e disponibilidade.
+
+## Regras De Negocio
+
+## Decisoes Confirmadas
+
+{render_bullets(context['decisions'])}
+
+## User Stories
+
+Consulte `user-stories.md`.
+
+## Criterios De Aceite
+
+Consulte `user-stories.md` — cada historia contem criterios de aceite.
+
+## Jornadas E Fluxogramas
+
+Consulte `journey-flows.md`.
+
+## Modelo De Dados
+
+Pergunta Aberta: confirmar entidades, atributos e classificacao de dados sensiveis.
+
+## APIs E Integracoes
+
+Pergunta Aberta: confirmar endpoints, eventos, jobs e sistemas externos.
+
+## Permissoes E Seguranca
+
+Pergunta Aberta: confirmar autenticacao, autorizacao, segregacao de papeis.
+
+## Observabilidade
+
+Pergunta Aberta: confirmar logs, metricas, traces, auditoria e alertas.
+
+## Estrategia De Testes
+
+- Unitarios: regras de negocio confirmadas.
+- Integracao: contratos externos confirmados.
+- E2E: jornada principal.
+- Regressao: fluxos criticos.
+
+## Riscos E Dependencias
+
+Pergunta Aberta: revisar riscos identificados na analise.
+
+## Matriz De Rastreabilidade
+
+Consulte `requirements-traceability.md`.
+
+## Perguntas Abertas
+
+{render_bullets(context['questions'][:12])}
+
+Consulte `open-questions.md` para lista completa.
+
+## Handoff Para Desenvolvimento
+
+Pacote de entrega: `functional-spec.md`, `technical-spec.md`,
+`user-stories.md`, `journey-flows.md`, `requirements-traceability.md`,
+`open-questions.md`.
+
+Pendencias bloqueantes: resolver perguntas abertas classificadas como
+bloqueantes antes de iniciar desenvolvimento.
+
+Proximo passo recomendado: validar perguntas abertas com o responsavel do
+produto, atualizar requisitos e executar revisao de completude com
+`review-spec-completeness`.
 """
 
 
@@ -187,6 +264,16 @@ def render_traceability(context: dict) -> str:
 |---|---|---|---|---|
 | RF-001 | US-001 | CA-001 | Analise refinada | Pronto para refinamento tecnico |
 | RF-002 | US-001 | CA-002 | Feedback | Pronto para QA |
+"""
+
+
+def render_open_questions(context: dict) -> str:
+    questions = context['questions']
+    return f"""# Perguntas Abertas: {context['title']}
+
+## Perguntas Derivadas Da Analise
+
+{render_bullets(questions) if questions else '- Nenhuma pergunta aberta identificada na analise.'}
 """
 
 

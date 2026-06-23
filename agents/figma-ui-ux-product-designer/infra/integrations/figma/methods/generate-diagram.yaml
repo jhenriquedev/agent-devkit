@@ -3,3 +3,10 @@ purpose: Generate journey or flow diagrams in FigJam.
 tool: generate_diagram
 requires_skill: figma-generate-diagram
 confirmation_required: true
+status: declarative
+# NOTE: generate-user-journey-diagram currently does NOT use this method.
+# The capability defaults to Mermaid local output (plan_only).
+# To enable FigJam output: add "generate-user-journey-diagram" to
+# FIGMA_EXECUTION_OPERATIONS in capabilities/_shared/design_support.py
+# and load this method in the bridge. Until then, this method is
+# declarative/planned — not executable.

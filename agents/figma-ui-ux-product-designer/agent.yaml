@@ -14,12 +14,17 @@ purpose: >
   gerando planos executaveis quando nao estiverem.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
   - knowledge/figma-workflow.md
   - knowledge/figma-mcp-setup.md
   - knowledge/direct-mode-requirements.md
   - knowledge/design-quality-checklist.md
+  - knowledge/ux-patterns.md
+  - knowledge/accessibility-rules.md
+  - knowledge/depth-scope-rules.md
+  - knowledge/feedback-rubric.md
 
 env:
   required: []

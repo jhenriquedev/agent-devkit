@@ -10,6 +10,110 @@ from typing import Any
 from xml.dom import minidom
 from xml.etree import ElementTree
 
+# layout_engine provides layout recommendations used by render_drawio
+try:
+    from layout_engine import recommend_layout  # type: ignore  # pylint: disable=import-error
+    _LAYOUT_ENGINE_AVAILABLE = True
+except ImportError:
+    _LAYOUT_ENGINE_AVAILABLE = False
+
+    def recommend_layout(diagram_type: str | None, node_count: int) -> dict:  # type: ignore
+        direction = "top-to-bottom" if diagram_type in {"erd", "data_lineage"} else "left-to-right"
+        return {"direction": direction, "split_recommended": node_count > 12}
+
+try:
+    import yaml as _yaml  # type: ignore
+    _YAML_AVAILABLE = True
+except ImportError:
+    _YAML_AVAILABLE = False
+
+# Paths to template YAMLs (relative to this file: ../../templates/)
+_TEMPLATES_DIR = Path(__file__).resolve().parents[3] / "templates"
+_SHAPE_LIBRARY_PATH = _TEMPLATES_DIR / "shape-library.yaml"
+_STYLE_PRESETS_PATH = _TEMPLATES_DIR / "style-presets.yaml"
+
+
+def _load_yaml_safe(path: Path) -> dict[str, Any]:
+    """Load a YAML file safely; return empty dict on any failure."""
+    if not path.exists():
+        return {}
+    try:
+        if _YAML_AVAILABLE:
+            import yaml as _yaml_mod  # type: ignore
+            return _yaml_mod.safe_load(path.read_text(encoding="utf-8")) or {}
+        # Fallback: very minimal YAML parser for simple key: "value" maps
+        result: dict[str, Any] = {}
+        current: dict[str, Any] = result
+        parent_key: str | None = None
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.strip().startswith("#"):
+                continue
+            indent = len(line) - len(line.lstrip())
+            stripped = line.strip()
+            if ":" in stripped:
+                key, _, value = stripped.partition(":")
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if indent == 0:
+                    result[key] = {}
+                    current = result[key]
+                    parent_key = key
+                elif indent > 0 and parent_key:
+                    current[key] = value
+        return result
+    except Exception:  # pylint: disable=broad-except
+        return {}
+
+
+def _get_shape_library() -> dict[str, str]:
+    """Return shape style strings keyed by kind from shape-library.yaml."""
+    data = _load_yaml_safe(_SHAPE_LIBRARY_PATH)
+    shapes = data.get("shapes", {})
+    if isinstance(shapes, dict):
+        return {str(k): str(v) for k, v in shapes.items()}
+    return {}
+
+
+def _get_style_preset(family: str | None) -> dict[str, str]:
+    """Return color/stroke preset dict for a diagram family from style-presets.yaml."""
+    data = _load_yaml_safe(_STYLE_PRESETS_PATH)
+    presets = data.get("presets", {})
+    if not isinstance(presets, dict):
+        return {}
+    # Try exact family match, fallback to 'default'
+    preset = presets.get(str(family)) if family else None
+    if not preset:
+        preset = presets.get("default", {})
+    if isinstance(preset, dict):
+        return {str(k): str(v) for k, v in preset.items()}
+    return {}
+
+
+# Determine diagram family from diagram_type
+_FAMILY_MAP: dict[str, str] = {
+    "architecture": "architecture",
+    "cloud_architecture": "architecture",
+    "c4_context": "architecture",
+    "c4_container": "architecture",
+    "c4_component": "architecture",
+    "integration_architecture": "architecture",
+    "erd": "data",
+    "data_lineage": "data",
+    "etl_flow": "data",
+    "domain_relationships": "data",
+    "flowchart": "product",
+    "user_journey": "product",
+    "service_blueprint": "product",
+    "approval_flow": "product",
+    "runbook": "product",
+    "incident_flow": "product",
+    "onboarding_flow": "product",
+}
+
+
+def _diagram_family(diagram_type: str | None) -> str | None:
+    return _FAMILY_MAP.get(str(diagram_type).lower()) if diagram_type else None
+
 
 DEFAULT_STYLE = {
     "node_fill": "#dae8fc",
@@ -75,6 +179,9 @@ def render_drawio(spec: dict[str, Any]) -> str:
     title = str(spec.get("title") or "Diagram")
     nodes = list(spec.get("nodes") or [])
     edges = list(spec.get("edges") or [])
+    # Resolve style preset from family — overrides DEFAULT_STYLE when available
+    family = _diagram_family(spec.get("diagram_type"))
+    preset = _get_style_preset(family) or DEFAULT_STYLE
     if not nodes:
         nodes = [{"id": "empty", "label": "Sem elementos mapeados", "group": "Lacunas"}]
 
@@ -113,18 +220,20 @@ def render_drawio(spec: dict[str, Any]) -> str:
     ElementTree.SubElement(root, "mxCell", {"id": "0"})
     ElementTree.SubElement(root, "mxCell", {"id": "1", "parent": "0"})
 
+    shape_library = _get_shape_library()
+    layout = recommend_layout(spec.get("diagram_type"), len(nodes))
     add_title(root, title)
     groups = group_nodes(nodes)
     positions = layout_positions(nodes)
     group_bounds = compute_group_bounds(nodes, positions)
     for group, bounds in group_bounds.items():
-        add_group(root, group, bounds)
+        add_group(root, group, bounds, preset=preset)
     for node in nodes:
-        add_node(root, node, positions[node["id"]], group=node.get("group"))
+        add_node(root, node, positions[node["id"]], group=node.get("group"), preset=preset, shape_library=shape_library)
     for index, edge in enumerate(edges, start=1):
-        add_edge(root, edge, index)
-    if len(groups) > 1 or spec.get("open_questions"):
-        add_legend(root, spec, group_bounds)
+        add_edge(root, edge, index, preset=preset)
+    if len(groups) > 1 or spec.get("open_questions") or layout.get("split_recommended"):
+        add_legend(root, spec, group_bounds, split_recommended=layout.get("split_recommended", False))
 
     return pretty_xml(mxfile)
 
@@ -144,15 +253,16 @@ def add_title(root: ElementTree.Element, title: str) -> None:
     ElementTree.SubElement(cell, "mxGeometry", {"x": "40", "y": "20", "width": "760", "height": "40", "as": "geometry"})
 
 
-def add_group(root: ElementTree.Element, group: str, bounds: tuple[int, int, int, int]) -> None:
+def add_group(root: ElementTree.Element, group: str, bounds: tuple[int, int, int, int], preset: dict[str, str] | None = None) -> None:
     x, y, width, height = bounds
+    style = preset or DEFAULT_STYLE
     cell = ElementTree.SubElement(
         root,
         "mxCell",
         {
             "id": f"group-{slug(group)}",
             "value": group,
-            "style": f"swimlane;html=1;rounded=1;fillColor={DEFAULT_STYLE['group_fill']};strokeColor={DEFAULT_STYLE['group_stroke']};fontStyle=1;",
+            "style": f"swimlane;html=1;rounded=1;fillColor={style.get('group_fill', DEFAULT_STYLE['group_fill'])};strokeColor={style.get('group_stroke', DEFAULT_STYLE['group_stroke'])};fontStyle=1;",
             "vertex": "1",
             "parent": "1",
         },
@@ -160,18 +270,22 @@ def add_group(root: ElementTree.Element, group: str, bounds: tuple[int, int, int
     ElementTree.SubElement(cell, "mxGeometry", {"x": str(x), "y": str(y), "width": str(width), "height": str(height), "as": "geometry"})
 
 
-def add_node(root: ElementTree.Element, node: dict[str, Any], position: tuple[int, int], group: str | None = None) -> None:
+def add_node(root: ElementTree.Element, node: dict[str, Any], position: tuple[int, int], group: str | None = None, preset: dict[str, str] | None = None, shape_library: dict[str, str] | None = None) -> None:
     x, y = position
     parent = f"group-{slug(group)}" if group else "1"
     kind = str(node.get("kind") or "process")
-    shape_style = shape_for_kind(kind)
+    # Use shape from shape_library.yaml when available, fallback to hardcoded
+    shape_style = (shape_library or {}).get(kind) or shape_for_kind(kind)
+    if shape_style and not shape_style.endswith(";"):
+        shape_style += ";"
+    style = preset or DEFAULT_STYLE
     cell = ElementTree.SubElement(
         root,
         "mxCell",
         {
             "id": f"node-{slug(node.get('id'))}",
             "value": node_value(node),
-            "style": f"{shape_style}fillColor={DEFAULT_STYLE['node_fill']};strokeColor={DEFAULT_STYLE['node_stroke']};",
+            "style": f"{shape_style}fillColor={style.get('node_fill', DEFAULT_STYLE['node_fill'])};strokeColor={style.get('node_stroke', DEFAULT_STYLE['node_stroke'])};",
             "vertex": "1",
             "parent": parent,
         },
@@ -185,14 +299,15 @@ def add_node(root: ElementTree.Element, node: dict[str, Any], position: tuple[in
     ElementTree.SubElement(cell, "mxGeometry", {"x": str(local_x), "y": str(local_y), "width": "180", "height": "70", "as": "geometry"})
 
 
-def add_edge(root: ElementTree.Element, edge: dict[str, Any], index: int) -> None:
+def add_edge(root: ElementTree.Element, edge: dict[str, Any], index: int, preset: dict[str, str] | None = None) -> None:
+    style = preset or DEFAULT_STYLE
     cell = ElementTree.SubElement(
         root,
         "mxCell",
         {
             "id": f"edge-{index}",
             "value": str(edge.get("label") or ""),
-            "style": f"endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor={DEFAULT_STYLE['edge_stroke']};",
+            "style": f"endArrow=block;html=1;rounded=0;strokeWidth=2;strokeColor={style.get('edge_stroke', DEFAULT_STYLE['edge_stroke'])};",
             "edge": "1",
             "parent": "1",
             "source": f"node-{slug(edge.get('source'))}",
@@ -202,12 +317,14 @@ def add_edge(root: ElementTree.Element, edge: dict[str, Any], index: int) -> Non
     ElementTree.SubElement(cell, "mxGeometry", {"relative": "1", "as": "geometry"})
 
 
-def add_legend(root: ElementTree.Element, spec: dict[str, Any], group_bounds: dict[str, tuple[int, int, int, int]]) -> None:
+def add_legend(root: ElementTree.Element, spec: dict[str, Any], group_bounds: dict[str, tuple[int, int, int, int]], split_recommended: bool = False) -> None:
     max_x = max((x + width for x, _, width, _ in group_bounds.values()), default=940)
     questions = spec.get("open_questions") or []
     value = "Legenda: caixas = etapas/componentes; setas = relacoes/fluxo"
     if questions:
         value += f"\nPerguntas abertas: {len(questions)}"
+    if split_recommended:
+        value += "\nAviso: diagrama denso — considere dividir em paginas."
     cell = ElementTree.SubElement(
         root,
         "mxCell",

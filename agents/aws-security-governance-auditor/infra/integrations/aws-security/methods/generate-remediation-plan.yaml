@@ -3,8 +3,9 @@ kind: integration-method
 version: 0.1.0
 status: draft
 operation:
-  repository_method: generate_remediation_plan
+  repository_method: render_remediation_plan
   type: read
   confirmation_required: false
+  note: "Implemented in report_renderer.py via runner_support.py"
 outputs:
   type: security-audit

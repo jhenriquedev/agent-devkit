@@ -3,7 +3,9 @@ kind: integration-method
 version: 0.1.0
 status: draft
 operation:
-  repository_method: review_resilience
+  # Logica real em: capabilities/_shared/runner_support.py::build_findings("resilience")
+  # Nao ha metodo no AwsArchitectureRepository; logica opera sobre inventario local
+  repository_method: build_findings_resilience
   type: read
   confirmation_required: false
 outputs:

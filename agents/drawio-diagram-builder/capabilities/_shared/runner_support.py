@@ -18,10 +18,10 @@ DRAWIO_DIR = AGENT_DIR / "infra" / "integrations" / "drawio"
 
 sys.path.insert(0, str(DRAWIO_DIR))
 
-from drawio_renderer import load_spec, render_drawio, write_json  # pylint: disable=import-error
+from drawio_renderer import add_refinement_note, load_spec, render_drawio, write_json  # pylint: disable=import-error
 from spec_builder import apply_feedback_to_spec, build_specialized_spec  # pylint: disable=import-error
 from source_reader import load_sources  # pylint: disable=import-error
-from validators import render_review, validate_drawio  # pylint: disable=import-error
+from validators import render_review, validate_drawio, validate_spec_against_schema  # pylint: disable=import-error
 
 
 def add_source_args(parser: argparse.ArgumentParser) -> None:
@@ -214,6 +214,9 @@ def run_generate(forced_type: str | None = None, default_output: str = "diagram.
     args = parser.parse_args()
     try:
         spec = resolve_spec(args, forced_type=forced_type)
+        schema_errors = validate_spec_against_schema(spec)
+        if schema_errors:
+            raise ValueError("Spec inválida contra o schema:\n" + "\n".join(f"  - {e}" for e in schema_errors))
         xml = render_drawio(spec)
         write_text(args.output, xml, yes_overwrite=args.yes_overwrite)
         if args.spec_output:
@@ -263,9 +266,26 @@ def run_refine() -> int:
     parser.add_argument("--yes-overwrite", action="store_true")
     args = parser.parse_args()
     try:
-        spec = load_spec(args.spec) if args.spec else spec_from_existing_diagram(args.diagram)
-        refined_spec, changes = apply_feedback_to_spec(spec, args.feedback)
-        write_text(args.output, render_drawio(refined_spec), yes_overwrite=args.yes_overwrite)
+        if args.spec:
+            spec = load_spec(args.spec)
+            refined_spec, changes = apply_feedback_to_spec(spec, args.feedback)
+            output_xml = render_drawio(refined_spec)
+        else:
+            # Sem spec: verificar se o diagrama tem conteúdo real antes de aceitar stub
+            existing = spec_from_existing_diagram(args.diagram)
+            if existing.get("_has_content"):
+                raise ValueError(
+                    "Refinamento semântico requer --spec com a spec original. "
+                    "O diagrama contém nós/arestas que seriam perdidos sem ela. "
+                    "Forneça --spec para preservar o conteúdo."
+                )
+            # Diagrama vazio/de teste: apenas adiciona nota de refinamento no XML
+            original_xml = Path(args.diagram).read_text(encoding="utf-8")
+            output_xml = add_refinement_note(original_xml, args.feedback)
+            spec = existing
+            refined_spec = existing
+            changes = ["Nota de refinamento adicionada ao diagrama (sem spec original)."]
+        write_text(args.output, output_xml, yes_overwrite=args.yes_overwrite)
         if args.spec_output:
             write_json(args.spec_output, refined_spec)
         changelog = "# Diagram Changelog\n\n" + "\n".join(f"- {change}" for change in changes) + "\n"
@@ -348,13 +368,48 @@ def resolve_spec(args: argparse.Namespace, forced_type: str | None = None) -> di
 
 
 def spec_from_existing_diagram(diagram: str) -> dict[str, Any]:
-    return {
-        "title": Path(diagram).stem,
-        "diagram_type": "flowchart",
-        "nodes": [],
-        "edges": [],
-        "open_questions": ["Spec original nao foi informada para refinamento semantico."],
-    }
+    """Build a minimal spec from an existing .drawio file.
+
+    Parses the XML to extract node labels/ids and edges so that at least the
+    existing content is not lost when --spec is absent.  Sets '_has_content'
+    when real nodes are found so callers can decide whether to block refinement.
+    """
+    from xml.etree import ElementTree  # pylint: disable=import-outside-toplevel
+
+    try:
+        text = Path(diagram).read_text(encoding="utf-8")
+        root = ElementTree.fromstring(text)
+        graph_root = root.find(".//root")
+        nodes: list[dict] = []
+        edges: list[dict] = []
+        if graph_root is not None:
+            for cell in graph_root.findall("mxCell"):
+                cell_id = cell.get("id", "")
+                if cell_id in {"0", "1"}:
+                    continue
+                if cell.get("vertex") == "1" and cell_id not in {"diagram-title", "diagram-legend"} and not cell_id.startswith("group-"):
+                    label = (cell.get("value") or "").strip()
+                    if label:
+                        nodes.append({"id": cell_id, "label": label, "kind": "process"})
+                elif cell.get("edge") == "1":
+                    edges.append({"source": cell.get("source", ""), "target": cell.get("target", ""), "label": cell.get("value", "")})
+        return {
+            "title": Path(diagram).stem,
+            "diagram_type": "flowchart",
+            "nodes": nodes,
+            "edges": edges,
+            "open_questions": ["Spec original nao foi informada para refinamento semantico."],
+            "_has_content": bool(nodes),
+        }
+    except Exception:  # pylint: disable=broad-except
+        return {
+            "title": Path(diagram).stem,
+            "diagram_type": "flowchart",
+            "nodes": [],
+            "edges": [],
+            "open_questions": ["Spec original nao foi informada para refinamento semantico."],
+            "_has_content": False,
+        }
 
 
 def read_azure_card_text(card_id: int, project: str | None) -> str:

@@ -1325,6 +1325,156 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertIn("score", drifted)
         self.assertIn("income", drifted)
 
+    # P1.5 — schema contract validation tests
+    def _load_schema(self, name: str) -> dict:
+        contract_dir = ROOT / "agents" / "data-scientist-analyst" / "knowledge" / "contracts"
+        return json.loads((contract_dir / name).read_text(encoding="utf-8"))
+
+    def test_profile_dataset_output_satisfies_contract(self) -> None:
+        schema = self._load_schema("profile-dataset.schema.json")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_customer_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json", "run", "data-scientist-analyst", "profile-dataset",
+                "--source", str(source),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        for key in schema["required_top_level_keys"]:
+            self.assertIn(key, payload, f"profile-dataset: missing top-level key '{key}'")
+        for key in schema["required_dataset_keys"]:
+            self.assertIn(key, payload["dataset"], f"profile-dataset: missing dataset key '{key}'")
+        self.assertTrue(payload["dataset"]["sha256"], "sha256 must be non-empty")
+        self.assertIsNotNone(payload["quality"].get("quality_score"), "quality_score must be present")
+
+    def test_evaluate_model_output_satisfies_contract(self) -> None:
+        schema = self._load_schema("evaluate-model.schema.json")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = self.write_modeling_csv(Path(tmpdir))
+            result = self.run_cli(
+                "--json", "run", "data-scientist-analyst", "evaluate-model",
+                "--source", str(source),
+                "--target-column", "converted",
+                "--feature-columns", "score,income",
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        for key in schema["required_top_level_keys"]:
+            self.assertIn(key, payload, f"evaluate-model: missing top-level key '{key}'")
+        for key in schema["required_metric_keys"]:
+            self.assertIn(key, payload["metrics"], f"evaluate-model: missing metric '{key}'")
+        for key in schema["required_confusion_matrix_keys"]:
+            self.assertIn(key, payload["confusion_matrix"], f"evaluate-model: missing confusion_matrix key '{key}'")
+        for key in schema["required_split_keys"]:
+            self.assertIn(key, payload["split"], f"evaluate-model: missing split key '{key}'")
+
+    def test_run_data_pipeline_output_satisfies_contract(self) -> None:
+        schema = self._load_schema("run-data-pipeline.schema.json")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = self.write_analytics_csv(root)
+            output = root / "pipeline_out"
+            result = self.run_cli(
+                "--json", "run", "data-scientist-analyst", "run-data-pipeline",
+                "--source", str(source),
+                "--output", str(output),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = self.parse_payload(result)
+        for key in schema["required_top_level_keys"]:
+            self.assertIn(key, payload, f"run-data-pipeline: missing top-level key '{key}'")
+        for key in schema["required_pipeline_keys"]:
+            self.assertIn(key, payload["pipeline"], f"run-data-pipeline: missing pipeline key '{key}'")
+        self.assertTrue(payload["pipeline"]["cache_key"], "cache_key must be non-empty")
+        self.assertIn(payload["pipeline"]["status"], {"success", "warning"})
+
+    def test_system_md_exists_and_is_in_default_context(self) -> None:
+        """P0.1 — knowledge/system.md exists and agent.yaml references it."""
+        agent_root = ROOT / "agents" / "data-scientist-analyst"
+        system_md = agent_root / "knowledge" / "system.md"
+        self.assertTrue(system_md.exists(), "knowledge/system.md must exist")
+        content = system_md.read_text(encoding="utf-8")
+        self.assertGreater(len(content.strip()), 200, "system.md must not be a placeholder")
+        import yaml
+        agent_yaml = yaml.safe_load((agent_root / "agent.yaml").read_text(encoding="utf-8"))
+        self.assertIn(
+            "knowledge/system.md",
+            agent_yaml["default_context"],
+            "knowledge/system.md must be in default_context",
+        )
+        self.assertEqual(
+            agent_yaml["default_context"][0],
+            "knowledge/system.md",
+            "knowledge/system.md must be the FIRST item in default_context",
+        )
+
+    def test_health_checklist_is_in_default_context(self) -> None:
+        """P0.3 — health-checklist.md promoted to default_context."""
+        agent_root = ROOT / "agents" / "data-scientist-analyst"
+        import yaml
+        agent_yaml = yaml.safe_load((agent_root / "agent.yaml").read_text(encoding="utf-8"))
+        self.assertIn(
+            "knowledge/health-checklist.md",
+            agent_yaml["default_context"],
+            "knowledge/health-checklist.md must be in default_context",
+        )
+
+    def test_all_prompts_are_non_placeholder(self) -> None:
+        """P0.2 — no prompt file may be a placeholder (< 200 chars)."""
+        prompts_dir = ROOT / "agents" / "data-scientist-analyst" / "knowledge" / "prompts"
+        for prompt_file in sorted(prompts_dir.glob("*.md")):
+            content = prompt_file.read_text(encoding="utf-8").strip()
+            self.assertGreater(
+                len(content),
+                200,
+                f"{prompt_file.name} is too short (placeholder); must follow Section 5 format",
+            )
+
+    def test_policies_yaml_exists_and_covers_required_fields(self) -> None:
+        """P1.1 — knowledge/policies.yaml exists with write_policy and pii_masking."""
+        import yaml
+        policies_path = ROOT / "agents" / "data-scientist-analyst" / "knowledge" / "policies.yaml"
+        self.assertTrue(policies_path.exists(), "knowledge/policies.yaml must exist")
+        policies = yaml.safe_load(policies_path.read_text(encoding="utf-8"))
+        self.assertIn("write_policy", policies)
+        self.assertIn("pii_masking", policies)
+        self.assertIn("decision_rules", policies)
+        self.assertEqual(policies["write_policy"]["source_mutation"], "unsupported")
+        masked = policies["pii_masking"]["mask_if_sensitive"]
+        for field in ["cpf", "cnpj", "email", "telefone", "nome"]:
+            self.assertIn(field, masked, f"pii_masking must cover '{field}'")
+
+    def test_schema_contracts_referenced_in_capability_yaml(self) -> None:
+        """P1.2 — the 4 schema contracts are referenced by their capability.yaml."""
+        import yaml
+        agent_root = ROOT / "agents" / "data-scientist-analyst"
+        contract_map = {
+            "profile-dataset": "profile-dataset.schema.json",
+            "evaluate-model": "evaluate-model.schema.json",
+            "run-data-pipeline": "run-data-pipeline.schema.json",
+            "analyze-sql-source": "analyze-sql-source.schema.json",
+        }
+        for cap_id, schema_file in contract_map.items():
+            cap_yaml_path = agent_root / "capabilities" / cap_id / "capability.yaml"
+            cap_yaml = yaml.safe_load(cap_yaml_path.read_text(encoding="utf-8"))
+            output_template = cap_yaml.get("entrypoint", {}).get("output_template", "")
+            self.assertIn(
+                schema_file,
+                output_template or "",
+                f"{cap_id}/capability.yaml must reference {schema_file} in output_template",
+            )
+
+    def test_templates_are_not_placeholders(self) -> None:
+        """P1.3 — output templates are filled, not one-line placeholders."""
+        agent_root = ROOT / "agents" / "data-scientist-analyst"
+        for name in ["data-report.md", "reconciliation-report.md"]:
+            content = (agent_root / "templates" / name).read_text(encoding="utf-8").strip()
+            self.assertGreater(
+                len(content),
+                200,
+                f"templates/{name} is a placeholder; must document the output contract",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

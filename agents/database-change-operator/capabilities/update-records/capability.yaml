@@ -9,6 +9,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/update-records.md
+  decision_rules: decision-rules.md
   output_template: ../../templates/update-records-output.md
 inputs:
   required: [schema, table, set_json, where]

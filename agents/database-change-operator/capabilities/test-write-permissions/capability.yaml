@@ -9,6 +9,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/test-write-permissions.md
+  decision_rules: decision-rules.md
   output_template: ../../templates/test-write-permissions-output.md
 inputs:
   optional: [database, execute, fixture, output]

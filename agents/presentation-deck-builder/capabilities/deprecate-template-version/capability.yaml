@@ -5,6 +5,7 @@ version: 0.1.0
 status: draft
 purpose: Mark a template version as deprecated without deleting files.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/deprecate-template-version.md
 inputs:

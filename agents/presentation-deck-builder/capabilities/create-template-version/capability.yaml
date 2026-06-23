@@ -5,6 +5,7 @@ version: 0.1.0
 status: draft
 purpose: Create a new template version from a base version or updated file.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/create-template-version.md
 inputs:

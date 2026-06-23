@@ -5,6 +5,7 @@ version: 0.1.0
 status: draft
 purpose: Refine an existing template by creating a new version instead of overwriting a validated one.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/refine-template.md
 inputs:

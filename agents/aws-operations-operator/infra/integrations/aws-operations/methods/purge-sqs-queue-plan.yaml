@@ -1,10 +1,14 @@
 id: aws-operations.purge-sqs-queue-plan
 kind: integration-method
-version: 0.1.0
+version: 0.2.0
 status: draft
 operation:
   repository_method: run_operation
   type: blocked-by-default
-  confirmation_required: true
+  # MVP: execucao real bloqueada; runner forca execute=False.
+  # confirmation_required descreve intencao futura pos-MVP (ver policies.yaml
+  # destructive_operations_mvp_plan_only: true).
+  confirmation_required: false
+  mvp_plan_only: true
 outputs:
   type: operation-plan

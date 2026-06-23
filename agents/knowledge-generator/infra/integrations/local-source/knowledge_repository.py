@@ -19,25 +19,86 @@ class KnowledgeGeneratorError(RuntimeError):
     """Raised for user-facing knowledge generation errors."""
 
 
-IGNORED_DIRS = {
-    ".git",
-    ".hg",
-    ".svn",
-    ".next",
-    ".serverless",
-    ".venv",
-    "__pycache__",
-    "bin",
-    "build",
-    "coverage",
-    "dist",
-    "node_modules",
-    "obj",
-    "target",
-    "vendor",
-}
+# ---------------------------------------------------------------------------
+# Policies — loaded from knowledge/policies.yaml (source of truth).
+# Falls back to hardcoded defaults when the YAML is not available so that
+# the module remains usable outside the agent tree (e.g. during tests).
+# ---------------------------------------------------------------------------
 
-MAX_TEXT_BYTES = 500_000
+_POLICIES_PATH = Path(__file__).resolve().parents[3] / "knowledge" / "policies.yaml"
+
+
+def _load_policies() -> dict[str, Any]:
+    """Load policies.yaml using stdlib only (no PyYAML dependency required)."""
+    try:
+        import yaml  # type: ignore
+
+        with _POLICIES_PATH.open(encoding="utf-8") as fh:
+            return yaml.safe_load(fh) or {}
+    except Exception:
+        pass
+    # Minimal hand-rolled parser sufficient for the simple key: value / list structure
+    try:
+        text = _POLICIES_PATH.read_text(encoding="utf-8")
+        result: dict[str, Any] = {}
+        current_section: str | None = None
+        current_list: list[str] | None = None
+        for raw_line in text.splitlines():
+            line = raw_line.rstrip()
+            if not line or line.lstrip().startswith("#"):
+                continue
+            stripped = line.lstrip()
+            indent = len(line) - len(stripped)
+            if indent == 0 and stripped.endswith(":"):
+                current_section = stripped[:-1]
+                result[current_section] = {}
+                current_list = None
+            elif indent == 2 and current_section and ":" in stripped:
+                key, _, val = stripped.partition(":")
+                val = val.strip()
+                if val == "":
+                    current_list = []
+                    result[current_section][key.strip()] = current_list
+                elif val.lower() in ("true", "false"):
+                    result[current_section][key.strip()] = val.lower() == "true"
+                elif val.isdigit():
+                    result[current_section][key.strip()] = int(val)
+                else:
+                    result[current_section][key.strip()] = val
+                    current_list = None
+            elif indent == 4 and current_list is not None and stripped.startswith("- "):
+                current_list.append(stripped[2:].strip())
+        return result
+    except Exception:
+        return {}
+
+
+_POLICIES: dict[str, Any] = _load_policies()
+
+
+def _policy_ignored_dirs() -> set[str]:
+    dirs = (
+        (_POLICIES.get("source_handling") or {}).get("ignore_common_generated_directories") or []
+    )
+    base = {
+        ".git", ".hg", ".svn", ".next", ".serverless", ".venv",
+        "__pycache__", "bin", "build", "coverage", "dist",
+        "node_modules", "obj", "target", "vendor",
+    }
+    if dirs:
+        return set(dirs)
+    return base
+
+
+def _policy_max_bytes() -> int:
+    val = ((_POLICIES.get("source_handling") or {}).get("max_default_file_size_bytes"))
+    if isinstance(val, int) and val > 0:
+        return val
+    return 500_000
+
+
+IGNORED_DIRS: set[str] = _policy_ignored_dirs()
+MAX_TEXT_BYTES: int = _policy_max_bytes()
 
 LANGUAGE_BY_SUFFIX = {
     ".py": "python",
@@ -108,6 +169,12 @@ SECRET_PATTERNS = [
     (r"(?i)(secret\s*[:=]\s*)[^\s,;]+", r"\1{{secret}}"),
     (r"(?i)(connectionstring\s*[:=]\s*)[^\n]+", r"\1{{connection_string}}"),
     (r"(?i)(connection[_-]?string\s*[:=]\s*)[^\n]+", r"\1{{connection_string}}"),
+    # cookies
+    (r"(?i)(set-cookie\s*:\s*)[^\n]+", r"\1{{cookie}}"),
+    (r"(?i)(cookie\s*[:=]\s*)[^\s,;]+", r"\1{{cookie}}"),
+    # private keys / certificates (PEM blocks)
+    (r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----[A-Za-z0-9+/=\r\n]+-----END (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----", "{{private_key}}"),
+    (r"-----BEGIN CERTIFICATE-----[A-Za-z0-9+/=\r\n]+-----END CERTIFICATE-----", "{{certificate}}"),
 ]
 
 PROFILES: dict[str, dict[str, Any]] = {
@@ -827,23 +894,117 @@ def build_data_inventory(project_id: str, source_files: list[SourceFile]) -> dic
 
 
 def build_generic_profile_artifact(project_id: str, profile: str, source_files: list[SourceFile]) -> dict[str, Any]:
-    terms = extract_terms(source_files)
+    """Build a structured artifact for domain-oriented profiles.
+
+    Emits structured items with {id, type, summary, evidence, source, status}
+    instead of a plain list of frequent terms.  The heuristic extracts candidate
+    rules/actors/processes/decisions from the source text so that a coupled LLM
+    can review and enrich them rather than starting from a term frequency list.
+    """
+    items = _extract_structured_items(profile, source_files)
     return {
         "knowledge_version": knowledge_version(),
         "project_id": project_id,
         "profile": profile,
-        "facts": [
-            {
-                "id": f"fact-{index}",
-                "summary": term,
-                "status": "observed_term",
-            }
-            for index, term in enumerate(terms[:30], start=1)
-        ],
+        "items": items,
         "open_questions": [
-            "Revisar termos extraidos automaticamente e confirmar quais representam regras, decisoes ou processos reais."
+            "Revisar itens extraidos automaticamente e confirmar quais representam "
+            "regras, decisoes, contratos ou processos reais com base na fonte.",
+            "Para cada item com status 'inference', validar a evidencia citada "
+            "antes de usar em operacao critica.",
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# Structured extraction helpers
+# ---------------------------------------------------------------------------
+
+_RULE_KEYWORDS = re.compile(
+    r"(?i)\b(regra|rule|policy|politica|obrigatorio|mandatory|deve|should|must|proibido|forbidden|nao deve|nao pode)\b"
+)
+_ACTOR_KEYWORDS = re.compile(r"(?i)\b(ator|actor|usuario|user|cliente|client|operador|operator|sistema|system|servico|service)\b")
+_PROCESS_KEYWORDS = re.compile(r"(?i)\b(processo|process|fluxo|flow|jornada|journey|etapa|step|fase|stage|workflow)\b")
+_DECISION_KEYWORDS = re.compile(r"(?i)\b(decisao|decision|escolha|choice|if|when|quando|condicao|condition)\b")
+_INTEGRATION_KEYWORDS = re.compile(r"(?i)\b(endpoint|route|url|api|soap|rest|sftp|webhook|payload|request|response|auth|token|certificate)\b")
+_OPERATION_KEYWORDS = re.compile(r"(?i)\b(runbook|playbook|troubleshooting|troubleshoot|sintoma|symptom|incident|incidente|escalar|escalate|resolver|resolve)\b")
+
+
+def _sentence_windows(text: str, window: int = 200) -> list[str]:
+    """Split text into overlapping windows around newlines for evidence extraction."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    windows = []
+    for i, line in enumerate(lines):
+        chunk = " ".join(lines[max(0, i - 1): i + 2])
+        if chunk:
+            windows.append(chunk[:window])
+    return windows
+
+
+def _extract_structured_items(profile: str, source_files: list[SourceFile]) -> list[dict[str, Any]]:
+    """Extract structured items from source files according to the profile type."""
+    if profile == "business-domain":
+        keyword_map = [
+            ("rule", _RULE_KEYWORDS),
+            ("actor", _ACTOR_KEYWORDS),
+            ("process", _PROCESS_KEYWORDS),
+            ("decision", _DECISION_KEYWORDS),
+        ]
+    elif profile == "integration-docs":
+        keyword_map = [
+            ("contract", _INTEGRATION_KEYWORDS),
+        ]
+    elif profile == "support-operations":
+        keyword_map = [
+            ("playbook", _OPERATION_KEYWORDS),
+        ]
+    else:
+        keyword_map = [
+            ("rule", _RULE_KEYWORDS),
+            ("process", _PROCESS_KEYWORDS),
+        ]
+
+    seen: set[str] = set()
+    items: list[dict[str, Any]] = []
+    item_index = 1
+
+    for item_type, pattern in keyword_map:
+        for source_file in source_files:
+            source_path = portable(source_file.relative_path)
+            for window in _sentence_windows(source_file.text):
+                if pattern.search(window):
+                    key = window[:80].lower()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    items.append(
+                        {
+                            "id": f"{item_type}-{item_index}",
+                            "type": item_type,
+                            "summary": window[:200],
+                            "evidence": window[:200],
+                            "source": source_path,
+                            "status": "inference",
+                        }
+                    )
+                    item_index += 1
+                    if len(items) >= 50:
+                        return items
+
+    # Fallback: if no structured items were found, emit a single placeholder gap entry
+    if not items:
+        items.append(
+            {
+                "id": f"{profile}-no-structured-items",
+                "type": "gap",
+                "summary": "Nenhum item estruturado extraido automaticamente; revisao manual necessaria.",
+                "evidence": "",
+                "source": "",
+                "status": "gap",
+            }
+        )
+
+    return items
 
 
 def extract_terms(source_files: list[SourceFile]) -> list[str]:

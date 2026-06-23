@@ -1,8 +1,8 @@
 id: build-analysis-query
-description: Build a safe analysis query from tables, columns, filters, or a question.
+description: Build a safe SELECT query from schema, table, and columns. The --question argument is documented but requires host-side NL-to-parameter translation.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [schema, table]
+  optional: [columns, limit, question, database, format]
 outputs:
-  fields: [result]
+  fields: [query, notes]
 read_only: true

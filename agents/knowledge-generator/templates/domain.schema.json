@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "domain.json — Business Domain artifact",
+  "description": "Schema for structured business-domain knowledge items produced by knowledge-generator.",
+  "type": "object",
+  "required": ["knowledge_version", "project_id", "profile", "items"],
+  "properties": {
+    "knowledge_version": { "type": "string" },
+    "project_id": { "type": "string" },
+    "profile": { "type": "string", "enum": ["business-domain"] },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "summary", "evidence", "source", "status"],
+        "properties": {
+          "id":       { "type": "string", "description": "Unique identifier within this artifact." },
+          "type":     { "type": "string", "enum": ["rule", "actor", "process", "decision", "gap"] },
+          "summary":  { "type": "string", "description": "One-sentence description of the item." },
+          "evidence": { "type": "string", "description": "Verbatim or paraphrased excerpt from source." },
+          "source":   { "type": "string", "description": "Relative path to source file, or empty string for gaps." },
+          "status":   { "type": "string", "enum": ["fact", "inference", "gap"] }
+        }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}

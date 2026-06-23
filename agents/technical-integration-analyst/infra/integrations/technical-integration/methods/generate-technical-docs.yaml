@@ -4,5 +4,10 @@ inputs:
   required: [contract]
   optional: [md_output, pdf_output]
 outputs:
-  fields: [markdown, pdf_path]
+  fields: [markdown]
+  description: >
+    Returns a Markdown string combining contract, flow, missing_information, and
+    test data. When md_output is provided, also writes the Markdown to file.
+    When pdf_output is provided, also writes a PDF derived from the same Markdown
+    content (requires reportlab; degrades with error if missing).
 read_only: true

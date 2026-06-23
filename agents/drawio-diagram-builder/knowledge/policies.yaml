@@ -39,6 +39,15 @@ diagram_policy:
   require_legend_when_styles_have_meaning: true
   require_connector_direction: true
   require_connector_labels_for_business_or_integration_flows: true
+  split_threshold_nodes: 12
+  split_when:
+    - node_count_exceeds_threshold
+    - more_than_2_distinct_responsibilities
+    - mixed_diagram_families
+  legend_required_when:
+    - color_has_meaning
+    - content_vertices_above_4
+    - more_than_1_group
 
 filesystem_policy:
   ask_before_creating_output_directory: true

@@ -1,7 +1,27 @@
 # Workflow: Execute Diagram Delivery
 
-1. Ingerir fontes locais e/ou card Azure.
-2. Gerar plano e spec.
-3. Criar `.drawio`.
-4. Revisar automaticamente.
-5. Salvar pacote de entrega.
+OBJETIVO: Orquestrar pacote ponta a ponta (ingestão→análise→geração→revisão→entrega).
+
+ENTRADAS: fontes (text/file/directory/url), azure-card (opcional), generation args,
+output-dir (obrigatório).
+
+RACIOCÍNIO:
+1. Ingerir fontes (+ card Azure se --azure-card foi informado).
+2. Construir spec via build_specialized_spec.
+3. Se spec.open_questions não vazio → delivery_status=needs_answers: emita
+   diagram-interview.md e delivery-status.json, PARE antes de declarar entrega
+   final.
+4. Se delivery_status=ready → gere os 6 artefatos: source-context.json,
+   diagram-plan.md, diagram-spec.json, diagram.drawio, diagram-review.md,
+   open-questions.md.
+5. Rode review automático. Se erros bloqueantes → registre e reporte.
+
+DECISÃO: Pergunte antes de criar diretório (--yes-create-dir) e antes de
+sobrescrever (--yes-overwrite). Nunca declarar "pronto" quando
+delivery_status=needs_answers.
+
+SAÍDA: source-context.json, diagram-plan.md, diagram-spec.json, diagram.drawio,
+diagram-review.md, open-questions.md, delivery-status.json.
+
+NÃO FAZER: declarar "pronto" quando delivery_status=needs_answers; criar diretório
+sem confirmação; gerar pacote sem revisar o .drawio gerado.

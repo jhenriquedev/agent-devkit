@@ -9,6 +9,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/upsert-records.md
+  decision_rules: decision-rules.md
   output_template: ../../templates/upsert-records-output.md
 inputs:
   required: [schema, table, key_column, input]

@@ -53,6 +53,11 @@ privacy:
   mask_cpf_by_default: true
   mask_cnpj_by_default: true
   mask_email_by_default: true
+  mask_phone_by_default: true
+  mask_name_by_default: true
+  mask_address_by_default: true
+  mask_token_by_default: true
+  mask_password_by_default: true
   avoid_personal_data_dumps: true
 
 limits:

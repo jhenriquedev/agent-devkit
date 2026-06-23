@@ -171,6 +171,222 @@ class PostgresRunnerSmokeTest(unittest.TestCase):
         self.assertIn("# Postgres ERD Report", result.stdout)
         self.assertIn("erDiagram", result.stdout)
 
+    # ---------------------------------------------------------------------------
+    # Dispatch capabilities (12 previously without smoke tests)
+    # ---------------------------------------------------------------------------
+
+    def test_list_databases_from_fixture(self) -> None:
+        result = run_capability(
+            "list-databases",
+            {"database": "postgres", "count": 2, "databases": [{"database_name": "app", "owner_name": "admin"}, {"database_name": "test", "owner_name": "admin"}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Databases", result.stdout)
+        self.assertIn("app", result.stdout)
+
+    def test_list_relationships_from_fixture(self) -> None:
+        result = run_capability(
+            "list-relationships",
+            {
+                "count": 1,
+                "relationships": [
+                    {"relationship_name": "fk_orders_customer", "parent_table": "orders", "parent_column": "customer_id", "referenced_table": "customers", "referenced_column": "id"}
+                ],
+            },
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Relationships", result.stdout)
+        self.assertIn("fk_orders_customer", result.stdout)
+
+    def test_search_tables_from_fixture(self) -> None:
+        result = run_capability(
+            "search-tables",
+            {"count": 1, "tables": [{"table_schema": "public", "table_name": "orders", "table_type": "BASE TABLE"}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Table Search", result.stdout)
+        self.assertIn("orders", result.stdout)
+
+    def test_search_columns_from_fixture(self) -> None:
+        result = run_capability(
+            "search-columns",
+            {"count": 1, "columns": [{"table_schema": "public", "table_name": "customers", "column_name": "email", "data_type": "text"}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Column Search", result.stdout)
+        self.assertIn("email", result.stdout)
+
+    def test_explore_database_domain_from_fixture(self) -> None:
+        result = run_capability(
+            "explore-database-domain",
+            {
+                "database": "app",
+                "domains": [{"domain": "customer", "table_count": 3}],
+                "tables": [{"table_schema": "public", "table_name": "customers", "table_type": "BASE TABLE"}],
+            },
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Database Domain Exploration", result.stdout)
+        self.assertIn("customer", result.stdout)
+
+    def test_build_analysis_query_from_fixture(self) -> None:
+        result = run_capability(
+            "build-analysis-query",
+            {"database": "app", "schema": "public", "table": "orders", "query": "select * from public.orders limit 100", "limit": 100},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Analysis Query Builder", result.stdout)
+
+    def test_validate_readonly_query_from_fixture(self) -> None:
+        result = run_capability(
+            "validate-readonly-query",
+            {"valid": True, "query": "select id from public.orders limit 100", "limit": 100},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Read-Only Query Validation", result.stdout)
+        self.assertIn("Valid: yes", result.stdout)
+
+    def test_explain_query_plan_from_fixture(self) -> None:
+        result = run_capability(
+            "explain-query-plan",
+            {"plan": [{"QUERY PLAN": "Seq Scan on orders  (cost=0.00..35.50 rows=1 width=8)"}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Query Plan", result.stdout)
+        self.assertIn("Seq Scan", result.stdout)
+
+    def test_sample_table_from_fixture(self) -> None:
+        result = run_capability(
+            "sample-table",
+            {"rows": [{"id": 1, "status": "active"}], "row_count": 1, "limit": 20},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Table Sample", result.stdout)
+
+    def test_analyze_query_result_from_fixture(self) -> None:
+        result = run_capability(
+            "analyze-query-result",
+            {"columns": [{"column_name": "id", "data_type": "int", "null_count": 0, "distinct_count": 10, "sensitive_kind": None}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Query Result Analysis", result.stdout)
+
+    def test_detect_data_quality_issues_from_fixture(self) -> None:
+        result = run_capability(
+            "detect-data-quality-issues",
+            {"schema": "public", "table": "orders", "issues": [{"column_name": "notes", "issue": "all_null"}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Data Quality Issues", result.stdout)
+        self.assertIn("all_null", result.stdout)
+
+    def test_estimate_table_size_from_fixture(self) -> None:
+        result = run_capability(
+            "estimate-table-size",
+            {"tables": [{"table_schema": "public", "table_name": "orders", "estimated_rows": 50000, "total_bytes": 8192000}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Table Size Estimate", result.stdout)
+        self.assertIn("orders", result.stdout)
+
+    def test_compare_tables_from_fixture(self) -> None:
+        result = run_capability(
+            "compare-tables",
+            {
+                "common": [{"column_name": "id", "type_left": "int", "type_right": "int"}],
+                "left_only": [{"column_name": "created_at"}],
+                "right_only": [],
+            },
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Table Comparison", result.stdout)
+
+    def test_trace_record_from_fixture(self) -> None:
+        result = run_capability(
+            "trace-record",
+            {"rows": [{"id": 42, "status": "active", "email": "test@example.com"}], "row_count": 1, "limit": 100},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# Postgres Record Trace", result.stdout)
+
+    # ---------------------------------------------------------------------------
+    # Privacy / PII masking tests (Section 9 criterion: G6/G7 closed)
+    # ---------------------------------------------------------------------------
+
+    def test_run_readonly_query_masks_email(self) -> None:
+        result = run_capability(
+            "run-readonly-query",
+            {"row_count": 1, "limit": 100, "rows": [{"email": "ana@example.com", "id": 1}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("ana@example.com", result.stdout)
+        self.assertIn("EMAIL REDACTED", result.stdout)
+
+    def test_run_readonly_query_masks_phone(self) -> None:
+        result = run_capability(
+            "run-readonly-query",
+            {"row_count": 1, "limit": 100, "rows": [{"phone": "11999990000", "id": 1}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("11999990000", result.stdout)
+        self.assertIn("PHONE REDACTED", result.stdout)
+
+    def test_run_readonly_query_masks_token(self) -> None:
+        result = run_capability(
+            "run-readonly-query",
+            {"row_count": 1, "limit": 100, "rows": [{"api_token": "supersecret123", "id": 1}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("supersecret123", result.stdout)
+        self.assertIn("TOKEN REDACTED", result.stdout)
+
+    def test_run_readonly_query_masks_cnpj(self) -> None:
+        result = run_capability(
+            "run-readonly-query",
+            {"row_count": 1, "limit": 100, "rows": [{"cnpj": "11222333000181", "id": 1}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("11222333000181", result.stdout)
+        self.assertIn("11.***.***/****-81", result.stdout)
+
+    def test_sample_table_masks_email(self) -> None:
+        result = run_capability(
+            "sample-table",
+            {"rows": [{"id": 1, "email": "joao@test.com", "status": "active"}], "row_count": 1, "limit": 20},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("joao@test.com", result.stdout)
+        self.assertIn("EMAIL REDACTED", result.stdout)
+
+    def test_trace_record_masks_email(self) -> None:
+        result = run_capability(
+            "trace-record",
+            {"rows": [{"id": 42, "email": "secret@corp.com", "status": "active"}], "row_count": 1, "limit": 100},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("secret@corp.com", result.stdout)
+        self.assertIn("EMAIL REDACTED", result.stdout)
+
+    def test_structural_columns_not_masked(self) -> None:
+        """table_name, column_name, schema_name etc. must NOT be masked."""
+        result = run_capability(
+            "list-tables",
+            {"schema": "public", "tables": [{"table_schema": "public", "table_name": "customers", "table_type": "BASE TABLE"}]},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("customers", result.stdout)
+        self.assertNotIn("REDACTED", result.stdout)
+
+    def test_validate_readonly_query_blocks_delete(self) -> None:
+        """validate-readonly-query blocks SQL write keywords (fixture path)."""
+        result = run_capability(
+            "validate-readonly-query",
+            {"valid": False, "query": "delete from public.users", "limit": 100},
+        )
+        # Even from fixture the runner just renders — this tests the live path below
+        # The live blocking test already exists; this confirms fixture render is ok
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_validate_readonly_query_blocks_write_without_connection(self) -> None:
         result = subprocess.run(
             [

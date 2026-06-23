@@ -4,5 +4,5 @@ inputs:
   required: [sources]
   optional: [base_url]
 outputs:
-  fields: [protocols, base_url, auth, operations, errors, missing_information]
+  fields: [protocols, primary_protocol, base_url, auth, operations, errors, missing_information, flow]
 read_only: true

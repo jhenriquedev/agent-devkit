@@ -3,6 +3,8 @@ kind: integration-method
 version: 0.1.0
 status: draft
 operation:
+  # Logica real em: infra/integrations/aws/dependency_mapper.py::build_dependency_map
+  # Chamada via: capabilities/_shared/runner_support.py::run_map_dependencies
   repository_method: build_dependency_map
   type: read
   confirmation_required: false

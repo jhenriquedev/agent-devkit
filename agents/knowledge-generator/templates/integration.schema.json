@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "integration.json — Integration Docs artifact",
+  "description": "Schema for structured integration-docs knowledge items produced by knowledge-generator.",
+  "type": "object",
+  "required": ["knowledge_version", "project_id", "profile", "items"],
+  "properties": {
+    "knowledge_version": { "type": "string" },
+    "project_id": { "type": "string" },
+    "profile": { "type": "string", "enum": ["integration-docs"] },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "summary", "evidence", "source", "status"],
+        "properties": {
+          "id":            { "type": "string" },
+          "type":          { "type": "string", "enum": ["contract", "gap"] },
+          "summary":       { "type": "string" },
+          "evidence":      { "type": "string" },
+          "source":        { "type": "string" },
+          "status":        { "type": "string", "enum": ["fact", "inference", "gap"] },
+          "protocol":      { "type": "string", "description": "e.g. REST, SOAP, SFTP, MQ, webhook" },
+          "endpoint":      { "type": "string" },
+          "auth":          { "type": "string" },
+          "payload_shape": { "type": "string" },
+          "errors":        { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}

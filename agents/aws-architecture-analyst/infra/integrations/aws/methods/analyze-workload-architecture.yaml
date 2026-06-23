@@ -3,7 +3,9 @@ kind: integration-method
 version: 0.1.0
 status: draft
 operation:
-  repository_method: analyze_workload
+  # Logica real em: capabilities/_shared/runner_support.py::filter_workload (run_workload_analysis)
+  # Nao ha metodo no AwsArchitectureRepository; logica e puramente sobre o inventario local
+  repository_method: filter_workload
   type: read
   confirmation_required: false
 outputs:

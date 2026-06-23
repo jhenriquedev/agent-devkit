@@ -263,11 +263,21 @@ def infer_domain(table_name: str) -> str:
 def mask_if_sensitive(column: str, value: Any) -> str:
     text = value_or_dash(value)
     lowered = column.lower()
-    if "cpf" in lowered or "document" in lowered:
+    if "cpf" in lowered or "document" in lowered or "tax_id" in lowered:
         return mask_cpf(text)
+    if "cnpj" in lowered:
+        return mask_cnpj(text)
     if "email" in lowered or "mail" in lowered:
         return mask_email(text)
-    if any(term in lowered for term in ("token", "secret", "password", "senha")):
+    if any(term in lowered for term in ("telefone", "phone", "celular", "mobile")):
+        return mask_phone(text)
+    if any(term in lowered for term in ("nome", "full_name")) or (
+        lowered in ("name",) or lowered.endswith("_name") or lowered.startswith("name_")
+    ):
+        return mask_name(text)
+    if any(term in lowered for term in ("endereco", "address", "cep", "zipcode")):
+        return mask_address(text)
+    if any(term in lowered for term in ("token", "secret", "password", "senha", "passwd", "api_key", "apikey")):
         return "***"
     return text
 
@@ -279,11 +289,41 @@ def mask_cpf(value: str) -> str:
     return f"{digits[:3]}.***.***-{digits[-2:]}"
 
 
+def mask_cnpj(value: str) -> str:
+    digits = re.sub(r"\D", "", value)
+    if len(digits) != 14:
+        return value
+    return f"{digits[:2]}.***.***/****-{digits[-2:]}"
+
+
 def mask_email(value: str) -> str:
     if "@" not in value:
         return value
     left, right = value.split("@", 1)
     return f"{left[:2]}***@{right}"
+
+
+def mask_phone(value: str) -> str:
+    digits = re.sub(r"\D", "", value)
+    if len(digits) < 8:
+        return value
+    return f"{'*' * (len(digits) - 2)}{digits[-2:]}"
+
+
+def mask_name(value: str) -> str:
+    if not value or value == "-":
+        return value
+    parts = value.split()
+    if not parts:
+        return value
+    masked = [parts[0][:1] + "***"] + ["***" for _ in parts[1:]]
+    return " ".join(masked)
+
+
+def mask_address(value: str) -> str:
+    if not value or value == "-":
+        return value
+    return value[:3] + "***"
 
 
 def sanitize_mermaid(value: Any) -> str:

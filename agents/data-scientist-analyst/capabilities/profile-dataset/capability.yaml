@@ -10,7 +10,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/profile-dataset.md
-  output_template: null
+  output_template: ../../knowledge/contracts/profile-dataset.schema.json
 inputs:
   required: [source]
   optional: [output]

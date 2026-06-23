@@ -1,0 +1,77 @@
+# Politicas de decisao do data-scientist-analyst
+# Fonte de verdade maquina-legivel para write_policy, mascaramento PII e rubricas
+# de bloqueio. Derivado de data-policies.md, agent.yaml.write_policy e Secao 6
+# da spec agentic.
+
+write_policy:
+  read_operations: auto
+  generated_artifacts: explicit_output_path
+  source_mutation: unsupported
+  external_side_effects: unsupported
+
+pii_masking:
+  mask_if_sensitive:
+    - cpf
+    - cnpj
+    - email
+    - telefone
+    - nome
+  mask_format: "primeiros 3 chars + *** + ultimos 2 chars"
+  block_full_exposure: true
+  applies_to:
+    - stdout
+    - generated_artifacts
+    - prompt_outputs
+
+decision_rules:
+  ask_instead_of_guess:
+    - condition: "XLSX multi-aba sem --sheet"
+      action: "PERGUNTAR qual aba usar"
+    - condition: "JSON aninhado sem --json-path retornando 0 ou poucos registros"
+      action: "PERGUNTAR qual chave/lista usar"
+    - condition: "coluna alvo/segmento/metrica ausente ou ambigua"
+      action: "PERGUNTAR qual coluna usar"
+    - condition: "base grande sem --max-rows ou --max-file-mb"
+      action: "PERGUNTAR ou aplicar default e declarar"
+
+  downgrade_conclusions:
+    - condition: "dataset.truncated = true"
+      action: "ROTULAR 'amostra parcial'; rebaixar conclusoes executivas"
+    - condition: "serie temporal com < 2 ciclos de dados"
+      action: "REBAIXAR forecast/z-score a 'indicativo'"
+    - condition: "n < 30 por grupo em teste de hipotese"
+      action: "DECLARAR resultado fragil; assumptions violadas"
+
+  block_strong_conclusions:
+    - condition: "validity_warnings presente em resultado estatistico ou modelagem"
+      action: "BLOQUEAR conclusao forte; apontar limitacao"
+    - condition: "classe desbalanceada + metrica de avaliacao = accuracy apenas"
+      action: "EXIGIR balanced_accuracy ou F1"
+    - condition: "leakage confirmado em feature"
+      action: "INVALIDAR baseline ate correcao"
+    - condition: "resultado SQL nao tabular (kind != tabular_dataset)"
+      action: "BLOQUEAR capabilities tabulares downstream"
+
+  mandatory_warnings:
+    - condition: "sensitive_data.has_sensitive_data = true"
+      action: "EMITIR aviso antes de compartilhar qualquer artefato"
+    - condition: "sha256 ausente no resultado"
+      action: "DECLARAR resultado inutilizavel para decisao auditavel"
+
+quality_gates:
+  required_before_decision:
+    - "dataset.sha256 presente"
+    - "dataset.warnings revisados"
+    - "sensitive_data.has_sensitive_data considerado"
+  required_for_statistics:
+    - "assumptions declaradas"
+    - "validity_warnings presentes ou declarados ausentes"
+    - "limitations declaradas"
+  required_for_modeling:
+    - "evaluation_scope declarado"
+    - "class_balance verificado"
+    - "test_metrics (nao so train_metrics)"
+    - "validity_warnings revisados"
+  required_for_pipeline:
+    - "manifest.json com cache_key presente"
+    - "todos artifact paths validos"

@@ -3,7 +3,9 @@ kind: integration-method
 version: 0.1.0
 status: draft
 operation:
-  repository_method: review_networking
+  # Logica real em: capabilities/_shared/runner_support.py::build_findings("networking")
+  # Nao ha metodo no AwsArchitectureRepository; logica opera sobre inventario local
+  repository_method: build_findings_networking
   type: read
   confirmation_required: false
 outputs:

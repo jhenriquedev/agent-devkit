@@ -13,6 +13,9 @@ inputs:
 outputs:
   artifacts: [deck.pptx]
 integration:
-  repository: ../../infra/integrations/presentation-renderer
+  repository: null
   methods: []
+  note: >
+    presentation-renderer adapter nao implementado; host LLM re-renderiza
+    via generate-deck-from-template com feedback aplicado ao input.
 write_policy: output_only

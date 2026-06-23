@@ -23,4 +23,4 @@ outputs:
 integration:
   repository: null
   methods: []
-write_policy: read_only
+write_policy: ask_before_creating_output_directory

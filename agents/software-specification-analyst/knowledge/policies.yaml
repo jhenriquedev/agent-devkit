@@ -48,6 +48,31 @@ analysis_policy:
   ask_questions_when_business_rule_is_implicit: true
   support_multiple_projects: true
   allow_review_correction_polishing_loop: true
+  sufficient_context_criteria:
+    description: >
+      Todos os critérios abaixo devem ser verdadeiros para gerar especificação
+      final. Se algum falhar, entregue análise + perguntas e pare.
+    criteria:
+      - id: problema_e_objetivo_confirmados
+        description: >
+          Problema de negócio e objetivo claros e confirmados pelo solicitante
+          (não apenas inferidos do input).
+      - id: atores_e_permissoes_identificados
+        description: >
+          Atores e permissões identificados com nomes reais — não "a definir".
+      - id: regras_de_negocio_confirmadas
+        description: >
+          Regras de negócio obrigatórias confirmadas (não apenas inferidas do
+          código). Regras implícitas viram perguntas de validação.
+      - id: sem_pergunta_bloqueante_em_aberto
+        description: >
+          Nenhuma pergunta classificada como "bloqueante" permanece sem resposta.
+          Perguntas "importantes" podem constar na seção Perguntas Abertas da
+          spec.
+      - id: dados_e_integracoes_conhecidos
+        description: >
+          Dados obrigatórios/sensíveis e integrações principais conhecidos ou
+          explicitamente marcados como fora de escopo.
 
 interview_policy:
   ask_targeted_questions: true

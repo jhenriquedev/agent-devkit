@@ -1,6 +1,20 @@
 # Workflow: Plan Diagram
 
-1. Consolidar briefing e contexto.
-2. Escolher tipo de diagrama.
-3. Declarar escopo, fora de escopo e lacunas.
-4. Listar elementos e validacoes esperadas.
+OBJETIVO: Produzir plano auditável antes de gerar o diagrama.
+
+ENTRADAS: brief ou source-context, diagram_type opcional, title.
+
+RACIOCÍNIO:
+1. A partir da spec (ou do brief), declare: título, tipo, audiência, nível de
+   detalhe, nº de nós/arestas previsto, escopo e fora de escopo.
+2. Liste elementos obrigatórios que não podem faltar no diagrama final.
+3. Liste os quality_gates que serão verificados no review (de policies.yaml).
+4. Separe o que é fato observado, o que é premissa e o que é pergunta aberta.
+
+DECISÃO: Se o escopo não estiver claro, registre como pergunta aberta e sinalize
+que o plano é preliminar.
+
+SAÍDA: diagram-plan.md com seções Fatos / Premissas / Perguntas Abertas /
+Quality Gates previstos.
+
+NÃO FAZER: omitir o fora-de-escopo; prometer gates que o review não checa.

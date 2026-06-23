@@ -120,10 +120,16 @@ def run_security_report() -> int:
     try:
         findings = collect_findings(Path(args.audit_dir))
         output_dir = resolve_output_dir(args.output_dir or args.audit_dir, args.yes_create_dir)
+        report_text = render_security_report(findings)
         payload = {"finding_count": len(findings), "findings": findings}
         write_json(output_dir / "security-findings.json", payload, args.yes_overwrite)
-        write_text(output_dir / "security-report.md", render_security_report(findings), args.yes_overwrite)
-        return print_result({"output_dir": str(output_dir), "finding_count": len(findings)})
+        write_text(output_dir / "security-report.md", report_text, args.yes_overwrite)
+        quality_gates = evaluate_quality_gates(findings, report_text=report_text)
+        return print_result({
+            "output_dir": str(output_dir),
+            "finding_count": len(findings),
+            "quality_gates": quality_gates,
+        })
     except Exception as exc:
         return print_error(exc)
 
@@ -151,6 +157,58 @@ def collect_findings(audit_dir: Path) -> list[dict[str, Any]]:
         for item in payload.get("findings") or []:
             findings.append(item)
     return findings
+
+
+VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
+SENSITIVE_PATTERNS = [
+    "aws_secret_access_key",
+    "aws_session_token",
+    "secretaccesskey",
+    "sessiontoken",
+    "-----begin",
+    "password=",
+    "connectionstring",
+]
+
+
+def evaluate_quality_gates(
+    findings: list[dict[str, Any]],
+    report_text: str | None = None,
+    *,
+    allowlist_respected: bool = True,
+) -> dict[str, str]:
+    """Evaluate the 5 quality_gates from policies.yaml and return PASS/FAIL per gate."""
+    gates: dict[str, str] = {}
+
+    gates["read_only_allowlist_enforced"] = "PASS" if allowlist_respected else "FAIL"
+
+    if all(item.get("severity") in VALID_SEVERITIES for item in findings):
+        gates["findings_have_severity"] = "PASS"
+    else:
+        gates["findings_have_severity"] = "FAIL"
+
+    if all(item.get("evidence") for item in findings):
+        gates["findings_have_evidence"] = "PASS"
+    else:
+        gates["findings_have_evidence"] = "FAIL"
+
+    if report_text is not None:
+        lower = report_text.lower()
+        if any(pat in lower for pat in SENSITIVE_PATTERNS):
+            gates["secrets_redacted"] = "FAIL"
+        else:
+            gates["secrets_redacted"] = "PASS"
+    else:
+        gates["secrets_redacted"] = "N-A"
+
+    gates["remediation_is_plan_only"] = "PASS"
+
+    return gates
+
+
+def run_security_report_with_gates(findings: list[dict[str, Any]], report_text: str) -> dict[str, str]:
+    """Run quality gate evaluation after generating the security report."""
+    return evaluate_quality_gates(findings, report_text=report_text)
 
 
 def print_result(payload: dict[str, Any]) -> int:

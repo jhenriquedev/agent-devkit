@@ -1,8 +1,8 @@
 id: compare-tables
-description: Compare structure and basic samples between two tables.
+description: Compare structure between two tables (columns, types).
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [left-schema, left-table, right-schema, right-table]
+  optional: [database, format]
 outputs:
-  fields: [result]
+  fields: [common_columns, left_only_columns, right_only_columns]
 read_only: true

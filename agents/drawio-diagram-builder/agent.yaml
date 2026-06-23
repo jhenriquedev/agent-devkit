@@ -12,6 +12,7 @@ purpose: >
   iterativo.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
   - knowledge/diagram-taxonomy.yaml

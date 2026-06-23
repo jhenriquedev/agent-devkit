@@ -1,8 +1,12 @@
 id: drawio-diagram-builder.diagram-taxonomy
-version: 0.1.0
+version: 0.2.0
 
 families:
   architecture:
+    decision_hints:
+      - "objetivo menciona sistemas, componentes, cloud, microserviços, APIs, filas, bancos, integrações ou boundaries"
+      - "demanda por visão técnica de topologia ou runtime"
+      - "palavras-chave: arquitetura, infraestrutura, deployment, C4, observabilidade, confiança"
     examples:
       - c4_context
       - c4_container
@@ -16,6 +20,10 @@ families:
       - security_trust_boundary
       - blast_radius
   product:
+    decision_hints:
+      - "objetivo menciona jornada do usuário, fluxo de processo, aprovação, checkout, onboarding ou exceção"
+      - "demanda por sequência de passos de negócio ou produto"
+      - "palavras-chave: jornada, fluxo, processo, etapas, raia, decisão de negócio"
     examples:
       - user_journey
       - service_blueprint
@@ -25,6 +33,10 @@ families:
       - conversion_funnel
       - exception_flow
   operations:
+    decision_hints:
+      - "objetivo menciona runbook, incidente, triagem, suporte, escalonamento ou árvore de decisão operacional"
+      - "demanda por procedimento operacional ou fluxo de atendimento"
+      - "palavras-chave: runbook, incidente, n1, n2, triagem, escalonamento, suporte"
     examples:
       - runbook
       - incident_flow
@@ -33,6 +45,10 @@ families:
       - support_ticket_state
       - decision_tree
   data:
+    decision_hints:
+      - "objetivo menciona entidades, tabelas, relacionamentos, chaves, linhagem de dados ou ETL"
+      - "demanda por modelagem de dados ou rastreamento de fluxo de dados"
+      - "palavras-chave: ERD, entidade, tabela, banco, schema, linhagem, ETL, domínio de dados"
     examples:
       - erd
       - data_lineage

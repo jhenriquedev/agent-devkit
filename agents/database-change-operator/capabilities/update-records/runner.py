@@ -21,6 +21,8 @@ def main() -> int:
     parser.add_argument("--set-json", required=True)
     parser.add_argument("--where", required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--confirm-destructive", action="store_true")
+    parser.add_argument("--max-affected-rows", type=int, default=1000)
     parser.add_argument("--database")
     parser.add_argument("--fixture")
     parser.add_argument("--output")
@@ -35,15 +37,20 @@ def main() -> int:
                 set_json=json.loads(args.set_json),
                 where_sql=args.where,
                 execute=args.execute,
+                confirm_destructive=args.confirm_destructive,
+                max_affected_rows=args.max_affected_rows,
             )
         )
+        affected_preview = payload.get("affected_rows_preview")
+        affected_before = payload.get("affected_rows_before")
+        affected_display = affected_before if affected_before is not None else affected_preview
         lines = [
             "# Update Records",
             "",
             database_line(payload, args.database),
             f"- Dry run: {yes_no(payload.get('dry_run'))}",
             f"- Status: {value_or_dash(payload.get('status'))}",
-            f"- Affected rows before update: {value_or_dash(payload.get('affected_rows_before'))}",
+            f"- Affected rows {'(preview)' if payload.get('dry_run') else 'before update'}: {value_or_dash(affected_display)}",
             f"- Where: {value_or_dash(payload.get('where_sql'))}",
             "",
         ]

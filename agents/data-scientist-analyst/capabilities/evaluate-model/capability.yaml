@@ -10,7 +10,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/evaluate-model.md
-  output_template: null
+  output_template: ../../knowledge/contracts/evaluate-model.schema.json
 inputs:
   required: [source, target_column]
   optional: [feature_columns, output]

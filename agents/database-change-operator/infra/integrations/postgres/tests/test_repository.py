@@ -13,6 +13,7 @@ POSTGRES_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(POSTGRES_DIR))
 
 from database_change_repository import (  # pylint: disable=import-error
+    DatabaseChangeRepositoryError,
     build_upsert_sql,
     connection_database,
     connection_env,
@@ -98,6 +99,17 @@ class DatabaseChangeRepositoryHelperTest(unittest.TestCase):
             validate_where_clause("1=1")
         with self.assertRaises(Exception):
             validate_where_clause("id = 1; delete from customers")
+
+    def test_plan_sql_destructive_delete_is_flagged(self) -> None:
+        """G7: DELETE FROM must be classified as destructive."""
+        plan = plan_sql("delete from public.old_events where created_at < '2020-01-01';")
+        self.assertTrue(plan["destructive"])
+        self.assertFalse(plan["blocked"])
+
+    def test_plan_sql_blocked_grant_is_flagged(self) -> None:
+        """Guardrail: GRANT must be blocked."""
+        plan = plan_sql("grant select on public.customers to readonly_user;")
+        self.assertTrue(plan["blocked"])
 
 
 if __name__ == "__main__":

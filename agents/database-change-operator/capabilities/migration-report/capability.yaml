@@ -9,6 +9,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/migration-report.md
+  decision_rules: decision-rules.md
   output_template: ../../templates/migration-report-output.md
 inputs:
   optional: [database, fixture, output]

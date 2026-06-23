@@ -13,6 +13,7 @@ purpose: >
   record tracing, table comparison, and operational data reports.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 
@@ -82,6 +83,7 @@ agent_surface:
     - infra/integrations/postgres/methods/estimate-table-size.yaml
     - infra/integrations/postgres/methods/compare-tables.yaml
     - infra/integrations/postgres/methods/trace-record.yaml
+    - infra/integrations/postgres/methods/generate-data-report.yaml
   policies:
     - knowledge/policies.yaml
 

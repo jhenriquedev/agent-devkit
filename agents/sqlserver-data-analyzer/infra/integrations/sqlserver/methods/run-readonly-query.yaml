@@ -1,8 +1,8 @@
 id: run-readonly-query
-description: Run a bounded read-only T-SQL query.
+description: Execute a read-only SELECT/WITH query with automatic TOP limit and PII masking.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [query]
+  optional: [database, limit, format]
 outputs:
-  fields: [result]
+  fields: [row_count, limit, rows]
 read_only: true

@@ -1,0 +1,30 @@
+OBJETIVO: Validar um .drawio contra todos os quality_gates de policies.yaml e
+traduzir resultados em ações corretivas.
+
+ENTRADAS: diagram (arquivo .drawio).
+
+RACIOCÍNIO:
+1. Parse o XML; verificar raiz mxfile e presença de página.
+2. Validar cada gate de policies.yaml:
+   - xml_parseavel: XML sintaxe correta?
+   - raiz_mxfile_presente: tag raiz é mxfile?
+   - pagina_drawio_presente: existe diagram > mxGraphModel > root?
+   - nos_com_labels: todos os nós de conteúdo têm value não vazio?
+   - conectores_com_source_e_target_existentes: source/target existem no diagrama?
+   - geometria_nao_sobreposta: nós sem sobreposição geométrica?
+   - titulo_presente: mxCell id="diagram-title" existe?
+   - legenda_quando_necessaria: legenda quando content_vertices > 4 ou > 1 grupo?
+   - perguntas_abertas_explicitas: se há open_questions, estão no diagrama?
+   - fontes_rastreadas: não verificável automaticamente (registrar como info).
+3. Para cada ERRO → descreva a correção necessária na spec.
+4. Para cada AVISO → descreva o impacto e se a correção é recomendada.
+
+RUBRICA/REGRAS DE DECISÃO:
+- Qualquer error[] bloqueia a entrega → não declarar "pronto".
+- Warnings não bloqueiam mas devem ser relatados com recomendação.
+
+SAÍDA: diagram-review.md com seções: XML válido / Nós / Conectores / Erros /
+Avisos / Quality Gates (status por gate) / Ações Corretivas.
+
+NÃO FAZER: declarar diagrama válido quando há errors[]; ignorar warnings sem
+mencionar; verificar apenas subconjunto dos gates.

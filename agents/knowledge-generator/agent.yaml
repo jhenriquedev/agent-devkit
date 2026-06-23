@@ -11,6 +11,7 @@ purpose: >
   tipo de fonte e mantendo rastreabilidade, validacao e lacunas explicitas.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 

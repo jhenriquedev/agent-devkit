@@ -1,8 +1,8 @@
 id: profile-table
-description: Profile row counts, nulls, distinct counts, and simple stats.
+description: Profile each column of a table (null count, distinct count) without exposing individual data.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [schema, table]
+  optional: [database, format]
 outputs:
-  fields: [result]
+  fields: [schema, table, row_count, columns]
 read_only: true

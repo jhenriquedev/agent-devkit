@@ -13,6 +13,7 @@ purpose: >
   reports, record tracing, table comparison, and operational data reports.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 

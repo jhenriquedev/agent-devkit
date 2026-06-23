@@ -1,5 +1,5 @@
 id: aws-operations-operator.policies
-version: 0.1.0
+version: 0.2.0
 status: draft
 
 operation_policy:
@@ -7,7 +7,15 @@ operation_policy:
   execute_requires_execute_flag: true
   execute_requires_confirm_resource: true
   production_environment_value: prd
+  production_aliases_rejected:
+    - prod
+    - production
   destructive_operations_blocked_by_default: true
+  destructive_operations_mvp_plan_only: true
+  # redrive-sqs-dlq e purge-sqs-queue-plan sao sempre plano no MVP;
+  # o runner forca execute=False independente de qualquer flag passado.
+  # methods/*.yaml com confirmation_required: true para estas capabilities
+  # descrevem a intencao futura pos-MVP, nao o comportamento atual.
   plan_operation_allowlist_required: true
 
 aws_policy:
@@ -27,6 +35,44 @@ artifact_policy:
   post_check_required_when_execute: true
   rollback_notes_required: true
   redact_sensitive_payloads: true
+
+environment_policy:
+  # Gradiente de cautela por ambiente — lido pelo system prompt e pelos workflows.
+  dev:
+    cautela: basica
+    dry_run_default: true
+    confirm_resource_required_for_execute: true
+    allowlist_required_for_execute: true
+    note: >
+      Ambiente de desenvolvimento. Execucao confirmada e permitida com
+      confirm-resource e allowlist configurada.
+  hml:
+    cautela: alta
+    dry_run_default: true
+    confirm_resource_required_for_execute: true
+    allowlist_required_for_execute: true
+    note: >
+      Trate como producao-de-ensaio. Ambiente compartilhado; alertar o usuario
+      antes de qualquer execucao. As mesmas guardas de prd se aplicam.
+  prd:
+    cautela: maxima
+    dry_run_default: true
+    confirm_resource_required_for_execute: true
+    allowlist_required_for_execute: true
+    environment_value_exact: prd
+    note: >
+      Producao. Aliases "prod" e "production" sao rejeitados pelo repository.
+      Exigir `--environment prd` exato. Destacar impacto (downtime, propagacao,
+      cooldown) no plano antes de qualquer execucao. Executar apenas com confirmacao
+      explicita do operador.
+
+blocked_keywords:
+  # Palavras-chave em nomes de operacao que indicam risco adicional
+  - purge
+  - delete
+  - drop
+  - destroy
+  - terminate
 
 quality_gates:
   - operation_has_explicit_resource

@@ -3,7 +3,10 @@ kind: integration-method
 version: 0.1.0
 status: draft
 operation:
-  repository_method: generate_architecture_report
+  # Logica real em: capabilities/_shared/runner_support.py::run_generate_report
+  # Usa: infra/integrations/aws/report_renderer.py::render_architecture_report
+  # Nao ha metodo no AwsArchitectureRepository; consolida artefatos locais
+  repository_method: run_generate_report
   type: read
   confirmation_required: false
 outputs:

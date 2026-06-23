@@ -231,18 +231,66 @@ def build_findings(kind: str, resources: list[dict[str, Any]]) -> list[dict[str,
     findings: list[dict[str, Any]] = []
     if kind == "resilience":
         for resource in resources:
-            if resource.get("service") == "sqs" and not (resource.get("attributes") or {}).get("has_dlq"):
-                findings.append({"severity": "medium", "message": f"SQS `{resource.get('name')}` sem DLQ confirmada."})
-            if resource.get("service") == "lambda" and not (resource.get("attributes") or {}).get("vpc_attached"):
-                findings.append({"severity": "info", "message": f"Lambda `{resource.get('name')}` sem VPC anexada; validar se e esperado."})
+            attrs = resource.get("attributes") or {}
+            if resource.get("service") == "sqs":
+                if "has_dlq" not in attrs:
+                    findings.append({
+                        "severity": "gap",
+                        "message": (
+                            f"SQS `{resource.get('name')}`: atributo `has_dlq` ausente no inventario. "
+                            "Execute `sqs.get-queue-attributes` para avaliar resiliencia."
+                        ),
+                        "confidence": "unknown",
+                    })
+                elif not attrs.get("has_dlq"):
+                    findings.append({
+                        "severity": "medium",
+                        "message": f"SQS `{resource.get('name')}` sem DLQ confirmada.",
+                        "confidence": "confirmed",
+                    })
+            if resource.get("service") == "lambda":
+                if "vpc_attached" not in attrs:
+                    findings.append({
+                        "severity": "gap",
+                        "message": (
+                            f"Lambda `{resource.get('name')}`: atributo `vpc_attached` ausente no inventario. "
+                            "Verifique VpcConfig no collector lambda."
+                        ),
+                        "confidence": "unknown",
+                    })
+                elif not attrs.get("vpc_attached"):
+                    findings.append({
+                        "severity": "info",
+                        "message": f"Lambda `{resource.get('name')}` sem VPC anexada; validar se e esperado.",
+                        "confidence": "confirmed",
+                    })
     elif kind == "observability":
         has_alarms = any(resource.get("service") == "cloudwatch" and resource.get("resource_type") == "alarm" for resource in resources)
         if not has_alarms:
-            findings.append({"severity": "medium", "message": "Nenhum CloudWatch alarm detectado no inventario."})
+            findings.append({
+                "severity": "medium",
+                "message": "Nenhum CloudWatch alarm detectado no inventario.",
+                "confidence": "confirmed",
+            })
     elif kind == "networking":
         for resource in resources:
-            if resource.get("service") == "ec2" and (resource.get("attributes") or {}).get("public_ip"):
-                findings.append({"severity": "medium", "message": f"EC2 `{resource.get('name')}` possui IP publico."})
+            attrs = resource.get("attributes") or {}
+            if resource.get("service") == "ec2":
+                if "public_ip" not in attrs:
+                    findings.append({
+                        "severity": "gap",
+                        "message": (
+                            f"EC2 `{resource.get('name')}`: atributo `public_ip` ausente no inventario. "
+                            "Ampliar collector ec2.describe-instances para coletar `PublicIpAddress`."
+                        ),
+                        "confidence": "unknown",
+                    })
+                elif attrs.get("public_ip"):
+                    findings.append({
+                        "severity": "medium",
+                        "message": f"EC2 `{resource.get('name')}` possui IP publico.",
+                        "confidence": "confirmed",
+                    })
     return findings
 
 

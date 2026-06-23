@@ -10,9 +10,10 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/apply-migration.md
   output_template: ../../templates/apply-migration-output.md
+  decision_rules: decision-rules.md
 inputs:
-  required: []
-  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
+  required: [path]
+  optional: [database, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
 outputs:
   artifacts: [apply-migration-result.md]
 integration:

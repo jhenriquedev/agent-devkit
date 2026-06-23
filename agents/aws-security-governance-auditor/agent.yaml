@@ -11,8 +11,10 @@ purpose: >
   AWS Config, e gerando relatorios e planos de remediacao sem aplicar mudancas.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
+  - knowledge/severity-rubric.md
 
 env:
   required: []

@@ -10,7 +10,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/generate-knowledge.md
-  output_template: null
+  output_template: ../../templates/coverage-assessment.md.tmpl
 inputs:
   required: [source]
   optional:

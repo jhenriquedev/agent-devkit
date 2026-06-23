@@ -12,6 +12,7 @@ purpose: >
   safety guardrails.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 

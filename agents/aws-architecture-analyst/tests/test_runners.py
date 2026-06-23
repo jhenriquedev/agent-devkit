@@ -186,6 +186,199 @@ class AwsArchitectureAnalystRunnerTest(unittest.TestCase):
         self.assertIn("orders-worker", report)
         self.assertIn("uses-role", report)
 
+    def test_analyze_workload_architecture_filters_by_prefix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory = Path(tmpdir) / "inventory.json"
+            output_dir = Path(tmpdir) / "out"
+            payload = sample_fixture()
+            payload["resource_count"] = len(payload["resources"])
+            payload["services"] = {"lambda": 1, "iam": 1, "sqs": 1}
+            inventory.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = self.run_cli(
+                "run",
+                "aws-architecture-analyst",
+                "analyze-workload-architecture",
+                "--inventory",
+                str(inventory),
+                "--resource-prefix",
+                "orders",
+                "--output-dir",
+                str(output_dir),
+                "--yes-create-dir",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((output_dir / "workload-components.json").exists())
+            self.assertTrue((output_dir / "workload-architecture.md").exists())
+            self.assertTrue((output_dir / "workload-open-questions.md").exists())
+            components = json.loads((output_dir / "workload-components.json").read_text(encoding="utf-8"))
+
+        self.assertGreater(len(components["resources"]), 0)
+        names = [r["name"] for r in components["resources"]]
+        self.assertTrue(any("orders" in n for n in names))
+
+    def test_estimate_blast_radius_returns_direct_dependents(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory = Path(tmpdir) / "inventory.json"
+            output_dir = Path(tmpdir) / "out"
+            payload = sample_fixture()
+            payload["resource_count"] = len(payload["resources"])
+            payload["services"] = {"lambda": 1, "iam": 1, "sqs": 1}
+            inventory.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = self.run_cli(
+                "run",
+                "aws-architecture-analyst",
+                "estimate-blast-radius",
+                "--resource-id",
+                "arn:aws:iam::123456789012:role/orders-worker-role",
+                "--inventory",
+                str(inventory),
+                "--output-dir",
+                str(output_dir),
+                "--yes-create-dir",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((output_dir / "blast-radius.json").exists())
+            blast = json.loads((output_dir / "blast-radius.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(blast["resource_id"], "arn:aws:iam::123456789012:role/orders-worker-role")
+        self.assertGreater(blast["direct_count"], 0)
+
+    def test_review_resilience_emits_gap_when_has_dlq_missing(self) -> None:
+        """SQS queue without has_dlq attribute should produce a gap finding, not medium."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory = Path(tmpdir) / "inventory.json"
+            output_dir = Path(tmpdir) / "out"
+            # Use a fixture where SQS queue has NO has_dlq attribute at all
+            payload = {
+                "account_id": "123456789012",
+                "region": "us-east-1",
+                "resource_count": 1,
+                "services": {"sqs": 1},
+                "resources": [
+                    {
+                        "id": "arn:aws:sqs:us-east-1:123456789012:no-dlq-attr-queue",
+                        "arn": "arn:aws:sqs:us-east-1:123456789012:no-dlq-attr-queue",
+                        "name": "no-dlq-attr-queue",
+                        "service": "sqs",
+                        "resource_type": "queue",
+                        "region": "us-east-1",
+                        "account_id": "123456789012",
+                        "relationships": [],
+                        "attributes": {"queue_url": "https://sqs.us-east-1.amazonaws.com/123456789012/no-dlq-attr-queue"},
+                    }
+                ],
+                "gaps": [],
+            }
+            inventory.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = self.run_cli(
+                "run",
+                "aws-architecture-analyst",
+                "review-resilience",
+                "--inventory",
+                str(inventory),
+                "--output-dir",
+                str(output_dir),
+                "--yes-create-dir",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            findings_data = json.loads((output_dir / "resilience-findings.json").read_text(encoding="utf-8"))
+
+        findings = findings_data["findings"]
+        severities = [f["severity"] for f in findings]
+        self.assertIn("gap", severities, "Expected a gap finding when has_dlq attribute is absent")
+
+    def test_review_observability_detects_missing_alarms(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory = Path(tmpdir) / "inventory.json"
+            output_dir = Path(tmpdir) / "out"
+            payload = {
+                "account_id": "123456789012",
+                "region": "us-east-1",
+                "resource_count": 1,
+                "services": {"lambda": 1},
+                "resources": [
+                    {
+                        "id": "arn:aws:lambda:us-east-1:123456789012:function:test-fn",
+                        "name": "test-fn",
+                        "service": "lambda",
+                        "resource_type": "function",
+                        "region": "us-east-1",
+                        "account_id": "123456789012",
+                        "relationships": [],
+                        "attributes": {},
+                    }
+                ],
+                "gaps": [],
+            }
+            inventory.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = self.run_cli(
+                "run",
+                "aws-architecture-analyst",
+                "review-observability",
+                "--inventory",
+                str(inventory),
+                "--output-dir",
+                str(output_dir),
+                "--yes-create-dir",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            findings_data = json.loads((output_dir / "observability-findings.json").read_text(encoding="utf-8"))
+
+        findings = findings_data["findings"]
+        self.assertTrue(any(f["severity"] == "medium" for f in findings), "Expected medium finding for no alarms")
+
+    def test_review_networking_emits_gap_when_public_ip_missing(self) -> None:
+        """EC2 instances without public_ip attribute should produce a gap finding."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            inventory = Path(tmpdir) / "inventory.json"
+            output_dir = Path(tmpdir) / "out"
+            payload = {
+                "account_id": "123456789012",
+                "region": "us-east-1",
+                "resource_count": 1,
+                "services": {"ec2": 1},
+                "resources": [
+                    {
+                        "id": "i-0123456789abcdef0",
+                        "name": "prod-instance",
+                        "service": "ec2",
+                        "resource_type": "instance",
+                        "region": "us-east-1",
+                        "account_id": "123456789012",
+                        "relationships": [],
+                        "attributes": {"state": "running", "instance_type": "t3.micro"},
+                    }
+                ],
+                "gaps": [],
+            }
+            inventory.write_text(json.dumps(payload), encoding="utf-8")
+
+            result = self.run_cli(
+                "run",
+                "aws-architecture-analyst",
+                "review-networking",
+                "--inventory",
+                str(inventory),
+                "--output-dir",
+                str(output_dir),
+                "--yes-create-dir",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            findings_data = json.loads((output_dir / "networking-findings.json").read_text(encoding="utf-8"))
+
+        findings = findings_data["findings"]
+        severities = [f["severity"] for f in findings]
+        self.assertIn("gap", severities, "Expected a gap finding when public_ip attribute is absent from EC2 instance")
+
 
 if __name__ == "__main__":
     unittest.main()

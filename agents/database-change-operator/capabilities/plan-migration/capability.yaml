@@ -9,6 +9,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/plan-migration.md
+  decision_rules: decision-rules.md
   output_template: ../../templates/plan-migration-output.md
 inputs:
   required: [path]

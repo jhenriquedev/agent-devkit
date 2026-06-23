@@ -1,8 +1,8 @@
 id: analyze-cpf-column
-description: Analyze CPF format, check digits, blanks, and duplicates.
+description: Audit a CPF column for format, check digit, blanks, and duplicates.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [schema, table, column]
+  optional: [database, format]
 outputs:
-  fields: [result]
+  fields: [schema, table, column, total_rows, blank_count, invalid_format_count, repeated_digits_count, valid_count, invalid_check_digit_count, duplicated_document_count, duplicated_row_count]
 read_only: true

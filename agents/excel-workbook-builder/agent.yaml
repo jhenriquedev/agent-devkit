@@ -12,6 +12,20 @@ knowledge:
   context: knowledge/context.md
   policies: knowledge/policies.yaml
   template_catalog: knowledge/template-catalog.yaml
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+  - knowledge/runtime.md
+capability_context:
+  formulas:
+    - knowledge/formula-rules.md
+  reconciliation:
+    - knowledge/reconciliation-rules.md
+  routing:
+    - knowledge/source-routing.md
+  templates:
+    - knowledge/template-catalog.yaml
 capabilities_dir: capabilities
 templates_dir: templates
 infra_dir: infra

@@ -1,9 +1,17 @@
-"""Figma integration contract for figma-ui-ux-product-designer.
+"""Figma integration entry point for figma-ui-ux-product-designer.
 
-This repository intentionally does not embed Figma credentials. In local CLI
-execution, direct writes are performed by a configured MCP bridge command. In
-Codex/Figma-enabled runtimes, the bridge can wrap tools such as create_new_file,
-use_figma, get_metadata, get_screenshot, search_design_system and get_libraries.
+This module exposes `detect_mode` as the public API for capability runners to
+determine the current Figma operation mode (direct_mcp, local_mcp_bridge,
+plan_only, blocked).
+
+All Figma write operations are routed through FigmaMcpAdapter (figma_mcp_adapter.py),
+which in turn calls the configured MCP bridge command. This repository does NOT
+embed credentials; it only delegates to the bridge via subprocess.
+
+Figma tools used by the bridge (via Codex/Figma MCP):
+  - create_new_file, use_figma, get_metadata, get_screenshot,
+    search_design_system, get_libraries, generate_diagram.
+These are invoked by bin/figma-codex-bridge.py, not by this module directly.
 """
 
 from __future__ import annotations

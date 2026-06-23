@@ -17,6 +17,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run database-change-operator/run-write-script")
     parser.add_argument("--path", required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--confirm-destructive", action="store_true")
     parser.add_argument("--database")
     parser.add_argument("--fixture")
     parser.add_argument("--output")
@@ -25,7 +26,11 @@ def main() -> int:
         payload = (
             load_fixture(args.fixture)
             if args.fixture
-            else get_repository(args.database).run_write_script(path=args.path, execute=args.execute)
+            else get_repository(args.database).run_write_script(
+                path=args.path,
+                execute=args.execute,
+                confirm_destructive=args.confirm_destructive,
+            )
         )
         lines = [
             "# Run Write Script",

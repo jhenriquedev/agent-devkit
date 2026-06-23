@@ -104,13 +104,61 @@ class AwsSecurityRepository:
             "config": {"recorders": [], "rules": []},
             "gaps": [],
         }
+        # Collect IAM customer-managed policies with their documents
+        try:
+            local_policies = self.aws_json(["iam", "list-policies", "--scope", "Local"], region=None).get("Policies", [])
+            enriched_policies: list[dict[str, Any]] = []
+            for policy in local_policies:
+                policy_arn = policy.get("Arn")
+                version_id = policy.get("DefaultVersionId")
+                doc: dict[str, Any] = {}
+                if policy_arn and version_id:
+                    try:
+                        doc = self.aws_json(
+                            ["iam", "get-policy-version", "--policy-arn", policy_arn, "--version-id", version_id],
+                            region=None,
+                        ).get("PolicyVersion", {}).get("Document", {})
+                    except AwsSecurityRepositoryError:
+                        snapshot["gaps"].append(
+                            f"iam: could not fetch policy document for {policy_arn}"
+                        )
+                enriched_policies.append({**policy, "Document": doc})
+            snapshot["iam"]["policies"] = enriched_policies
+        except AwsSecurityRepositoryError as exc:
+            snapshot["gaps"].append(f"iam.policies: not collected — {exc}")
         if resolved_region:
             snapshot["security_groups"] = self.aws_json(["ec2", "describe-security-groups"], region=resolved_region).get("SecurityGroups", [])
             snapshot["secrets"]["secrets"] = self.aws_json(["secretsmanager", "list-secrets"], region=resolved_region).get("SecretList", [])
             snapshot["cloudtrail"]["trails"] = self.aws_json(["cloudtrail", "describe-trails"], region=resolved_region).get("trailList", [])
             snapshot["config"]["recorders"] = self.aws_json(["configservice", "describe-configuration-recorders"], region=resolved_region).get("ConfigurationRecorders", [])
             snapshot["config"]["rules"] = self.aws_json(["configservice", "describe-config-rules"], region=resolved_region).get("ConfigRules", [])
-        snapshot["s3"]["buckets"] = [{"Name": item.get("Name")} for item in self.aws_json(["s3api", "list-buckets"], region=None).get("Buckets", [])]
+        else:
+            snapshot["gaps"].append("security_groups: not collected — no region specified")
+            snapshot["gaps"].append("secrets: not collected — no region specified")
+            snapshot["gaps"].append("cloudtrail: not collected — no region specified")
+            snapshot["gaps"].append("config: not collected — no region specified")
+        # Collect S3 buckets with PAB and Encryption per bucket
+        raw_buckets = self.aws_json(["s3api", "list-buckets"], region=None).get("Buckets", [])
+        enriched_buckets: list[dict[str, Any]] = []
+        for item in raw_buckets:
+            name = item.get("Name") or ""
+            bucket: dict[str, Any] = {"Name": name}
+            try:
+                pab_data = self.aws_json(
+                    ["s3api", "get-public-access-block", "--bucket", name], region=None
+                ).get("PublicAccessBlockConfiguration", {})
+                bucket["PublicAccessBlock"] = pab_data
+            except AwsSecurityRepositoryError:
+                snapshot["gaps"].append(f"s3.{name}.PublicAccessBlock: not collected")
+            try:
+                enc_data = self.aws_json(
+                    ["s3api", "get-bucket-encryption", "--bucket", name], region=None
+                ).get("ServerSideEncryptionConfiguration", {})
+                bucket["Encryption"] = enc_data
+            except AwsSecurityRepositoryError:
+                snapshot["gaps"].append(f"s3.{name}.Encryption: not collected")
+            enriched_buckets.append(bucket)
+        snapshot["s3"]["buckets"] = enriched_buckets
         return snapshot
 
     def _validate_allowed(self, args: list[str]) -> None:

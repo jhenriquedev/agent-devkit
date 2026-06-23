@@ -9,6 +9,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/run-write-script.md
+  decision_rules: decision-rules.md
   output_template: ../../templates/run-write-script-output.md
 inputs:
   required: [path]

@@ -11,4 +11,4 @@ inputs:
   required: [reconciliation_summary]
 outputs:
   artifacts: [adjustment-suggestions.xlsx]
-write_policy: read_only
+write_policy: output_only

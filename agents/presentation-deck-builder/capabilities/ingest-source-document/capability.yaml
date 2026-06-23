@@ -13,6 +13,9 @@ inputs:
 outputs:
   artifacts: [extracted-content.md]
 integration:
-  repository: ../../infra/integrations/document-reader
+  repository: null
   methods: []
+  note: >
+    document-reader adapter nao implementado; host LLM le o documento
+    diretamente e normaliza o conteudo conforme o prompt de ingest-source-document.
 write_policy: read_only

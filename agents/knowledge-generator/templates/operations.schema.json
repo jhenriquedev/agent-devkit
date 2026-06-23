@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "operations.json — Support Operations artifact",
+  "description": "Schema for structured support-operations knowledge items produced by knowledge-generator.",
+  "type": "object",
+  "required": ["knowledge_version", "project_id", "profile", "items"],
+  "properties": {
+    "knowledge_version": { "type": "string" },
+    "project_id": { "type": "string" },
+    "profile": { "type": "string", "enum": ["support-operations"] },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "summary", "evidence", "source", "status"],
+        "properties": {
+          "id":      { "type": "string" },
+          "type":    { "type": "string", "enum": ["playbook", "gap"] },
+          "summary": { "type": "string" },
+          "evidence":{ "type": "string" },
+          "source":  { "type": "string" },
+          "status":  { "type": "string", "enum": ["fact", "inference", "gap"] },
+          "symptom": { "type": "string" },
+          "steps":   { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}

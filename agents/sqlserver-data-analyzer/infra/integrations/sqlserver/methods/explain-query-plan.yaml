@@ -1,8 +1,8 @@
 id: explain-query-plan
-description: Generate and summarize a safe estimated query plan.
+description: Return the estimated execution plan (SHOWPLAN_TEXT) for a query without executing it.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [query]
+  optional: [database, format]
 outputs:
-  fields: [result]
+  fields: [query, plan]
 read_only: true

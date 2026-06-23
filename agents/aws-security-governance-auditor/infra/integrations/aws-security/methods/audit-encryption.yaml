@@ -6,5 +6,6 @@ operation:
   repository_method: audit_encryption
   type: read
   confirmation_required: false
+  note: "Implemented in auditors.py via runner_support.py; repository provides collect_security_snapshot"
 outputs:
   type: security-audit

@@ -5,6 +5,7 @@ version: 0.1.0
 status: draft
 purpose: Promote a template version to current_version after approval.
 entrypoint:
+  runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/promote-template-version.md
 inputs:

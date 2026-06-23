@@ -32,3 +32,13 @@ database_selection:
   override_scope: database_name_only
   reject_url_as_database_name: true
   show_target_database_before_writes: true
+
+write_limits:
+  max_affected_rows: 1000          # above this, reinforced confirmation is required (G5)
+
+destructive_writes:
+  require_reinforced_confirmation: true   # script/update/upsert with destructive ops (G7)
+
+ad_hoc_audit:
+  table: ai_devkit_write_audit     # audit trail for run-write-script/upsert/update (G6)
+  fields: [operation, target, checksum, affected_rows, applied_by, applied_at]

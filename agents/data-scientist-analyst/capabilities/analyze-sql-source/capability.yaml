@@ -10,7 +10,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/analyze-sql-source.md
-  output_template: null
+  output_template: ../../knowledge/contracts/analyze-sql-source.schema.json
 inputs:
   required: [database_agent, database_capability]
   optional: [database, schema, table, query, limit]

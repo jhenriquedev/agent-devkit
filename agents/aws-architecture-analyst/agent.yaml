@@ -11,6 +11,7 @@ purpose: >
   observabilidade e perguntas abertas para revisao tecnica.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 

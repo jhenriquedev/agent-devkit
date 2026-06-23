@@ -11,6 +11,7 @@ purpose: >
   operacional.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
 
@@ -57,6 +58,8 @@ agent_surface:
     - infra/integrations/aws-operations/methods/generate-operation-report.yaml
   policies:
     - knowledge/policies.yaml
+  # skills_catalog e referencia opcional — nenhuma capability consome em runtime no MVP.
+  # Mantido como metadado de descoberta; nao e default_context nem injetado nos prompts.
   skills_catalog:
     - ../../vendor/skills/CATALOG.md
 

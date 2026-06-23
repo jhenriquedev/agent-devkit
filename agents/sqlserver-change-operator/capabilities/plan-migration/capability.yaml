@@ -10,13 +10,14 @@ entrypoint:
   workflow: workflow.md
   prompt: ../../knowledge/prompts/plan-migration.md
   output_template: ../../templates/plan-migration-output.md
+  decision_rules: decision-rules.md
 inputs:
-  required: []
-  optional: [database, path, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
+  required: [path]
+  optional: [database, rollback_path, name, schema, table, key_column, input, set_json, where, execute, confirm_delete, max_affected_rows, fixture, output]
 outputs:
   artifacts: [plan-migration-result.md]
 integration:
   repository: ../../infra/integrations/sqlserver/sqlserver_change_repository.py
   methods:
     - ../../infra/integrations/sqlserver/methods/plan-migration.yaml
-write_policy: confirm
+write_policy: read_only

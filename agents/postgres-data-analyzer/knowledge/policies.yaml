@@ -1,18 +1,35 @@
 id: postgres-data-analyzer.policies
-version: 0.1.0
+version: 0.2.0
 status: draft
 
 read_operations:
   confirmation_required: false
   allowed:
     - test_connection
+    - list_databases
     - list_schemas
     - list_tables
     - describe_table
+    - list_relationships
+    - suggest_joins
+    - search_tables
+    - search_columns
+    - explore_database_domain
+    - generate_erd_report
     - run_readonly_query
+    - validate_readonly_query
+    - build_analysis_query
+    - explain_query_plan
+    - sample_table
     - profile_table
+    - analyze_query_result
     - detect_sensitive_columns
+    - detect_data_quality_issues
     - analyze_cpf_column
+    - estimate_table_size
+    - compare_tables
+    - trace_record
+    - generate_data_report
 
 write_operations:
   supported: false
@@ -27,14 +44,36 @@ write_operations:
     - grant
     - revoke
     - vacuum
+    - call
+    - do
+    - copy
 
 privacy:
   mask_cpf_by_default: true
   avoid_personal_data_dumps: true
 
+masking:
+  # Kinds always masked in human-readable output (rows/tables):
+  always_mask:
+    - cpf
+    - cnpj
+    - document
+  # Kinds masked/omitted when feasible (may be shown aggregated but not raw):
+  mask_when_feasible:
+    - email
+    - phone
+    - name
+    - address
+    - token
+    - password
+
 limits:
   default_query_limit: 100
+  default_sample_limit: 20
   default_statement_timeout_ms: 15000
+
+data_quality_thresholds:
+  high_null_ratio: 0.5
 
 database_selection:
   default_source: POSTGRES_DB_CONN_STRING

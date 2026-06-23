@@ -114,14 +114,26 @@ class DatabaseChangeRepository:
         )
         return {"dry_run": False, "database": self.database, "migration_id": migration_id, "status": "rolled_back", "plan": plan}
 
-    def run_write_script(self, *, path: str, execute: bool = False) -> dict[str, Any]:
+    def run_write_script(self, *, path: str, execute: bool = False, confirm_destructive: bool = False) -> dict[str, Any]:
         sql = read_sql_file(path)
         plan = plan_sql(sql, path=path)
         if not execute:
             return {"dry_run": True, "database": self.database, "plan": plan}
         if plan["blocked"]:
             raise DatabaseChangeRepositoryError("script contains blocked SQL")
+        if plan["destructive"] and not confirm_destructive:
+            raise DatabaseChangeRepositoryError(
+                "script contains destructive operations (DROP/TRUNCATE/DELETE); "
+                "re-run with --confirm-destructive to proceed"
+            )
         self._psql(wrap_in_transaction(sql, self.config))
+        self.ensure_audit_table()
+        self.record_write_audit(
+            operation="run_write_script",
+            target=path,
+            checksum=plan["checksum"],
+            affected_rows=None,
+        )
         return {"dry_run": False, "database": self.database, "status": "executed", "plan": plan}
 
     def upsert_records(
@@ -132,6 +144,8 @@ class DatabaseChangeRepository:
         key_column: str,
         input_path: str,
         execute: bool = False,
+        confirm_destructive: bool = False,
+        max_affected_rows: int = 1000,
     ) -> dict[str, Any]:
         records = read_records(input_path)
         if not records:
@@ -148,7 +162,24 @@ class DatabaseChangeRepository:
         plan = plan_sql(sql, path=input_path)
         if not execute:
             return {"dry_run": True, "database": self.database, "record_count": len(records), "plan": plan}
+        if len(records) > max_affected_rows:
+            raise DatabaseChangeRepositoryError(
+                f"record_count {len(records)} exceeds max_affected_rows {max_affected_rows}; "
+                "use --max-affected-rows to raise the limit after confirming the volume"
+            )
+        if plan["destructive"] and not confirm_destructive:
+            raise DatabaseChangeRepositoryError(
+                "upsert contains destructive operations; "
+                "re-run with --confirm-destructive to proceed"
+            )
         self._psql(wrap_in_transaction(sql, self.config))
+        self.ensure_audit_table()
+        self.record_write_audit(
+            operation="upsert_records",
+            target=f"{schema}.{table}",
+            checksum=plan["checksum"],
+            affected_rows=len(records),
+        )
         return {"dry_run": False, "database": self.database, "record_count": len(records), "status": "upserted", "plan": plan}
 
     def update_records(
@@ -159,6 +190,8 @@ class DatabaseChangeRepository:
         set_json: dict[str, Any],
         where_sql: str,
         execute: bool = False,
+        confirm_destructive: bool = False,
+        max_affected_rows: int = 1000,
     ) -> dict[str, Any]:
         validate_identifier(schema, "schema")
         validate_identifier(table, "table")
@@ -171,12 +204,29 @@ class DatabaseChangeRepository:
             assignments.append(f"{quote_ident(key)} = {sql_literal(str(value))}")
         qualified = qualified_name(schema, table)
         count_sql = f"select count(*)::bigint as count from {qualified} where {where_sql}"
-        affected = self._query_json(count_sql)[0]["count"] if execute else None
         sql = f"update {qualified} set {', '.join(assignments)} where {where_sql};"
         plan = plan_sql(sql, path=f"{schema}.{table}")
+        affected = self._query_json(count_sql)[0]["count"]
         if not execute:
-            return {"dry_run": True, "database": self.database, "plan": plan, "where_sql": where_sql}
+            return {"dry_run": True, "database": self.database, "plan": plan, "where_sql": where_sql, "affected_rows_preview": affected}
+        if affected > max_affected_rows:
+            raise DatabaseChangeRepositoryError(
+                f"affected_rows {affected} exceeds max_affected_rows {max_affected_rows}; "
+                "use --max-affected-rows to raise the limit after confirming the volume"
+            )
+        if plan["destructive"] and not confirm_destructive:
+            raise DatabaseChangeRepositoryError(
+                "update contains destructive operations; "
+                "re-run with --confirm-destructive to proceed"
+            )
         self._psql(wrap_in_transaction(sql, self.config))
+        self.ensure_audit_table()
+        self.record_write_audit(
+            operation="update_records",
+            target=f"{schema}.{table}",
+            checksum=plan["checksum"],
+            affected_rows=affected,
+        )
         return {"dry_run": False, "database": self.database, "affected_rows_before": affected, "status": "updated", "plan": plan}
 
     def migration_report(self) -> dict[str, Any]:
@@ -227,6 +277,47 @@ class DatabaseChangeRepository:
                 values
                   ({sql_literal(migration_id)}, {sql_literal(name)}, {sql_literal(checksum)}, current_user,
                    {sql_literal(status)}, {str(rollback_available).lower()}, {sql_literal(json.dumps(metadata))}::jsonb);
+                """,
+                self.config,
+            )
+        )
+
+    def ensure_audit_table(self) -> None:
+        self._psql(
+            wrap_with_timeouts(
+                """
+                create table if not exists ai_devkit_write_audit (
+                  id bigserial primary key,
+                  operation text not null,
+                  target text not null,
+                  checksum text,
+                  affected_rows bigint,
+                  applied_by text not null,
+                  applied_at timestamptz not null default now()
+                );
+                """,
+                self.config,
+            )
+        )
+
+    def record_write_audit(
+        self,
+        *,
+        operation: str,
+        target: str,
+        checksum: str | None,
+        affected_rows: int | None,
+    ) -> None:
+        self._psql(
+            wrap_with_timeouts(
+                f"""
+                insert into ai_devkit_write_audit
+                  (operation, target, checksum, affected_rows, applied_by)
+                values
+                  ({sql_literal(operation)}, {sql_literal(target)},
+                   {sql_literal(checksum) if checksum else 'null'},
+                   {str(int(affected_rows)) if affected_rows is not None else 'null'},
+                   current_user);
                 """,
                 self.config,
             )

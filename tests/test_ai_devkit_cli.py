@@ -602,6 +602,18 @@ json.dump(
             self.assertIn("0.1.0", result.stdout)
             self.assertIn("validated", result.stdout)
 
+    @unittest.skipUnless(
+        (
+            Path.home()
+            / ".codex"
+            / "plugins"
+            / "cache"
+            / "openai-primary-runtime"
+            / "presentations"
+        ).exists()
+        or os.environ.get("PRESENTATIONS_SKILL_DIR"),
+        "presentations skill (@oai/artifact-tool) not available in this environment — set PRESENTATIONS_SKILL_DIR to run",
+    )
     def test_generate_deck_from_template_creates_pptx(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             template_path = Path(tmpdir) / "kpis-template.pptx"
@@ -2951,6 +2963,400 @@ json.dump(
         self.assertIn("# Card Analysis", result.stdout)
         self.assertIn("- ID: 456", result.stdout)
         self.assertIn("- Title: Corrigir erro no login", result.stdout)
+
+
+    # -------------------------------------------------------------------------
+    # presentation-deck-builder — new runner tests (P0 backlog)
+    # -------------------------------------------------------------------------
+
+    def _register_template(self, templates_root: Path, template_id: str, version: str, status: str) -> None:
+        """Helper: register a template with --yes-save."""
+        template_path = templates_root.parent / f"{template_id}.pptx"
+        template_path.write_bytes(b"fake pptx content")
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(CLI),
+                "run",
+                "presentation-deck-builder",
+                "register-template",
+                "--template",
+                str(template_path),
+                "--template-id",
+                template_id,
+                "--version",
+                version,
+                "--status",
+                status,
+                "--templates-root",
+                str(templates_root),
+                "--yes-save",
+            ],
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_presentation_list_templates_shows_registered(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "kpi-report", "1.0.0", "validated")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "list-templates",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("kpi-report", result.stdout)
+            self.assertIn("1.0.0", result.stdout)
+
+    def test_presentation_generate_template_input_file_creates_schemas(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "status-deck", "0.1.0", "validated")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "generate-template-input-file",
+                    "--template-id",
+                    "status-deck",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            version_dir = templates_root / "status-deck" / "versions" / "0.1.0"
+            self.assertTrue((version_dir / "input-schema.xlsx").exists())
+            self.assertTrue((version_dir / "input-schema.md").exists())
+            self.assertIn("input-schema.xlsx", result.stdout)
+
+    def test_presentation_promote_template_version_updates_current(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "exec-report", "1.0.0", "draft")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "promote-template-version",
+                    "--template-id",
+                    "exec-report",
+                    "--template-version",
+                    "1.0.0",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-confirm",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = (templates_root / "exec-report" / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("current_version: 1.0.0", manifest)
+            self.assertIn("status: validated", manifest)
+
+    def test_presentation_promote_requires_existing_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "exec-report", "1.0.0", "draft")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "promote-template-version",
+                    "--template-id",
+                    "exec-report",
+                    "--template-version",
+                    "9.9.9",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-confirm",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("template version not found in manifest", result.stdout)
+
+    def test_presentation_deprecate_template_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "old-report", "1.0.0", "draft")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "deprecate-template-version",
+                    "--template-id",
+                    "old-report",
+                    "--template-version",
+                    "1.0.0",
+                    "--reason",
+                    "substituido por versao 2.0.0",
+                    "--templates-root",
+                    str(templates_root),
+                    "--yes-confirm",
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            manifest = (templates_root / "old-report" / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("status: deprecated", manifest)
+            self.assertIn("substituido por versao 2.0.0", result.stdout)
+
+    def test_presentation_create_template_version_creates_new_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "kpi-slides", "1.0.0", "validated")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "create-template-version",
+                    "--template-id",
+                    "kpi-slides",
+                    "--new-version",
+                    "1.1.0",
+                    "--base-version",
+                    "1.0.0",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            new_dir = templates_root / "kpi-slides" / "versions" / "1.1.0"
+            self.assertTrue(new_dir.exists())
+            self.assertTrue((new_dir / "template.pptx").exists())
+            self.assertTrue((new_dir / "slide-map.yaml").exists())
+            # original version must still exist
+            self.assertTrue((templates_root / "kpi-slides" / "versions" / "1.0.0").exists())
+            # new version should be draft
+            manifest = (templates_root / "kpi-slides" / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("1.1.0", manifest)
+
+    def test_presentation_create_version_rejects_duplicate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "kpi-slides", "1.0.0", "validated")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "create-template-version",
+                    "--template-id",
+                    "kpi-slides",
+                    "--new-version",
+                    "1.0.0",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("already exists", result.stderr)
+
+    def test_presentation_refine_template_creates_new_version(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "status-slides", "1.0.0", "validated")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "refine-template",
+                    "--template-id",
+                    "status-slides",
+                    "--change-request",
+                    "adicionar campo de data ao slide de abertura",
+                    "--base-version",
+                    "1.0.0",
+                    "--bump",
+                    "minor",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # base version must still exist untouched
+            self.assertTrue(
+                (templates_root / "status-slides" / "versions" / "1.0.0").exists()
+            )
+            # new version created
+            self.assertIn("1.1.0", result.stdout)
+            manifest = (templates_root / "status-slides" / "template.yaml").read_text(encoding="utf-8")
+            self.assertIn("1.1.0", manifest)
+
+    def test_presentation_refine_never_overwrites_validated_base(self) -> None:
+        """Guardrail: validated base must not be modified after refine."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            self._register_template(templates_root, "exec-kpis", "2.0.0", "validated")
+            original_manifest = (
+                templates_root / "exec-kpis" / "template.yaml"
+            ).read_text(encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "refine-template",
+                    "--template-id",
+                    "exec-kpis",
+                    "--change-request",
+                    "mudar cor do titulo",
+                    "--base-version",
+                    "2.0.0",
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            # base version directory still intact
+            base_pptx = templates_root / "exec-kpis" / "versions" / "2.0.0" / "template.pptx"
+            self.assertTrue(base_pptx.exists())
+
+    @unittest.skipUnless(
+        (
+            Path.home()
+            / ".codex"
+            / "plugins"
+            / "cache"
+            / "openai-primary-runtime"
+            / "presentations"
+        ).exists()
+        or os.environ.get("PRESENTATIONS_SKILL_DIR"),
+        "presentations skill not available in this environment",
+    )
+    def test_generate_deck_from_template_requires_skill_env(self) -> None:
+        """When skill IS available, the test should pass (or be skipped)."""
+        # This test is a placeholder — it runs only when the skill is present.
+        # The actual generation test already exists as
+        # test_generate_deck_from_template_creates_pptx.
+        pass
+
+    def test_generate_deck_from_template_reports_missing_skill(self) -> None:
+        """Without the skill, runner must exit non-zero with a clear error message."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir) / "templates"
+            input_path = Path(tmpdir) / "input.json"
+            input_path.write_text(
+                json.dumps({"title": "Test", "metrics": [], "state_breakdown": {}, "highlights": []}),
+                encoding="utf-8",
+            )
+            self._register_template(templates_root, "test-tmpl", "1.0.0", "validated")
+
+            env = {k: v for k, v in os.environ.items() if k != "PRESENTATIONS_SKILL_DIR"}
+            # Use a path that certainly does not have the skill
+            env["PRESENTATIONS_SKILL_DIR"] = str(Path(tmpdir) / "nonexistent")
+            env["HOME"] = str(Path(tmpdir) / "empty-home")
+            env["USERPROFILE"] = str(Path(tmpdir) / "empty-home")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(CLI),
+                    "run",
+                    "presentation-deck-builder",
+                    "generate-deck-from-template",
+                    "--template-id",
+                    "test-tmpl",
+                    "--input",
+                    str(input_path),
+                    "--templates-root",
+                    str(templates_root),
+                ],
+                cwd=ROOT,
+                env=env,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("PRESENTATIONS_SKILL_DIR", result.stderr)
 
 
 if __name__ == "__main__":

@@ -2,9 +2,64 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
+
+
+def validate_spec_against_schema(spec: dict[str, Any], schema_path: str | Path | None = None) -> list[str]:
+    """Validate a diagram spec dict against diagram-spec.schema.json.
+
+    Returns a list of error messages (empty list = valid).
+    Uses a lightweight built-in check so there is no jsonschema dependency.
+    """
+    errors: list[str] = []
+    if not isinstance(spec, dict):
+        errors.append("Spec deve ser um objeto JSON.")
+        return errors
+
+    required_fields = ["title", "diagram_type", "nodes"]
+    for field in required_fields:
+        if field not in spec:
+            errors.append(f"Campo obrigatório ausente na spec: '{field}'.")
+
+    if "title" in spec and not isinstance(spec["title"], str):
+        errors.append("Campo 'title' deve ser string.")
+    if "diagram_type" in spec and not isinstance(spec["diagram_type"], str):
+        errors.append("Campo 'diagram_type' deve ser string.")
+    if "nodes" in spec:
+        if not isinstance(spec["nodes"], list):
+            errors.append("Campo 'nodes' deve ser array.")
+        else:
+            for index, node in enumerate(spec["nodes"]):
+                if not isinstance(node, dict):
+                    errors.append(f"Node[{index}] deve ser objeto.")
+                    continue
+                if "id" not in node:
+                    errors.append(f"Node[{index}] sem campo 'id'.")
+                if "label" not in node:
+                    errors.append(f"Node[{index}] sem campo 'label'.")
+    if "edges" in spec:
+        if not isinstance(spec["edges"], list):
+            errors.append("Campo 'edges' deve ser array.")
+        else:
+            node_ids = {str(n.get("id")) for n in spec.get("nodes", []) if isinstance(n, dict)}
+            for index, edge in enumerate(spec["edges"]):
+                if not isinstance(edge, dict):
+                    errors.append(f"Edge[{index}] deve ser objeto.")
+                    continue
+                if "source" not in edge:
+                    errors.append(f"Edge[{index}] sem campo 'source'.")
+                if "target" not in edge:
+                    errors.append(f"Edge[{index}] sem campo 'target'.")
+                src = str(edge.get("source", ""))
+                tgt = str(edge.get("target", ""))
+                if src and node_ids and src not in node_ids:
+                    errors.append(f"Edge[{index}] source '{src}' não existe nos nodes.")
+                if tgt and node_ids and tgt not in node_ids:
+                    errors.append(f"Edge[{index}] target '{tgt}' não existe nos nodes.")
+    return errors
 
 
 def validate_drawio(path: str | Path) -> dict[str, Any]:

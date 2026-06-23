@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 import unicodedata
 import zipfile
@@ -723,19 +724,73 @@ def render_quality_report(context: dict[str, Any]) -> str:
     return "# Design Quality Report\n\n" + table(["Gate", "Status"], checks) + "\n"
 
 
+def delegate_azure_read_card(card_id: str) -> dict[str, Any] | None:
+    """Delegate card reading to azure-devops-orchestrator/read-card via CLI root.
+
+    Returns parsed JSON output on success, None on failure (delegation unavailable).
+    The caller must NOT interpret None as a successful read.
+    """
+    cli = ROOT / "ai-devkit"
+    if not cli.exists():
+        return None
+    try:
+        result = subprocess.run(
+            [sys.executable, str(cli), "--json", "run", "azure-devops-orchestrator", "read-card", "--id", card_id],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return json.loads(result.stdout)
+        return None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def render_azure_context(context: dict[str, Any]) -> str:
-    return f"""# Azure Card Design Context
+    card_id = context["azure_card"] or ""
+    delegation_result = None
+    delegation_status = "nao_tentada"
 
-- Card: {context['azure_card'] or 'A informar'}
+    if card_id:
+        delegation_result = delegate_azure_read_card(card_id)
+        delegation_status = "sucesso" if delegation_result else "falhou_modo_degradado"
+
+    if delegation_result:
+        card_data = json.dumps(delegation_result, ensure_ascii=False, indent=2)
+        return f"""# Azure Card Design Context
+
+- Card: {card_id}
 - Delegated agent: azure-devops-orchestrator/read-card
-- Policy: leitura automatica quando credenciais existirem; escrita/comentario somente com confirmacao.
+- Status da delegacao: {delegation_status}
+- Policy: leitura via CLI raiz; comentario/edicao no card somente com confirmacao explicita.
 
-## Proximos Passos
+## Conteudo do Card (retornado pelo orchestrator)
 
-1. Ler card completo.
-2. Extrair objetivo, regras, anexos e comentarios relevantes.
-3. Gerar design brief.
-4. Criar perguntas de UX/produto.
+```json
+{card_data}
+```
+"""
+    else:
+        return f"""# Azure Card Design Context
+
+- Card: {card_id or 'A informar'}
+- Delegated agent: azure-devops-orchestrator/read-card
+- Status da delegacao: {delegation_status}
+- Policy: leitura via CLI raiz; comentario/edicao no card somente com confirmacao explicita.
+
+## Modo Degradado
+
+A delegacao ao azure-devops-orchestrator nao foi possivel (CLI indisponivel, agente nao encontrado
+ou credenciais ausentes). O conteudo do card NAO foi lido automaticamente.
+
+Para continuar, forneca o conteudo do card como arquivo (--source card.txt) ou texto colado no brief.
+
+## Proximos Passos (quando conteudo for fornecido manualmente)
+
+1. Extrair objetivo, criterios de aceite, anexos e comentarios relevantes.
+2. Gerar design-brief.md a partir do conteudo.
+3. Criar perguntas de UX/produto para lacunas.
 """
 
 

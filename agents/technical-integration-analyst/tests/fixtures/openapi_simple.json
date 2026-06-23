@@ -1,0 +1,23 @@
+{
+  "openapi": "3.0.0",
+  "info": {"title": "Test API", "version": "1.0.0"},
+  "paths": {
+    "/items": {
+      "get": {"summary": "List items", "operationId": "listItems"},
+      "post": {
+        "summary": "Create item",
+        "operationId": "createItem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {"name": "test-item", "value": 42}
+            }
+          }
+        }
+      }
+    },
+    "/items/{id}": {
+      "delete": {"summary": "Delete item", "operationId": "deleteItem"}
+    }
+  }
+}

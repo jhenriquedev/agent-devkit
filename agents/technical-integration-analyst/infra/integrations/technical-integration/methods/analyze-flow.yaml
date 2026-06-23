@@ -4,5 +4,8 @@ inputs:
   required: [contract]
   optional: []
 outputs:
-  fields: [steps, dependencies, cleanup]
+  fields: [flow]
+  description: >
+    Returns a list of strings (flow) embedded in the contract dict.
+    Each string is an ordered step; mutation steps are suffixed with "(mutation)".
 read_only: true

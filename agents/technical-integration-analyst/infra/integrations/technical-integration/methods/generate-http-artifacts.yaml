@@ -4,5 +4,9 @@ inputs:
   required: [contract]
   optional: [postman_output]
 outputs:
-  fields: [curl_examples, postman_collection]
+  fields: [markdown]
+  description: >
+    Returns a Markdown string with curl examples (one bash code-fence per HTTP operation).
+    When postman_output path is provided, also writes a Postman Collection v2.1 JSON file
+    with variables base_url, token, and resource_id.
 read_only: true

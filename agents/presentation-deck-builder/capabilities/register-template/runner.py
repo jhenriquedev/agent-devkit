@@ -17,6 +17,7 @@ from template_support import (  # noqa: E402
     resolve_templates_root,
     slugify,
     template_dir,
+    update_template_catalog,
     version_dir,
     write_input_schema_md,
     write_input_schema_xlsx,
@@ -60,6 +61,11 @@ def main() -> int:
         write_input_schema_md(root, template_id, args.version)
         write_usage_notes(root, template_id, args.version)
         append_changelog(root, template_id, args.version, f"Template registrado com status `{args.status}`.")
+
+        # Update the agent knowledge/template-catalog.yaml (if found)
+        agent_dir = Path(__file__).resolve().parents[3]
+        catalog_path = agent_dir / "knowledge" / "template-catalog.yaml"
+        update_template_catalog(catalog_path, template_id, name, args.version, args.status)
 
         print(f"Template registrado: {template_id} {args.version}")
         print(f"Manifest: {template_dir(root, template_id) / 'template.yaml'}")

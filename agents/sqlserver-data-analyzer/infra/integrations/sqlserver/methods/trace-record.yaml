@@ -1,8 +1,8 @@
 id: trace-record
-description: Trace a record through related tables using keys.
+description: Trace a specific record and its FK relationships.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [schema, table, key-column, key-value]
+  optional: [database, format]
 outputs:
-  fields: [result]
+  fields: [base_rows, relationships]
 read_only: true

@@ -10,7 +10,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/list-knowledge-profiles.md
-  output_template: null
+  output_template: ../../templates/coverage-assessment.md.tmpl
 inputs:
   required: []
   optional: []

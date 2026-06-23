@@ -1,0 +1,12 @@
+{
+  "brief": "Relatório mensal de vendas por região e produto",
+  "template_id": null,
+  "data_schema": {
+    "columns": ["region", "product", "sales_amount", "units_sold", "date"],
+    "types": {
+      "sales_amount": "number",
+      "units_sold": "number",
+      "date": "date"
+    }
+  }
+}

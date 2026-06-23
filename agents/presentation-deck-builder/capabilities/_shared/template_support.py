@@ -179,6 +179,152 @@ def xml_escape(value: str) -> str:
     )
 
 
+def set_current_version(root: Path, template_id: str, new_current: str) -> None:
+    """Update current_version in template.yaml."""
+    directory = template_dir(root, template_id)
+    manifest_path = directory / "template.yaml"
+    manifest = parse_template_manifest_raw(manifest_path)
+
+    lines = manifest_path.read_text(encoding="utf-8").splitlines()
+    updated = []
+    for line in lines:
+        if line.startswith("current_version:"):
+            updated.append(f"current_version: {new_current}")
+        else:
+            updated.append(line)
+    manifest_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+
+def set_version_status(root: Path, template_id: str, version: str, status: str) -> None:
+    """Update the status of a specific version entry in template.yaml."""
+    directory = template_dir(root, template_id)
+    manifest_path = directory / "template.yaml"
+
+    lines = manifest_path.read_text(encoding="utf-8").splitlines()
+    updated = []
+    in_target_version = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("- version:") and stripped.split(":", 1)[1].strip() == version:
+            in_target_version = True
+        elif stripped.startswith("- version:"):
+            in_target_version = False
+        if in_target_version and stripped.startswith("status:"):
+            indent = len(line) - len(line.lstrip())
+            updated.append(" " * indent + f"status: {status}")
+            continue
+        updated.append(line)
+    manifest_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+
+def add_version_to_manifest(
+    root: Path,
+    template_id: str,
+    version: str,
+    status: str,
+) -> None:
+    """Append a new version entry to template.yaml."""
+    directory = template_dir(root, template_id)
+    manifest_path = directory / "template.yaml"
+    existing = manifest_path.read_text(encoding="utf-8").rstrip()
+    new_entry = (
+        f"  - version: {version}\n"
+        f"    status: {status}\n"
+        f"    path: versions/{version}/template.pptx\n"
+        f"    input_schema: versions/{version}/input-schema.xlsx\n"
+        f"    created_at: {date.today().isoformat()}\n"
+        "    notes: versao criada pelo agente"
+    )
+    manifest_path.write_text(existing + "\n" + new_entry + "\n", encoding="utf-8")
+
+
+def copy_version(
+    root: Path,
+    template_id: str,
+    base_version: str,
+    new_version: str,
+    source_template: Path | None = None,
+) -> None:
+    """Create a new version directory by copying a base version."""
+    base_dir = version_dir(root, template_id, base_version)
+    new_dir = version_dir(root, template_id, new_version)
+    new_dir.mkdir(parents=True, exist_ok=False)
+
+    for item in base_dir.iterdir():
+        target = new_dir / item.name
+        if item.is_file():
+            shutil.copyfile(item, target)
+
+    if source_template is not None:
+        shutil.copyfile(source_template, new_dir / "template.pptx")
+
+
+def parse_template_manifest_raw(path: Path) -> dict:
+    return parse_template_manifest(path)
+
+
+def update_template_catalog(catalog_path: Path, template_id: str, name: str, version: str, status: str) -> None:
+    """Upsert an entry in template-catalog.yaml."""
+    if not catalog_path.exists():
+        return  # catalog is optional
+
+    text = catalog_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+
+    new_entry_lines = [
+        f"  - id: {template_id}",
+        f"    name: {name}",
+        f"    current_version: {version if status == 'validated' else ''}",
+        f"    status: {status}",
+    ]
+
+    # Check if template already in catalog
+    in_templates = False
+    templates_start = -1
+    entry_start = -1
+    entry_end = -1
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == "templates:":
+            in_templates = True
+            templates_start = i
+            continue
+        if in_templates:
+            if stripped.startswith("- id:") and stripped.split(":", 1)[1].strip() == template_id:
+                entry_start = i
+                continue
+            if entry_start >= 0 and stripped.startswith("- id:"):
+                entry_end = i
+                break
+
+    if entry_start >= 0:
+        # Replace existing entry
+        if entry_end < 0:
+            entry_end = len(lines)
+        # Find end of this entry block
+        end = entry_start + 1
+        while end < len(lines) and (not lines[end].strip().startswith("- id:") or end == entry_start):
+            if lines[end].strip().startswith("- id:") and end != entry_start:
+                break
+            end += 1
+        updated = lines[:entry_start] + new_entry_lines + lines[end:]
+    else:
+        # Append new entry
+        if templates_start >= 0:
+            # Find end of templates block
+            insert_at = len(lines)
+            for i in range(templates_start + 1, len(lines)):
+                stripped = lines[i].strip()
+                if stripped and not stripped.startswith("-") and not stripped.startswith(" "):
+                    insert_at = i
+                    break
+            updated = lines[:insert_at] + new_entry_lines + lines[insert_at:]
+        else:
+            updated = lines + ["templates:"] + new_entry_lines
+
+    catalog_path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+
+
 def parse_template_manifest(path: Path) -> dict:
     data: dict[str, object] = {"versions": []}
     current_version: dict[str, str] | None = None

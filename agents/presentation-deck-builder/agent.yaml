@@ -12,9 +12,11 @@ purpose: >
   validados.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/policies.yaml
   - knowledge/template-catalog.yaml
+  - knowledge/template-routing.md
 
 env:
   required: []

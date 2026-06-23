@@ -117,7 +117,7 @@ class SqlServerChangeRepository:
             raise SqlServerChangeRepositoryError("destructive migration requires rollback_path")
         self.ensure_control_tables()
         existing = self._query_rows(
-            f"select id, checksum, status from {control_table(self.config, 'schema_migrations')} where id = {sql_literal(migration_id)}"
+            f"select migration_id, checksum, status from {control_table(self.config, 'schema_migrations')} where migration_id = {sql_literal(migration_id)}"
         )
         if existing:
             if existing[0].get("checksum") != plan["checksum"]:
@@ -131,6 +131,12 @@ class SqlServerChangeRepository:
             status="applied",
             affected_rows=None,
             metadata={**plan, "migration_id": migration_id},
+        )
+        self._execute_sql(
+            wrap_with_safety(
+                f"insert into {control_table(self.config, 'schema_migrations')} (migration_id, name, checksum, status) values ({sql_literal(migration_id)}, {sql_literal(name or Path(path).name)}, {sql_literal(plan['checksum'])}, N'applied');",
+                self.config,
+            )
         )
         return {"dry_run": False, "migration_id": migration_id, "status": "applied", "plan": plan}
 
@@ -314,6 +320,17 @@ class SqlServerChangeRepository:
                     where_sql nvarchar(max) not null,
                     payload_json nvarchar(max) null,
                     backed_up_at datetime2 not null default sysdatetime()
+                  );
+
+                if object_id(N'{self.config.change_schema}.schema_migrations', N'U') is null
+                  create table {control_table(self.config, 'schema_migrations')} (
+                    id bigint identity(1,1) primary key,
+                    migration_id nvarchar(255) not null unique,
+                    name nvarchar(255) not null,
+                    checksum char(64) not null,
+                    status nvarchar(100) not null,
+                    executed_at datetime2 not null default sysdatetime(),
+                    executed_by sysname not null default suser_sname()
                   );
                 """,
                 self.config,

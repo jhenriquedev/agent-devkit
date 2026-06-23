@@ -1,3 +1,10 @@
 # Postgres Schemas
 
-- Database:
+- Database: <database>
+- Count: <count>
+
+| schema_name |
+|---|
+| ... |
+
+<!-- Dados coletados: list_schemas() -->

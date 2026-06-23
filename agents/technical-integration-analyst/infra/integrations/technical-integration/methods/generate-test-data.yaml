@@ -4,5 +4,9 @@ inputs:
   required: [contract]
   optional: []
 outputs:
-  fields: [valid, invalid, boundary, flow]
+  fields: [cases]
+  description: >
+    Returns {cases: [{operation, valid, invalid, boundary}]}.
+    Each case covers one detected operation; flow-dependent placeholders
+    (e.g. {{resource_id}}) appear in valid/boundary cases when flow is present.
 read_only: true

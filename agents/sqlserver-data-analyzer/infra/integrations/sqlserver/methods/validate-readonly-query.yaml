@@ -1,8 +1,8 @@
 id: validate-readonly-query
-description: Validate whether a T-SQL query is safe and read-only.
+description: Validate a query for read-only safety and inject TOP limit without executing.
 inputs:
-  required: []
-  optional: [database, schema, table, column, query, pattern, limit]
+  required: [query]
+  optional: [limit, format]
 outputs:
-  fields: [result]
+  fields: [valid, query, limit]
 read_only: true

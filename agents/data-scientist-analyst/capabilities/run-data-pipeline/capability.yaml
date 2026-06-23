@@ -10,7 +10,7 @@ entrypoint:
   runner: runner.py
   workflow: workflow.md
   prompt: ../../knowledge/prompts/run-data-pipeline.md
-  output_template: null
+  output_template: ../../knowledge/contracts/run-data-pipeline.schema.json
 inputs:
   required: [source, output]
   optional: [target-column, segment-column, sheet, json-path, max-rows, sample-rows, max-file-mb]

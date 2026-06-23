@@ -4,5 +4,8 @@ inputs:
   required: [contract]
   optional: []
 outputs:
-  fields: [artifacts, checklist]
+  fields: [markdown]
+  description: >
+    Returns a Markdown string with per-protocol sections (setup, transfer/send,
+    validation, cleanup). Protocols rest/soap/mcp are excluded (use generate-http-artifacts).
 read_only: true

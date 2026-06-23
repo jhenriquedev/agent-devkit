@@ -1,0 +1,19 @@
+id: generate-data-report
+description: >
+  Compose a data report for a table by combining profile-table (row count, null count,
+  distinct count per column) with detect-sensitive-columns (PII heuristics by column name).
+  Returns a structured report with sensitive columns, high-null columns, full column
+  profile, and inferred recommendations.
+inputs:
+  required: [schema, table]
+  optional: [database, limit_columns]
+outputs:
+  artifacts:
+    - postgres-data-report.md
+  fields:
+    - profile        # result of profile_table
+    - sensitive      # result of detect_sensitive_columns filtered to this table
+read_only: true
+composed_of:
+  - profile-table
+  - detect-sensitive-columns

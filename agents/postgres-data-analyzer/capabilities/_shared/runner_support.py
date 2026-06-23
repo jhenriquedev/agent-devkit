@@ -67,11 +67,65 @@ def render_table(rows: list[dict[str, Any]], columns: list[str] | None = None, l
     return lines
 
 
+def sensitive_kind_for_column(column: str) -> str | None:
+    """Return the PII kind for a column name, or None if not sensitive."""
+    lowered = column.lower()
+    if "cpf" in lowered:
+        return "cpf"
+    if "cnpj" in lowered:
+        return "cnpj"
+    if "document" in lowered or "documento" in lowered:
+        return "document"
+    if "email" in lowered or "e_mail" in lowered:
+        return "email"
+    if "phone" in lowered or "telefone" in lowered or "celular" in lowered or "fone" in lowered:
+        return "phone"
+    if "password" in lowered or "senha" in lowered or "passwd" in lowered or "pwd" in lowered:
+        return "password"
+    if "token" in lowered or "secret" in lowered or "api_key" in lowered or "apikey" in lowered:
+        return "token"
+    if "address" in lowered or "endereco" in lowered or "logradouro" in lowered:
+        return "address"
+    # Metadata/structural columns that happen to end in _name are NOT person PII
+    _metadata_name_cols = {
+        "table_name", "column_name", "schema_name", "constraint_name",
+        "index_name", "indexname", "database_name", "datname",
+        "relationship_name", "owner_name", "sequence_name", "type_name",
+        "role_name", "user_name",
+    }
+    if lowered in _metadata_name_cols:
+        return None
+    if (
+        lowered in ("name", "nome", "full_name", "fullname", "first_name", "last_name",
+                    "firstname", "lastname", "sobrenome", "razao_social")
+        or "customer_name" in lowered
+        or "client_name" in lowered
+        or "person_name" in lowered
+        or "pessoa_nome" in lowered
+    ):
+        return "name"
+    return None
+
+
+# Kinds always masked in human-readable row output
+_ALWAYS_MASK_KINDS = {"cpf", "cnpj", "document"}
+# Kinds masked/omitted when feasible (redacted marker shown)
+_MASK_WHEN_FEASIBLE_KINDS = {"email", "phone", "name", "address", "token", "password"}
+
+
 def mask_if_sensitive(column: str, value: Any) -> str:
     text = value_or_dash(value)
-    lowered = column.lower()
-    if "cpf" in lowered or "document" in lowered:
+    kind = sensitive_kind_for_column(column)
+    if kind is None:
+        return text
+    if kind == "cpf":
         return mask_cpf(text)
+    if kind == "cnpj":
+        return mask_cnpj(text)
+    if kind in _ALWAYS_MASK_KINDS:
+        return mask_cpf(text)  # fallback for generic document
+    if kind in _MASK_WHEN_FEASIBLE_KINDS:
+        return mask_generic_pii(text, kind)
     return text
 
 
@@ -80,6 +134,20 @@ def mask_cpf(value: str) -> str:
     if len(digits) != 11:
         return value
     return f"{digits[:3]}.***.***-{digits[-2:]}"
+
+
+def mask_cnpj(value: str) -> str:
+    digits = re.sub(r"\D", "", value)
+    if len(digits) != 14:
+        return value
+    return f"{digits[:2]}.***.***/****-{digits[-2:]}"
+
+
+def mask_generic_pii(value: str, kind: str) -> str:
+    """Redact a PII value, keeping a short hint of the kind."""
+    if value == "-":
+        return value
+    return f"[{kind.upper()} REDACTED]"
 
 
 def render_key_values(payload: dict[str, Any], keys: list[str]) -> list[str]:

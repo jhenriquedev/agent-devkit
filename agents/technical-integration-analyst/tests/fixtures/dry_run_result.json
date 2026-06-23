@@ -1,0 +1,8 @@
+{
+  "execute": false,
+  "base_url": null,
+  "results": [
+    {"operation": "GET /items", "status": "dry-run", "mutation": false},
+    {"operation": "POST /items", "status": "dry-run", "mutation": true}
+  ]
+}

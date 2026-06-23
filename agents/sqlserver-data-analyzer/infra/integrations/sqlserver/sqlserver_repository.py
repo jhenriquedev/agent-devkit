@@ -248,8 +248,32 @@ class SqlServerRepository:
 
     def explain_query_plan(self, *, query: str) -> dict[str, Any]:
         safe_query = validate_readonly_query(query)
-        rows = self._query_rows(f"set showplan_text on; {safe_query}; set showplan_text off;")
+        rows = self._query_showplan(safe_query)
         return {"query": safe_query, "plan": rows}
+
+    def _query_showplan(self, query: str) -> list[dict[str, Any]]:
+        """Execute SHOWPLAN_TEXT in isolated batches as required by T-SQL."""
+        try:
+            import pyodbc  # type: ignore
+        except ImportError as exc:
+            raise SqlServerRepositoryError("pyodbc is required for real SQL Server calls") from exc
+        try:
+            with pyodbc.connect(
+                self.config.connection_string,
+                timeout=max(1, self.config.statement_timeout_ms // 1000),
+            ) as conn:
+                cursor = conn.cursor()
+                cursor.execute(f"set lock_timeout {int(self.config.lock_timeout_ms)}")
+                # T-SQL requires SET SHOWPLAN_TEXT ON as the sole statement in
+                # its batch; send each statement independently.
+                cursor.execute("set showplan_text on")
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description or []]
+                rows = [dict(zip(columns, row)) for row in cursor.fetchall()] if columns else []
+                cursor.execute("set showplan_text off")
+                return rows
+        except Exception as exc:
+            raise SqlServerRepositoryError(str(exc)) from exc
 
     def sample_table(self, *, schema: str, table: str, limit: int = 20) -> dict[str, Any]:
         query = f"select top ({int(limit)}) * from {qualified_name(schema, table)}"

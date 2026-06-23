@@ -10,7 +10,7 @@ import sys
 SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
 sys.path.insert(0, str(SHARED_DIR))
 
-from runner_support import count_patterns, event_rows, fixture_events, get_repository, load_fixture, print_error, render_counter, search_kwargs, value_or_dash, write_output
+from runner_support import count_patterns, event_rows, fixture_events, get_repository, load_fixture, print_error, render_buckets, render_counter, search_kwargs, value_or_dash, write_output
 
 
 def main() -> int:
@@ -22,13 +22,39 @@ def main() -> int:
             payload = load_fixture(args.fixture)
             events = fixture_events(payload)
             count = payload.get("count", len(events))
+            terms_buckets = payload.get("terms_buckets") or []
+            timeline_buckets = payload.get("timeline_buckets") or []
         else:
             require_scope(args)
             repo = get_repository()
-            payload = repo.search_events(**search_kwargs(args))
+            kwargs = search_kwargs(args)
+            payload = repo.search_events(**kwargs)
             events = payload.get("events") or []
-            count = repo.count_events(**search_kwargs(args)).get("count")
-        write_output(render(payload, events, count, args), args.output)
+            count = repo.count_events(**kwargs).get("count")
+            terms_result = repo.aggregate_terms(
+                source=args.source,
+                field="log.level",
+                start_time=args.start_time,
+                end_time=args.end_time,
+                service=args.service,
+                environment=args.environment,
+                level=args.level,
+                query_text=args.query,
+                time_field=args.time_field,
+            )
+            terms_buckets = terms_result.get("buckets") or []
+            timeline_result = repo.aggregate_timeline(
+                source=args.source,
+                start_time=args.start_time,
+                end_time=args.end_time,
+                service=args.service,
+                environment=args.environment,
+                level=args.level,
+                query_text=args.query,
+                time_field=args.time_field,
+            )
+            timeline_buckets = timeline_result.get("buckets") or []
+        write_output(render(payload, events, count, terms_buckets, timeline_buckets, args), args.output)
     except Exception as exc:
         return print_error(exc)
     return 0
@@ -54,7 +80,7 @@ def require_scope(args: argparse.Namespace) -> None:
         raise ValueError("--source, --from, and --to are required when --fixture is not provided")
 
 
-def render(payload: dict, events: list[dict], count: int, args: argparse.Namespace) -> str:
+def render(payload: dict, events: list[dict], count: int, terms_buckets: list[dict], timeline_buckets: list[dict], args: argparse.Namespace) -> str:
     lines = [
         "# Elasticsearch Log Report",
         "",
@@ -72,6 +98,16 @@ def render(payload: dict, events: list[dict], count: int, args: argparse.Namespa
         f"- Matching events: {value_or_dash(count)}",
         f"- Loaded samples: {len(events)}",
         f"- Limit reached: {value_or_dash(len(events) >= args.limit if args.limit else False)}",
+        "",
+        "## Distributions",
+        "",
+        "### By Level",
+        "",
+        *render_buckets(terms_buckets),
+        "",
+        "### Timeline",
+        "",
+        *render_buckets(timeline_buckets, key_name="key_as_string"),
         "",
         "## Patterns",
         "",

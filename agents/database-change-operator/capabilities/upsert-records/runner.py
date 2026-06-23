@@ -20,6 +20,8 @@ def main() -> int:
     parser.add_argument("--key-column", required=True)
     parser.add_argument("--input", required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--confirm-destructive", action="store_true")
+    parser.add_argument("--max-affected-rows", type=int, default=1000)
     parser.add_argument("--database")
     parser.add_argument("--fixture")
     parser.add_argument("--output")
@@ -34,6 +36,8 @@ def main() -> int:
                 key_column=args.key_column,
                 input_path=args.input,
                 execute=args.execute,
+                confirm_destructive=args.confirm_destructive,
+                max_affected_rows=args.max_affected_rows,
             )
         )
         lines = [

@@ -11,9 +11,11 @@ purpose: >
   conciliacoes, relatorios tecnicos e artefatos reproduziveis.
 
 default_context:
+  - knowledge/system.md
   - knowledge/context.md
   - knowledge/data-policies.md
   - knowledge/analysis-methods.md
+  - knowledge/health-checklist.md
 
 env:
   required: []

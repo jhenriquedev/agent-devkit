@@ -93,6 +93,17 @@ class DatabaseChangeRunnerSmokeTest(unittest.TestCase):
         self.assertIn("# Update Records", result.stdout)
         self.assertIn("Where: id = 1", result.stdout)
 
+    def test_update_records_dry_run_shows_preview_label(self) -> None:
+        """G4: dry-run output must expose an affected rows preview label."""
+        result = run_capability(
+            "update-records",
+            {"dry_run": True, "where_sql": "status = 'active'", "affected_rows_preview": 42, "plan": PLAN},
+            ["--schema", "public", "--table", "orders", "--set-json", '{"status":"closed"}', "--where", "status = 'active'"],
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Affected rows (preview)", result.stdout)
+        self.assertIn("42", result.stdout)
+
     def test_migration_report_from_fixture(self) -> None:
         result = run_capability(
             "migration-report",
