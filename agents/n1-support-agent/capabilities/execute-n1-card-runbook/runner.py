@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 import sys
+from typing import Any
 
 SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
 sys.path.insert(0, str(SHARED_DIR))
@@ -14,6 +16,7 @@ sys.path.insert(0, str(SHARED_DIR))
 from runner_support import (  # noqa: E402
     DEFAULT_ANALYSIS_TAG,
     build_contract,
+    mask_cpf,
     plan_or_apply_azure_actions,
     print_error,
     read_azure_card,
@@ -66,13 +69,52 @@ def main() -> int:
             bpo_check=bpo_check,
         )
         if args.format == "json":
-            content = json.dumps(contract, ensure_ascii=False, indent=2) + "\n"
+            content = json.dumps(redact_contract_for_json(contract), ensure_ascii=False, indent=2) + "\n"
         else:
             content = render_contract_markdown(contract, card_markdown)
         write_output(content, args.output)
     except Exception as exc:
         return print_error(exc)
     return 0
+
+
+def redact_contract_for_json(value: Any, key: str = "") -> Any:
+    if isinstance(value, dict):
+        return {item_key: redact_contract_for_json(item_value, item_key) for item_key, item_value in value.items()}
+    if isinstance(value, list):
+        return [redact_contract_for_json(item, key) for item in value]
+    if is_secret_key(key):
+        return "***REDACTED***" if value is not None else None
+    if isinstance(value, str):
+        return redact_sensitive_text(value)
+    return value
+
+
+def is_secret_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(
+        term in lowered
+        for term in (
+            "password",
+            "passwd",
+            "senha",
+            "secret",
+            "token",
+            "api_key",
+            "apikey",
+            "pat",
+            "connection_string",
+        )
+    )
+
+
+def redact_sensitive_text(value: str) -> str:
+    text = re.sub(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b", lambda match: mask_cpf(match.group(0)), value)
+    return re.sub(
+        r"(?i)\b(token|secret|api[_-]?key|password|pat|connection_string)\s*[:=]\s*[^\s,;]+",
+        lambda match: f"{match.group(1)}=***REDACTED***",
+        text,
+    )
 
 
 if __name__ == "__main__":

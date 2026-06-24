@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -154,6 +155,42 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertIn("technical-integration-analyst", agents)
         self.assertIn("topdesk-orchestrator", agents)
         self.assertIn("figma-ui-ux-product-designer", agents)
+
+    def test_run_capability_times_out_slow_runner(self) -> None:
+        agent_id = "timeout-test-agent"
+        capability_id = "sleep-runner"
+        agent_dir = ROOT / "agents" / agent_id
+        capability_dir = agent_dir / "capabilities" / capability_id
+        try:
+            capability_dir.mkdir(parents=True)
+            (agent_dir / "agent.yaml").write_text(
+                f"id: {agent_id}\nkind: agent\nname: Timeout Test Agent\nstatus: test\n",
+                encoding="utf-8",
+            )
+            (capability_dir / "capability.yaml").write_text(
+                f"id: {capability_id}\nname: Sleep Runner\nentrypoint:\n  runner: runner.py\n",
+                encoding="utf-8",
+            )
+            (capability_dir / "runner.py").write_text(
+                "import time\n\ntime.sleep(2)\nprint('completed')\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(CLI), "run", agent_id, capability_id],
+                cwd=ROOT,
+                env=os.environ | {"AI_DEVKIT_RUN_TIMEOUT": "1"},
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=CLI_TIMEOUT_SECONDS,
+            )
+        finally:
+            shutil.rmtree(agent_dir, ignore_errors=True)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"runner timed out after 1s: {agent_id}/{capability_id}", result.stderr)
 
     def test_lists_all_presentation_deck_builder_capabilities(self) -> None:
         result = subprocess.run(

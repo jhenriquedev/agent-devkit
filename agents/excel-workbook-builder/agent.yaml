@@ -26,6 +26,43 @@ capability_context:
     - knowledge/source-routing.md
   templates:
     - knowledge/template-catalog.yaml
+capabilities:
+  - add-formulas-and-validations
+  - compare-template-versions
+  - create-adjustment-suggestions
+  - create-pivot-summary
+  - create-summary-dashboard
+  - create-template
+  - create-template-version
+  - deprecate-template-version
+  - explain-reconciliation-differences
+  - export-workbook-artifacts
+  - generate-reconciliation-report
+  - generate-template-input-file
+  - generate-workbook-from-data
+  - generate-workbook-from-template
+  - ingest-source-document
+  - ingest-workbook-data
+  - inspect-template
+  - list-template-versions
+  - list-templates
+  - map-source-to-template
+  - normalize-tabular-data
+  - plan-workbook
+  - promote-template-version
+  - reconcile-datasets
+  - refine-generated-workbook
+  - refine-template
+  - refresh-workbook-data
+  - register-template
+  - render-workbook-preview
+  - request-database-data
+  - review-generated-workbook
+  - run-workbook-operation
+  - scan-formula-errors
+  - update-existing-workbook
+  - validate-reconciliation-rules
+  - validate-source-data
 capabilities_dir: capabilities
 templates_dir: templates
 infra_dir: infra

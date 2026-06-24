@@ -77,14 +77,21 @@ class SqlServerDataAnalyzerCliTest(unittest.TestCase):
     def test_run_readonly_query_can_render_json_from_fixture(self) -> None:
         result = run_capability(
             "run-readonly-query",
-            {"row_count": 1, "limit": 100, "rows": [{"cpf": "12345678909", "name": "Ana"}]},
+            {
+                "row_count": 1,
+                "limit": 100,
+                "rows": [{"cpf": "12345678909", "name": "Ana", "api_key": "sk-prod-secret"}],
+            },
             ["--format", "json"],
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["row_count"], 1)
-        self.assertEqual(payload["rows"][0]["cpf"], "12345678909")
+        self.assertEqual(payload["rows"][0]["cpf"], "123.***.***-09")
+        self.assertEqual(payload["rows"][0]["api_key"], "***REDACTED***")
+        self.assertNotIn("12345678909", result.stdout)
+        self.assertNotIn("sk-prod-secret", result.stdout)
 
     def test_suggest_joins_from_fixture(self) -> None:
         result = run_capability(

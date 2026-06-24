@@ -181,6 +181,7 @@ def run_integration_tests() -> int:
     add_source_args(parser)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--confirm-mutations", action="store_true")
+    parser.add_argument("--allow-host", action="append", default=[])
     parser.add_argument("--fixture")
     add_output_arg(parser)
     args = parser.parse_args()
@@ -195,6 +196,7 @@ def run_integration_tests() -> int:
                 base_url=args.base_url,
                 execute=args.execute,
                 confirm_mutations=args.confirm_mutations,
+                allowed_hosts=args.allow_host,
             )
         write_output(render_test_report(result), args.output)
     except Exception as exc:

@@ -25,8 +25,8 @@ O MVP cobre analise read-only:
 ./ai-devkit run elasticsearch-log-analyzer generate-log-report --source "logs-prod-*" --from "now-6h" --to "now" --service "checkout-api"
 ```
 
-O `.env` guarda credenciais e endpoint. O indice, servico, ambiente e periodo
-devem ser informados por comando.
+O `.env.local` guarda credenciais e endpoint locais, com `.env` como fallback.
+O indice, servico, ambiente e periodo devem ser informados por comando.
 
 ## Configuracao
 
@@ -37,7 +37,17 @@ Variaveis aceitas:
 - `ELASTIC_API_KEY`
 - `EC_API_KEY`
 - `ELASTICSEARCH_DEFAULT_TIME_FIELD`
+- `ELASTICSEARCH_ACCESS_MODE`
+- `ELASTICSEARCH_CLOUD_PROXY`
+- `ELASTICSEARCH_CLOUD_API_BASE_URL`
+- `ELASTICSEARCH_CLOUD_DEPLOYMENT_ID`
+- `ELASTICSEARCH_CLOUD_RESOURCE_REF_ID`
 
 `EC_API_KEY` foi mantida porque e o nome usado pelo ambiente Elastic encontrado
 no shell local. Para chamadas diretas ao Elasticsearch, prefira configurar
 `ELASTICSEARCH_URL` e `ELASTICSEARCH_API_KEY`.
+
+Para Elastic Cloud via Management Proxy, use `ELASTICSEARCH_ACCESS_MODE=cloud-proxy`
+ou `ELASTICSEARCH_CLOUD_PROXY=true`. Se `ELASTICSEARCH_URL` nao estiver definido,
+a URL base e derivada de `ELASTICSEARCH_CLOUD_API_BASE_URL`,
+`ELASTICSEARCH_CLOUD_DEPLOYMENT_ID` e `ELASTICSEARCH_CLOUD_RESOURCE_REF_ID`.

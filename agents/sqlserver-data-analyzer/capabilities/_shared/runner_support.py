@@ -32,7 +32,7 @@ def run_capability(capability: str) -> int:
     try:
         payload = load_fixture(args.fixture) if args.fixture else execute(capability, args)
         content = (
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(redact_payload_for_json(payload), ensure_ascii=False, indent=2) + "\n"
             if args.format == "json"
             else render(capability, payload)
         )
@@ -280,6 +280,61 @@ def mask_if_sensitive(column: str, value: Any) -> str:
     if any(term in lowered for term in ("token", "secret", "password", "senha", "passwd", "api_key", "apikey")):
         return "***"
     return text
+
+
+def redact_payload_for_json(value: Any, key: str = "") -> Any:
+    if isinstance(value, dict):
+        return {item_key: redact_payload_for_json(item_value, item_key) for item_key, item_value in value.items()}
+    if isinstance(value, list):
+        return [redact_payload_for_json(item, key) for item in value]
+    if not key:
+        return value
+    if is_secret_key(key):
+        return "***REDACTED***" if value is not None else None
+    if is_sensitive_data_key(key):
+        return mask_if_sensitive(key, value)
+    return value
+
+
+def is_secret_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(
+        term in lowered
+        for term in (
+            "password",
+            "passwd",
+            "senha",
+            "secret",
+            "token",
+            "api_key",
+            "apikey",
+            "pat",
+            "connection_string",
+        )
+    )
+
+
+def is_sensitive_data_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(
+        term in lowered
+        for term in (
+            "cpf",
+            "cnpj",
+            "document",
+            "tax_id",
+            "email",
+            "mail",
+            "telefone",
+            "phone",
+            "celular",
+            "mobile",
+            "endereco",
+            "address",
+            "cep",
+            "zipcode",
+        )
+    ) or lowered in {"name", "full_name"} or lowered.endswith("_name") or lowered.startswith("name_")
 
 
 def mask_cpf(value: str) -> str:

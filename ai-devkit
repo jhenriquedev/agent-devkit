@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -107,6 +108,11 @@ def canonical_command(command: str) -> str:
         "r": "run",
     }
     return aliases.get(command, command)
+
+
+def runner_timeout_seconds() -> int:
+    raw = os.environ.get("AI_DEVKIT_RUN_TIMEOUT", "300")
+    return int(raw) if raw.isdigit() and int(raw) > 0 else 300
 
 
 def list_agents() -> list[dict[str, Any]]:
@@ -233,22 +239,28 @@ def run_capability(
     if not runner_path.exists():
         raise DevKitError(f"runner not found: {runner_path.relative_to(ROOT)}")
 
-    if capture_output:
-        process = subprocess.run(
-            [sys.executable, str(runner_path), *capability_args],
-            cwd=ROOT,
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    else:
-        process = subprocess.run(
-            [sys.executable, str(runner_path), *capability_args],
-            cwd=ROOT,
-            check=False,
-            text=True,
-        )
+    timeout_seconds = runner_timeout_seconds()
+    try:
+        if capture_output:
+            process = subprocess.run(
+                [sys.executable, str(runner_path), *capability_args],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout_seconds,
+            )
+        else:
+            process = subprocess.run(
+                [sys.executable, str(runner_path), *capability_args],
+                cwd=ROOT,
+                check=False,
+                text=True,
+                timeout=timeout_seconds,
+            )
+    except subprocess.TimeoutExpired as exc:
+        raise DevKitError(f"runner timed out after {timeout_seconds}s: {agent.get('id')}/{capability_id}") from exc
     if process.returncode != 0:
         stderr = process.stderr if capture_output else ""
         raise DevKitError((stderr or "").strip() or f"runner failed: {process.returncode}")

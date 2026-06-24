@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import json
 import importlib.util
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 # Resolve paths without installing the package
 AGENT_DIR = Path(__file__).resolve().parents[1]
@@ -37,7 +39,7 @@ from technical_integration_repository import (  # noqa: E402
     primary_protocol,
 )
 from http_api_repository import HttpApiRepository, HttpApiRepositoryError  # noqa: E402
-from document_source_repository import DocumentSourceRepository  # noqa: E402
+from document_source_repository import DocumentSourceError, DocumentSourceRepository  # noqa: E402
 
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -184,6 +186,66 @@ class TestMaskSecrets(unittest.TestCase):
         self.assertNotIn("s3cr3tP@ss!", text)
 
 
+class TestDocumentSourceLimits(unittest.TestCase):
+    def test_url_source_above_byte_limit_raises(self) -> None:
+        repo = DocumentSourceRepository()
+
+        class FakeResponse:
+            headers = {"content-type": "text/plain"}
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_: object) -> None:
+                return None
+
+            def read(self, size: int | None = None) -> bytes:
+                data = b"x" * 11
+                return data if size is None else data[:size]
+
+        with patch.dict(os.environ, {"TECH_INTEGRATION_MAX_SOURCE_BYTES": "10"}, clear=False), patch(
+            "urllib.request.urlopen", return_value=FakeResponse()
+        ):
+            with self.assertRaises(DocumentSourceError):
+                repo.load_sources(url="https://docs.example.com/openapi.txt")
+
+    def test_file_source_above_byte_limit_raises(self) -> None:
+        repo = DocumentSourceRepository()
+        with tempfile.TemporaryDirectory() as tmpdir, patch.dict(
+            os.environ, {"TECH_INTEGRATION_MAX_SOURCE_BYTES": "10"}, clear=False
+        ):
+            path = Path(tmpdir) / "large.md"
+            path.write_text("x" * 11, encoding="utf-8")
+
+            with self.assertRaises(DocumentSourceError):
+                repo.load_sources(file=str(path))
+
+    def test_directory_above_source_count_limit_raises(self) -> None:
+        repo = DocumentSourceRepository()
+        with tempfile.TemporaryDirectory() as tmpdir, patch.dict(
+            os.environ, {"TECH_INTEGRATION_MAX_SOURCES": "2"}, clear=False
+        ):
+            base = Path(tmpdir)
+            for index in range(3):
+                (base / f"doc-{index}.md").write_text(f"# Doc {index}", encoding="utf-8")
+
+            with self.assertRaises(DocumentSourceError):
+                repo.load_sources(directory=str(base))
+
+    def test_directory_above_depth_limit_raises(self) -> None:
+        repo = DocumentSourceRepository()
+        with tempfile.TemporaryDirectory() as tmpdir, patch.dict(
+            os.environ, {"TECH_INTEGRATION_MAX_DIRECTORY_DEPTH": "1"}, clear=False
+        ):
+            base = Path(tmpdir)
+            nested = base / "level-1" / "level-2"
+            nested.mkdir(parents=True)
+            (nested / "deep.md").write_text("# Deep", encoding="utf-8")
+
+            with self.assertRaises(DocumentSourceError):
+                repo.load_sources(directory=str(base))
+
+
 # ---------------------------------------------------------------------------
 # Guardrails: run_tests (HttpApiRepository)
 # ---------------------------------------------------------------------------
@@ -239,6 +301,129 @@ class TestRunTestsGuardrails(unittest.TestCase):
         self.assertIn("execute", result)
         self.assertIn("base_url", result)
         self.assertIn("results", result)
+
+    def test_execute_requires_allowed_hosts(self) -> None:
+        repo = HttpApiRepository()
+        with self.assertRaises(HttpApiRepositoryError):
+            repo.run_tests(
+                contract={"base_url": "https://api.example.com", "operations": [{"method": "GET", "path": "/items"}]},
+                execute=True,
+            )
+
+    def test_blocks_metadata_service_destination(self) -> None:
+        repo = HttpApiRepository()
+        with self.assertRaises(HttpApiRepositoryError):
+            repo.run_tests(
+                contract={"base_url": "http://169.254.169.254/latest/meta-data", "operations": [{"method": "GET", "path": "/"}]},
+                execute=True,
+                allowed_hosts=["169.254.169.254"],
+            )
+
+    def test_blocks_loopback_ip_destination(self) -> None:
+        repo = HttpApiRepository()
+        with self.assertRaises(HttpApiRepositoryError):
+            repo.run_tests(
+                contract={"base_url": "http://127.0.0.1:8080", "operations": [{"method": "GET", "path": "/health"}]},
+                execute=True,
+                allowed_hosts=["127.0.0.1"],
+            )
+
+    def test_blocks_localhost_destination(self) -> None:
+        repo = HttpApiRepository()
+        with self.assertRaises(HttpApiRepositoryError):
+            repo.run_tests(
+                contract={"base_url": "http://localhost:8080", "operations": [{"method": "GET", "path": "/health"}]},
+                execute=True,
+                allowed_hosts=["localhost"],
+            )
+
+    def test_blocks_unsupported_scheme(self) -> None:
+        repo = HttpApiRepository()
+        with self.assertRaises(HttpApiRepositoryError):
+            repo.run_tests(
+                contract={"base_url": "ftp://example.com", "operations": [{"method": "GET", "path": "/items"}]},
+                execute=True,
+                allowed_hosts=["example.com"],
+            )
+
+    def test_allows_https_destination_when_host_is_allowlisted(self) -> None:
+        repo = HttpApiRepository()
+
+        class FakeResponse:
+            status = 200
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_: object) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return b'{"ok":true}'
+
+        with patch("socket.getaddrinfo", return_value=[]), patch("urllib.request.urlopen", return_value=FakeResponse()):
+            result = repo.run_tests(
+                contract={"base_url": "https://api.example.com", "operations": [{"method": "GET", "path": "/items"}]},
+                execute=True,
+                allowed_hosts=["api.example.com"],
+            )
+
+        self.assertEqual(result["results"][0]["status"], 200)
+
+    def test_allowed_hosts_can_come_from_env(self) -> None:
+        repo = HttpApiRepository()
+
+        class FakeResponse:
+            status = 204
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *_: object) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return b""
+
+        with patch.dict(os.environ, {"TECH_INTEGRATION_ALLOWED_HOSTS": "api.example.com"}, clear=False), patch(
+            "socket.getaddrinfo", return_value=[]
+        ), patch("urllib.request.urlopen", return_value=FakeResponse()):
+            result = repo.run_tests(
+                contract={"base_url": "https://api.example.com", "operations": [{"method": "GET", "path": "/items"}]},
+                execute=True,
+            )
+
+        self.assertEqual(result["results"][0]["status"], 204)
+
+    def test_runner_accepts_allow_host_argument(self) -> None:
+        module = load_runner_support()
+        captured: dict[str, object] = {}
+
+        def fake_extract_contract(args: object) -> dict:
+            return {"base_url": getattr(args, "base_url"), "operations": [{"method": "GET", "path": "/items"}]}
+
+        class FakeHttpApiRepository:
+            def run_tests(self, **kwargs: object) -> dict:
+                captured.update(kwargs)
+                return {"execute": kwargs["execute"], "base_url": kwargs["base_url"], "results": []}
+
+        argv = [
+            "runner",
+            "--text",
+            "GET /items",
+            "--base-url",
+            "https://api.example.com",
+            "--execute",
+            "--allow-host",
+            "api.example.com",
+        ]
+        with patch.object(sys, "argv", argv), patch.object(module, "extract_contract", side_effect=fake_extract_contract), patch.object(
+            module, "HttpApiRepository", return_value=FakeHttpApiRepository()
+        ), patch.object(module, "write_output"):
+            code = module.run_integration_tests()
+
+        self.assertEqual(code, 0)
+        self.assertEqual(captured["allowed_hosts"], ["api.example.com"])
 
 
 # ---------------------------------------------------------------------------

@@ -139,6 +139,33 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         self.assertEqual(payload["runbook"], "n1-card-operational-triage")
         self.assertEqual(payload["decision"]["status"], "needs_more_info")
 
+    def test_execute_card_runbook_json_redacts_sensitive_values(self) -> None:
+        fixture = {
+            "work_item": {
+                "id": 43,
+                "title": "Cliente CPF 12345678909 com erro no cadastro token=raw-secret-token",
+                "state": "New",
+                "board_column": "A Iniciar",
+                "tags": [],
+                "description": "CPF 12345678909 falhou.",
+            },
+            "comments": {"comments": []},
+        }
+
+        result = run_capability(
+            "execute-n1-card-runbook",
+            fixture,
+            ["--project", "Sustentacao", "--card", "43", "--format", "json"],
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertIn("123.***.***-09", payload["card"]["title"])
+        self.assertIn("***REDACTED***", payload["card"]["title"])
+        self.assertIn("123.***.***-09", result.stdout)
+        self.assertNotIn("12345678909", result.stdout)
+        self.assertNotIn("raw-secret-token", result.stdout)
+
     def test_execute_card_runbook_enriches_contract_with_mcc_knowledge(self) -> None:
         fixture = {
             "work_item": {

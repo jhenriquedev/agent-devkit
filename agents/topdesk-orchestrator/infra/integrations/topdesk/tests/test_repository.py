@@ -85,6 +85,40 @@ class TopdeskRepositoryTest(unittest.TestCase):
         self.assertEqual(normalized["caller"], "Ana Silva")
         self.assertEqual(normalized["creation_date"], "2026-06-21T10:00:00Z")
 
+    def test_request_does_not_pass_password_in_curl_argv_and_sets_timeout(self) -> None:
+        secret = "local-topdesk-password"
+        repo = TopdeskRepository(
+            TopdeskConfig(
+                base_url="https://example.topdesk.net",
+                username="agent",
+                app_password=secret,
+            )
+        )
+        captured_command: list[str] = []
+        captured_timeout: list[int | None] = []
+        captured_curl_config: list[str] = []
+
+        def fake_run(command: list[str], **kwargs: object) -> object:
+            captured_command[:] = command
+            captured_timeout[:] = [kwargs.get("timeout")]  # type: ignore[list-item]
+            if "--config" in command:
+                captured_curl_config[:] = [Path(command[command.index("--config") + 1]).read_text(encoding="utf-8")]
+            response_path = Path(command[command.index("-o") + 1])
+            response_path.write_text("[]", encoding="utf-8")
+            return type("Completed", (), {"returncode": 0, "stdout": "200", "stderr": ""})()
+
+        with patch("subprocess.run", side_effect=fake_run):
+            repo.list_incidents(limit=1)
+
+        self.assertNotIn(secret, captured_command)
+        self.assertNotIn(f"agent:{secret}", captured_command)
+        self.assertIn("--config", captured_command)
+        self.assertIn("--max-time", captured_command)
+        self.assertEqual(captured_command[captured_command.index("--max-time") + 1], "30")
+        self.assertEqual(captured_timeout[0], 35)
+        self.assertTrue(captured_curl_config)
+        self.assertIn(f'user = "agent:{secret}"', captured_curl_config[0])
+
 
 if __name__ == "__main__":
     unittest.main()

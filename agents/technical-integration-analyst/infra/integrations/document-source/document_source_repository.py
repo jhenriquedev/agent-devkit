@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 import urllib.request
 from dataclasses import dataclass
@@ -64,6 +65,8 @@ class DocumentSourceRepository:
     ) -> dict[str, Any]:
         sources: list[DocumentSource] = []
         ignored: list[str] = []
+        max_sources = int_env("TECH_INTEGRATION_MAX_SOURCES", 25)
+        max_depth = int_env("TECH_INTEGRATION_MAX_DIRECTORY_DEPTH", 4)
 
         if text:
             sources.append(DocumentSource("inline-1", "inline-text", "text", mask_secrets(text), text))
@@ -76,9 +79,12 @@ class DocumentSourceRepository:
             if not base.exists() or not base.is_dir():
                 raise DocumentSourceError(f"directory not found: {directory}")
             for path in sorted(item for item in base.rglob("*") if item.is_file()):
+                validate_directory_depth(base, path, max_depth)
                 if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
                     ignored.append(str(path))
                     continue
+                if len(sources) >= max_sources:
+                    raise DocumentSourceError(f"source limit exceeded: max {max_sources}")
                 sources.append(self._load_file(path, len(sources) + 1))
 
         if not sources:
@@ -91,9 +97,12 @@ class DocumentSourceRepository:
         }
 
     def _load_url(self, url: str, index: int) -> DocumentSource:
+        max_bytes = int_env("TECH_INTEGRATION_MAX_SOURCE_BYTES", 5_242_880)
         with urllib.request.urlopen(url, timeout=30) as response:  # nosec - user supplied docs URL.
-            raw_bytes = response.read()
+            raw_bytes = response.read(max_bytes + 1)
             content_type = response.headers.get("content-type", "")
+        if len(raw_bytes) > max_bytes:
+            raise DocumentSourceError(f"source exceeds max bytes: {url}")
         raw = raw_bytes.decode("utf-8-sig", errors="replace")
         source_type = detect_source_type(url, content_type, raw)
         return DocumentSource(
@@ -108,6 +117,9 @@ class DocumentSourceRepository:
     def _load_file(self, path: Path, index: int) -> DocumentSource:
         if not path.exists() or not path.is_file():
             raise DocumentSourceError(f"file not found: {path}")
+        max_bytes = int_env("TECH_INTEGRATION_MAX_SOURCE_BYTES", 5_242_880)
+        if path.stat().st_size > max_bytes:
+            raise DocumentSourceError(f"source exceeds max bytes: {path}")
         suffix = path.suffix.lower()
         if suffix == ".pdf":
             text = extract_pdf_text(path)
@@ -115,6 +127,18 @@ class DocumentSourceRepository:
         raw = path.read_text(encoding="utf-8-sig", errors="replace")
         source_type = detect_source_type(str(path), "", raw)
         return DocumentSource(f"source-{index}", str(path), source_type, normalize_text(raw, source_type), raw)
+
+
+def int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name, "")
+    return int(raw) if raw.isdigit() and int(raw) > 0 else default
+
+
+def validate_directory_depth(base: Path, path: Path, max_depth: int) -> None:
+    relative = path.relative_to(base)
+    depth = len(relative.parts)
+    if depth > max_depth:
+        raise DocumentSourceError(f"directory depth limit exceeded: {path}")
 
 
 def detect_source_type(location: str, content_type: str, raw: str) -> str:

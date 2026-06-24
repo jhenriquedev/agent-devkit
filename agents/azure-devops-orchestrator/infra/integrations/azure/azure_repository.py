@@ -301,14 +301,19 @@ class AzureRepository:
         body: Any | None,
         content_type: str,
     ) -> dict[str, Any]:
-        with tempfile.NamedTemporaryFile("w+b") as response_file:
+        timeout_seconds = request_timeout_seconds("AZURE_DEVOPS_REQUEST_TIMEOUT_SECONDS")
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8") as curl_config, tempfile.NamedTemporaryFile("w+b") as response_file:
+            curl_config.write(f'user = "{curl_config_value(":" + self.config.pat)}"\n')
+            curl_config.flush()
             command = [
                 "curl",
                 "-sS",
+                "--config",
+                curl_config.name,
+                "--max-time",
+                str(timeout_seconds),
                 "-X",
                 method,
-                "-u",
-                f":{self.config.pat}",
                 "-H",
                 "Accept: application/json",
                 "-H",
@@ -322,13 +327,17 @@ class AzureRepository:
                 command.extend(["--data", json.dumps(body)])
             command.append(url)
 
-            result = subprocess.run(
-                command,
-                check=False,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
+            try:
+                result = subprocess.run(
+                    command,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=timeout_seconds + 5,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise AzureRepositoryError(f"Azure DevOps curl timed out after {timeout_seconds}s") from exc
             raw = response_file.read().decode("utf-8-sig", errors="replace")
 
         if result.returncode != 0:
@@ -346,28 +355,38 @@ class AzureRepository:
             f"{self._project_base_url(project)}/_apis/wit/attachments?"
             f"{urllib.parse.urlencode({'fileName': file_name, 'api-version': self.config.api_version})}"
         )
-        command = [
-            "curl",
-            "-sS",
-            "-X",
-            "POST",
-            "-u",
-            f":{self.config.pat}",
-            "-H",
-            "Accept: application/json",
-            "-H",
-            "Content-Type: application/octet-stream",
-            "--data-binary",
-            f"@{file_path}",
-            url,
-        ]
-        result = subprocess.run(
-            command,
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        timeout_seconds = request_timeout_seconds("AZURE_DEVOPS_REQUEST_TIMEOUT_SECONDS")
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8") as curl_config:
+            curl_config.write(f'user = "{curl_config_value(":" + self.config.pat)}"\n')
+            curl_config.flush()
+            command = [
+                "curl",
+                "-sS",
+                "--config",
+                curl_config.name,
+                "--max-time",
+                str(timeout_seconds),
+                "-X",
+                "POST",
+                "-H",
+                "Accept: application/json",
+                "-H",
+                "Content-Type: application/octet-stream",
+                "--data-binary",
+                f"@{file_path}",
+                url,
+            ]
+            try:
+                result = subprocess.run(
+                    command,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=timeout_seconds + 5,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise AzureRepositoryError(f"Azure DevOps attachment upload timed out after {timeout_seconds}s") from exc
         if result.returncode != 0:
             raise AzureRepositoryError(f"Azure DevOps attachment upload failed: {result.stderr.strip()}")
         payload = json.loads(result.stdout) if result.stdout.strip() else {}
@@ -509,3 +528,12 @@ def normalize_org(value: str) -> str:
     if marker in cleaned:
         return cleaned.split(marker, 1)[1].split("/", 1)[0]
     return cleaned
+
+
+def request_timeout_seconds(env_name: str) -> int:
+    raw = os.environ.get(env_name, "30")
+    return int(raw) if raw.isdigit() and int(raw) > 0 else 30
+
+
+def curl_config_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')

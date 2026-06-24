@@ -160,14 +160,19 @@ class TopdeskRepository:
         body: Any | None = None,
     ) -> Any:
         url = self._url(path, query)
-        with tempfile.NamedTemporaryFile("w+b") as response_file:
+        timeout_seconds = request_timeout_seconds("TOPDESK_REQUEST_TIMEOUT_SECONDS")
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8") as curl_config, tempfile.NamedTemporaryFile("w+b") as response_file:
+            curl_config.write(f'user = "{curl_config_value(self.config.username + ":" + self.config.app_password)}"\n')
+            curl_config.flush()
             command = [
                 "curl",
                 "-sS",
+                "--config",
+                curl_config.name,
+                "--max-time",
+                str(timeout_seconds),
                 "-X",
                 method,
-                "-u",
-                f"{self.config.username}:{self.config.app_password}",
                 "-H",
                 "Accept: application/json",
                 "-o",
@@ -178,13 +183,17 @@ class TopdeskRepository:
             if body is not None:
                 command.extend(["-H", "Content-Type: application/json", "--data", json.dumps(body)])
             command.append(url)
-            result = subprocess.run(
-                command,
-                check=False,
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
+            try:
+                result = subprocess.run(
+                    command,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=timeout_seconds + 5,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise TopdeskRepositoryError(f"TOPdesk curl timed out after {timeout_seconds}s") from exc
             raw = response_file.read().decode("utf-8-sig", errors="replace")
         if result.returncode != 0:
             raise TopdeskRepositoryError(f"TOPdesk curl failed: {result.stderr.strip()}")
@@ -228,6 +237,15 @@ def lookup_name(value: Any) -> str:
         name = value.get("name")
         return name if isinstance(name, str) else ""
     return value if isinstance(value, str) else ""
+
+
+def request_timeout_seconds(env_name: str) -> int:
+    raw = os.environ.get(env_name, "30")
+    return int(raw) if raw.isdigit() and int(raw) > 0 else 30
+
+
+def curl_config_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def load_dotenv() -> None:

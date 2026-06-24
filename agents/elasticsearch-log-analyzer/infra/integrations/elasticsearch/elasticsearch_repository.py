@@ -23,14 +23,17 @@ class ElasticsearchConfig:
     base_url: str | None = None
     api_key: str | None = None
     default_time_field: str = "@timestamp"
+    cloud_proxy: bool = False
 
     @classmethod
     def from_env(cls) -> "ElasticsearchConfig":
         load_dotenv()
+        cloud_proxy = is_cloud_proxy_env()
         return cls(
-            base_url=first_env("ELASTICSEARCH_URL", "ELASTIC_URL", "ES_URL"),
+            base_url=first_env("ELASTICSEARCH_URL", "ELASTIC_URL", "ES_URL") or build_cloud_proxy_base_url(),
             api_key=first_env("ELASTICSEARCH_API_KEY", "ELASTIC_API_KEY", "EC_API_KEY"),
             default_time_field=os.environ.get("ELASTICSEARCH_DEFAULT_TIME_FIELD", "@timestamp"),
+            cloud_proxy=cloud_proxy,
         )
 
 
@@ -220,16 +223,21 @@ class ElasticsearchRepository:
         if not self.config.api_key:
             raise ElasticsearchRepositoryError("ELASTICSEARCH_API_KEY, ELASTIC_API_KEY, or EC_API_KEY is required")
         url = build_url(self.config.base_url, path, query)
-        with tempfile.NamedTemporaryFile("w+b") as response_file:
+        timeout_seconds = request_timeout_seconds("ELASTICSEARCH_REQUEST_TIMEOUT_SECONDS")
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8") as curl_config, tempfile.NamedTemporaryFile("w+b") as response_file:
+            curl_config.write(f'header = "{curl_config_value("Authorization: ApiKey " + self.config.api_key)}"\n')
+            curl_config.flush()
             command = [
                 "curl",
                 "-sS",
+                "--config",
+                curl_config.name,
+                "--max-time",
+                str(timeout_seconds),
                 "-X",
                 method,
                 "-H",
                 "Accept: application/json",
-                "-H",
-                f"Authorization: ApiKey {self.config.api_key}",
                 "-o",
                 response_file.name,
                 "-w",
@@ -237,8 +245,20 @@ class ElasticsearchRepository:
             ]
             if body is not None:
                 command.extend(["-H", "Content-Type: application/json", "--data", json.dumps(body)])
+            if self.config.cloud_proxy:
+                command.extend(["-H", "X-Management-Request: true"])
             command.append(url)
-            result = subprocess.run(command, check=False, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                result = subprocess.run(
+                    command,
+                    check=False,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=timeout_seconds + 5,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise ElasticsearchRepositoryError(f"Elasticsearch curl timed out after {timeout_seconds}s") from exc
             raw = response_file.read().decode("utf-8-sig", errors="replace")
         if result.returncode != 0:
             raise ElasticsearchRepositoryError(f"Elasticsearch curl failed: {result.stderr.strip()}")
@@ -275,6 +295,37 @@ def build_search_body(
         "sort": [{time_field: {"order": "desc", "unmapped_type": "date"}}],
         "query": {"bool": {"filter": clauses}},
     }
+
+
+def env_truthy(key: str) -> bool:
+    return os.environ.get(key, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def is_cloud_proxy_env() -> bool:
+    access_mode = (first_env("ELASTICSEARCH_ACCESS_MODE") or "").strip().lower()
+    return env_truthy("ELASTICSEARCH_CLOUD_PROXY") or access_mode == "cloud-proxy"
+
+
+def build_cloud_proxy_base_url() -> str | None:
+    if not is_cloud_proxy_env():
+        return None
+
+    deployment_id = first_env("ELASTICSEARCH_CLOUD_DEPLOYMENT_ID")
+    resource_ref_id = first_env("ELASTICSEARCH_CLOUD_RESOURCE_REF_ID")
+    if not deployment_id or not resource_ref_id:
+        return None
+
+    cloud_api_base_url = first_env("ELASTICSEARCH_CLOUD_API_BASE_URL") or "https://api.elastic-cloud.com"
+    return "/".join(
+        [
+            cloud_api_base_url.rstrip("/"),
+            "api/v1/deployments",
+            urllib.parse.quote(deployment_id, safe=""),
+            "elasticsearch",
+            urllib.parse.quote(resource_ref_id, safe=""),
+            "proxy",
+        ]
+    )
 
 
 def add_field_match(clauses: list[dict[str, Any]], fields: list[str], value: str | None) -> None:
@@ -359,6 +410,15 @@ def build_url(base_url: str, path: str, query: dict[str, str] | None = None) -> 
     return url
 
 
+def curl_config_value(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def request_timeout_seconds(env_name: str) -> int:
+    raw = os.environ.get(env_name, "30")
+    return int(raw) if raw.isdigit() and int(raw) > 0 else 30
+
+
 def first_env(*names: str) -> str | None:
     for name in names:
         value = os.environ.get(name)
@@ -380,14 +440,15 @@ def load_dotenv() -> None:
             value = value.strip().strip('"').strip("'")
             if key and key not in os.environ:
                 os.environ[key] = value
-        return
 
 
 def _dotenv_candidates() -> list[Path]:
     paths = []
     for start in (Path.cwd(), Path(__file__).resolve()):
         current = start if start.is_dir() else start.parent
-        paths.extend(parent / ".env" for parent in [current, *current.parents])
+        for parent in [current, *current.parents]:
+            paths.append(parent / ".env.local")
+            paths.append(parent / ".env")
     seen = set()
     unique = []
     for path in paths:
