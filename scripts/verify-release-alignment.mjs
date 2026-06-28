@@ -63,7 +63,7 @@ function run(command, args, options = {}) {
 async function main() {
   const [rawVersion] = process.argv.slice(2);
   if (!rawVersion) {
-    throw new Error("Usage: npm run release:verify -- v0.0.1");
+    throw new Error("Usage: npm run release:verify -- v0.0.2");
   }
 
   const version = normalizeVersion(rawVersion);

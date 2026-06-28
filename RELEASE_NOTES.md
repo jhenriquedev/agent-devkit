@@ -1,3 +1,23 @@
+# v0.0.2
+
+Documentation-only patch release.
+
+## Highlights
+
+- Expanded the GitHub README with installation, first-use, LLM, provider,
+  deterministic `agent run`, memory and host-adapter setup examples.
+- Expanded the npm package README so npmjs.com shows setup commands and basic
+  tutorials for new users.
+- No CLI behavior changes from v0.0.1.
+
+## Install
+
+```bash
+npm install -g agent-devkit
+agent --version
+agent doctor
+```
+
 # v0.0.1
 
 Initial public release of Agent DevKit.

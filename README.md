@@ -11,6 +11,137 @@ Nome publico do projeto no GitHub: `agent-devkit`. Nome do produto:
 > versionados e prontos para uso, com baixo consumo de contexto, decisoes mais
 > consistentes e artefatos padronizados.
 
+## Instalacao rapida
+
+Instale o CLI publicado no npm:
+
+```bash
+npm install -g agent-devkit
+```
+
+Valide a instalacao:
+
+```bash
+agent --version
+agent doctor
+```
+
+O pacote instala o comando canonico `agent`. O nome do pacote npm e
+`agent-devkit`.
+
+## Primeiro uso
+
+Comandos deterministicos nao precisam de LLM configurada:
+
+```bash
+agent agents list
+agent capabilities list
+agent providers list
+agent llm list
+agent doctor
+```
+
+Instale os artefatos locais do Agent DevKit no projeto atual:
+
+```bash
+cd /caminho/do/projeto
+agent install project --target . --host all
+agent doctor --project .
+```
+
+Use prompts livres pelo proprio comando `agent`:
+
+```bash
+agent "analise o problema relatado no card 9900"
+```
+
+Esse modo usa backend LLM. Se nenhum backend estiver configurado, a CLI informa
+como configurar ou como executar uma capability deterministica com `agent run`.
+
+## Configurar LLM
+
+O Agent DevKit nao grava chaves em claro. Ele salva referencias para variaveis
+de ambiente em `~/.ai-devkit/config.json`.
+
+OpenAI:
+
+```bash
+export OPENAI_API_KEY="..."
+agent llm configure openai --api-key-env OPENAI_API_KEY --model gpt-5 --set-default
+agent llm doctor
+```
+
+Anthropic:
+
+```bash
+export ANTHROPIC_API_KEY="..."
+agent llm configure anthropic --api-key-env ANTHROPIC_API_KEY --model claude-sonnet-4-5 --set-default
+```
+
+OpenRouter:
+
+```bash
+export OPENROUTER_API_KEY="..."
+agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --model openai/gpt-5 --set-default
+```
+
+LLMs locais ou CLIs autenticadas:
+
+```bash
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm configure codex-cli --set-default
+agent llm configure claude-code --set-default
+```
+
+## Configurar providers
+
+Providers tambem sao configurados por referencia. Configure apenas o que for
+necessario para a tarefa; o agente pode seguir com fallback quando um provider
+opcional nao estiver disponivel.
+
+Azure DevOps:
+
+```bash
+export AZURE_DEVOPS_ORG="sua-org"
+export AZURE_DEVOPS_PAT="..."
+agent provider configure azure-devops --env AZURE_DEVOPS_ORG --env AZURE_DEVOPS_PAT
+agent provider doctor azure-devops
+```
+
+AWS:
+
+```bash
+export AWS_PROFILE="default"
+export AWS_REGION="us-east-1"
+agent provider configure aws --env AWS_PROFILE --env AWS_REGION
+agent provider doctor aws
+```
+
+TOPdesk:
+
+```bash
+export TOPDESK_BASE_URL="https://sua-instancia.topdesk.net"
+export TOPDESK_USERNAME="usuario"
+export TOPDESK_APP_PASSWORD="..."
+agent provider configure topdesk --env TOPDESK_BASE_URL --env TOPDESK_USERNAME --env TOPDESK_APP_PASSWORD
+agent provider doctor topdesk
+```
+
+Exemplo de uso deterministico com uma capability:
+
+```bash
+agent run azure-devops-orchestrator read-card --project "Projeto" --id 9900 --include-comments
+```
+
+Comandos uteis:
+
+```bash
+agent commands list
+agent inspect azure-devops-orchestrator read-card
+agent memory show
+agent memory reset --all
+```
+
 ## O que e
 
 O Agent DevKit e um repositorio agent-native. Seu produto principal nao e uma pasta

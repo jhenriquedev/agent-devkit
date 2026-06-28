@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdtemp, rm, readdir, stat } from "node:fs/promises";
+import { mkdtemp, rm, readdir, readFile, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -64,6 +64,9 @@ async function assertNoForbiddenFiles(directory) {
 }
 
 async function main() {
+  const packageJson = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8"));
+  const expectedVersion = `agent ${packageJson.version}`;
+
   await assertExists("agent");
   await assertExists("cli/aikit/main.py");
   await assertExists("agents");
@@ -80,7 +83,7 @@ async function main() {
       PYTHONDONTWRITEBYTECODE: "1",
     };
     const version = await run("node", [agentBin, "--version"], { env });
-    if (!version.stdout.trim().startsWith("agent 0.0.1")) {
+    if (version.stdout.trim() !== expectedVersion) {
       throw new Error(`Unexpected version output: ${version.stdout}`);
     }
     const commands = await run("node", [agentBin, "commands", "list", "--json"], { env });
