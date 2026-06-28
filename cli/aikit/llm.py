@@ -13,6 +13,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from cli.aikit.app_home import app_home, config_path as app_config_path, ensure_app_home
+from cli.aikit.identity import host_cli_prompt, identity_system_prompt
+
 
 @dataclass(frozen=True)
 class LlmBackend:
@@ -97,17 +100,15 @@ BACKENDS: dict[str, LlmBackend] = {
 
 ENV_VAR_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 DEFAULT_AGENT_TIMEOUT_SECONDS = 120
+DEFAULT_FALLBACK_ORDER = ("claude-code", "codex-cli", "openai", "anthropic", "openrouter", "ollama")
 
 
 def config_home() -> Path:
-    raw = os.environ.get("AIKIT_CONFIG_HOME") or os.environ.get("AI_DEVKIT_CONFIG_HOME")
-    if raw:
-        return Path(raw).expanduser().resolve()
-    return (Path.home() / ".ai-devkit").resolve()
+    return app_home()
 
 
 def config_path() -> Path:
-    return config_home() / "config.json"
+    return app_config_path()
 
 
 def empty_config() -> dict[str, Any]:
@@ -137,6 +138,7 @@ def load_config() -> dict[str, Any]:
 
 
 def save_config(config: dict[str, Any]) -> Path:
+    ensure_app_home()
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as file:
@@ -156,10 +158,12 @@ def list_backends() -> dict[str, Any]:
     config = load_config()
     default_backend = config.get("llm", {}).get("default")
     configured = set(config.get("llm", {}).get("backends", {}))
+    preference = llm_preference(config)
     return {
         "kind": "llm-backends",
         "config_path": str(config_path()),
         "default": default_backend,
+        "preference": preference,
         "items": [
             {
                 "id": backend.id,
@@ -250,6 +254,68 @@ def set_default_backend(backend_id: str) -> dict[str, Any]:
         "default": backend.id,
         "config_path": str(written_path),
     }
+
+
+def llm_preference(config: dict[str, Any] | None = None) -> dict[str, Any]:
+    config = config or load_config()
+    llm = config.get("llm") if isinstance(config.get("llm"), dict) else {}
+    raw_preference = llm.get("preference") if isinstance(llm.get("preference"), dict) else {}
+    primary = raw_preference.get("primary") or llm.get("default")
+    order = raw_preference.get("order") if isinstance(raw_preference.get("order"), list) else None
+    normalized_order = normalize_backend_order(order or DEFAULT_FALLBACK_ORDER)
+    if primary and primary in BACKENDS:
+        normalized_order = [primary, *[item for item in normalized_order if item != primary]]
+    return {
+        "kind": "llm-preference",
+        "status": "ok",
+        "config_path": str(config_path()),
+        "primary": primary,
+        "order": normalized_order,
+        "fallback_enabled": bool(raw_preference.get("fallback_enabled", True)),
+    }
+
+
+def set_llm_preference(
+    *,
+    primary: str | None = None,
+    order: str | list[str] | tuple[str, ...] | None = None,
+) -> dict[str, Any]:
+    config = load_config()
+    llm = config.setdefault("llm", {"default": None, "backends": {}})
+    backends = llm.setdefault("backends", {})
+    preference = llm.setdefault("preference", {})
+    if not isinstance(preference, dict):
+        preference = {}
+        llm["preference"] = preference
+
+    if primary:
+        backend = backend_or_error(primary)
+        backends.setdefault(backend.id, default_backend_config(backend))
+        llm["default"] = backend.id
+        preference["primary"] = backend.id
+    if order is not None:
+        preference["order"] = normalize_backend_order(order)
+    preference.setdefault("fallback_enabled", True)
+    written_path = save_config(config)
+    payload = llm_preference(config)
+    payload.update({"status": "configured", "config_path": str(written_path), "stored_secret": False})
+    return payload
+
+
+def normalize_backend_order(order: str | list[str] | tuple[str, ...]) -> list[str]:
+    raw_items = order.split(",") if isinstance(order, str) else list(order)
+    normalized: list[str] = []
+    for raw_item in raw_items:
+        backend_id = str(raw_item).strip()
+        if not backend_id:
+            continue
+        backend_or_error(backend_id)
+        if backend_id not in normalized:
+            normalized.append(backend_id)
+    for backend_id in DEFAULT_FALLBACK_ORDER:
+        if backend_id not in normalized:
+            normalized.append(backend_id)
+    return normalized
 
 
 def default_backend_config(backend: LlmBackend) -> dict[str, Any]:
@@ -359,31 +425,54 @@ def resolve_backend(requested: str | None = None) -> dict[str, Any] | None:
         backend_or_error(requested)
         return doctor_backend(BACKENDS[requested], config)
 
-    default_backend = config.get("llm", {}).get("default")
-    if default_backend:
-        backend_or_error(default_backend)
-        return doctor_backend(BACKENDS[default_backend], config)
-
-    configured = config.get("llm", {}).get("backends", {})
-    if isinstance(configured, dict):
-        for backend_id in configured:
-            if backend_id in BACKENDS:
-                check = doctor_backend(BACKENDS[backend_id], config)
-                if check.get("status") == "ok":
-                    return check
+    for backend_id in candidate_backend_ids(config=config, allow_fallback=True):
+        check = doctor_backend(BACKENDS[backend_id], config)
+        if check.get("status") == "ok":
+            return check
 
     return None
 
 
-def invoke_agent_prompt(prompt: str, requested: str | None = None) -> dict[str, Any]:
-    backend = resolve_backend(requested)
-    if not backend or backend.get("status") != "ok":
+def candidate_backend_ids(
+    *,
+    config: dict[str, Any],
+    requested: str | None = None,
+    allow_fallback: bool = True,
+) -> list[str]:
+    if requested:
+        backend_or_error(requested)
+        return [requested]
+    llm = config.get("llm") if isinstance(config.get("llm"), dict) else {}
+    configured = llm.get("backends") if isinstance(llm.get("backends"), dict) else {}
+    configured_ids = [backend_id for backend_id in configured if backend_id in BACKENDS]
+    if not configured_ids:
+        return []
+    preference = llm_preference(config)
+    ordered = [backend_id for backend_id in preference["order"] if backend_id in configured_ids]
+    for backend_id in configured_ids:
+        if backend_id not in ordered:
+            ordered.append(backend_id)
+    return ordered if allow_fallback else ordered[:1]
+
+
+def invoke_agent_prompt(
+    prompt: str,
+    requested: str | None = None,
+    *,
+    public_name: str = "Agent DevKit",
+    allow_fallback: bool = True,
+) -> dict[str, Any]:
+    config = load_config()
+    candidate_ids = candidate_backend_ids(config=config, requested=requested, allow_fallback=allow_fallback)
+    if not candidate_ids:
         return {
             "kind": "agent",
             "status": "blocked",
             "ok": False,
             "requires_llm": True,
             "llm_backend": requested,
+            "llm_backend_attempts": [],
+            "llm_fallback_enabled": allow_fallback,
             "prompt_received": True,
             "prompt_length": len(prompt),
             "message": "agent requires a configured LLM backend for natural-language tasks.",
@@ -395,36 +484,107 @@ def invoke_agent_prompt(prompt: str, requested: str | None = None) -> dict[str, 
             "exit_code": 2,
         }
 
-    try:
-        response = invoke_resolved_backend(backend, prompt)
-    except LlmInvocationError as exc:
+    attempts: list[dict[str, Any]] = []
+    last_error: str | None = None
+    for backend_id in candidate_ids:
+        backend = doctor_backend(BACKENDS[backend_id], config)
+        attempt = {"id": backend_id, "status": backend.get("status")}
+        attempts.append(attempt)
+        if backend.get("status") != "ok":
+            attempt["message"] = backend.get("message")
+            continue
+        try:
+            response = invoke_resolved_backend(backend, prompt, public_name=public_name)
+        except LlmPolicyError as exc:
+            attempt["status"] = "policy-blocked"
+            attempt["message"] = str(exc)
+            return failed_agent_payload(
+                prompt,
+                backend=backend,
+                attempts=attempts,
+                message=str(exc),
+                policy_error=True,
+                allow_fallback=allow_fallback,
+            )
+        except LlmInvocationError as exc:
+            attempt["status"] = "failed"
+            attempt["message"] = str(exc)
+            last_error = str(exc)
+            if requested or not allow_fallback:
+                break
+            continue
+        attempt["status"] = "ok"
         return {
             "kind": "agent",
-            "status": "failed",
-            "ok": False,
+            "status": "ok",
+            "ok": True,
             "requires_llm": True,
             "llm_backend": backend["id"],
             "llm_backend_status": backend["status"],
+            "llm_backend_attempts": attempts,
+            "llm_fallback_enabled": allow_fallback,
+            "llm_fallback_used": attempts[0]["id"] != backend["id"],
             "prompt_received": True,
             "prompt_length": len(prompt),
-            "message": str(exc),
-            "next_steps": [
-                "Run `agent llm doctor` to verify the selected backend.",
-                "Use `agent run <agent> <capability>` when deterministic execution is enough.",
-            ],
-            "exit_code": 1,
+            "response": response,
         }
 
+    if last_error:
+        return failed_agent_payload(
+            prompt,
+            backend={"id": attempts[-1]["id"], "status": attempts[-1].get("status")},
+            attempts=attempts,
+            message=last_error,
+            policy_error=False,
+            allow_fallback=allow_fallback,
+        )
     return {
         "kind": "agent",
-        "status": "ok",
-        "ok": True,
+        "status": "blocked",
+        "ok": False,
         "requires_llm": True,
-        "llm_backend": backend["id"],
-        "llm_backend_status": backend["status"],
+        "llm_backend": requested,
+        "llm_backend_attempts": attempts,
+        "llm_fallback_enabled": allow_fallback,
         "prompt_received": True,
         "prompt_length": len(prompt),
-        "response": response,
+        "message": "agent did not find an available configured LLM backend.",
+        "next_steps": [
+            "Run `agent llm doctor` to verify configured backends.",
+            "Configure a backend with `agent llm configure <backend> --set-default`.",
+            "Adjust fallback order with `agent llm preference set --primary <backend>`.",
+        ],
+        "exit_code": 2,
+    }
+
+
+def failed_agent_payload(
+    prompt: str,
+    *,
+    backend: dict[str, Any],
+    attempts: list[dict[str, Any]],
+    message: str,
+    policy_error: bool,
+    allow_fallback: bool,
+) -> dict[str, Any]:
+    return {
+        "kind": "agent",
+        "status": "failed",
+        "ok": False,
+        "requires_llm": True,
+        "llm_backend": backend.get("id"),
+        "llm_backend_status": backend.get("status"),
+        "llm_backend_attempts": attempts,
+        "llm_fallback_enabled": allow_fallback,
+        "llm_policy_error": policy_error,
+        "prompt_received": True,
+        "prompt_length": len(prompt),
+        "message": message,
+        "next_steps": [
+            "Run `agent llm doctor` to verify the selected backend.",
+            "Use `agent run <agent> <capability>` when deterministic execution is enough.",
+        ],
+        "exit_code": 1,
     }
 
 
@@ -432,21 +592,33 @@ class LlmInvocationError(RuntimeError):
     """Raised for safe, user-facing LLM invocation errors."""
 
 
-def invoke_resolved_backend(backend: dict[str, Any], prompt: str) -> str:
+class LlmPolicyError(LlmInvocationError):
+    """Raised when the backend rejects content for policy or safety reasons."""
+
+
+def invoke_resolved_backend(backend: dict[str, Any], prompt: str, *, public_name: str = "Agent DevKit") -> str:
     kind = backend.get("kind")
     backend_id = backend.get("id")
     if kind == "openai-compatible":
-        return invoke_openai_compatible(backend, prompt)
+        return invoke_openai_compatible(backend, prompt, public_name=public_name)
     if kind == "anthropic":
-        return invoke_anthropic(backend, prompt)
+        return invoke_anthropic(backend, prompt, public_name=public_name)
     if kind == "host-cli" and backend_id == "codex-cli":
-        return invoke_host_cli([str(backend.get("command") or "codex"), "exec", "--skip-git-repo-check", "--ephemeral", prompt])
+        return invoke_host_cli(
+            [
+                str(backend.get("command") or "codex"),
+                "exec",
+                "--skip-git-repo-check",
+                "--ephemeral",
+                host_cli_prompt(prompt, name=public_name),
+            ]
+        )
     if kind == "host-cli" and backend_id == "claude-code":
-        return invoke_host_cli([str(backend.get("command") or "claude"), "--print", "--permission-mode", "plan", prompt])
+        return invoke_host_cli([str(backend.get("command") or "claude"), "--print", "--permission-mode", "plan", host_cli_prompt(prompt, name=public_name)])
     raise LlmInvocationError(f"LLM backend is not invokable by agent yet: {backend_id}")
 
 
-def invoke_openai_compatible(backend: dict[str, Any], prompt: str) -> str:
+def invoke_openai_compatible(backend: dict[str, Any], prompt: str, *, public_name: str = "Agent DevKit") -> str:
     base_url = str(backend.get("base_url") or "").rstrip("/")
     model = str(backend.get("model") or "")
     if not base_url or not model:
@@ -460,10 +632,7 @@ def invoke_openai_compatible(backend: dict[str, Any], prompt: str) -> str:
         "messages": [
             {
                 "role": "system",
-                "content": (
-                    "You are AI DevKit's natural-language router. Answer concisely, "
-                    "prefer deterministic agent/capability commands when useful, and never ask for all credentials upfront."
-                ),
+                "content": identity_system_prompt(name=public_name),
             },
             {"role": "user", "content": prompt},
         ],
@@ -475,7 +644,7 @@ def invoke_openai_compatible(backend: dict[str, Any], prompt: str) -> str:
         raise LlmInvocationError("OpenAI-compatible backend returned an unexpected response shape.") from exc
 
 
-def invoke_anthropic(backend: dict[str, Any], prompt: str) -> str:
+def invoke_anthropic(backend: dict[str, Any], prompt: str, *, public_name: str = "Agent DevKit") -> str:
     api_key = api_key_from_ref(backend.get("api_key_ref"))
     if not api_key:
         raise LlmInvocationError("Anthropic backend is missing an API key environment variable.")
@@ -491,7 +660,7 @@ def invoke_anthropic(backend: dict[str, Any], prompt: str) -> str:
     body = {
         "model": model,
         "max_tokens": 1024,
-        "system": "You are AI DevKit's natural-language router. Answer concisely and prefer deterministic commands when useful.",
+        "system": identity_system_prompt(name=public_name),
         "messages": [{"role": "user", "content": prompt}],
     }
     payload = post_json(f"{base_url}/messages", headers, body)
@@ -527,6 +696,13 @@ def post_json(url: str, headers: dict[str, str], body: dict[str, Any]) -> dict[s
         with urllib.request.urlopen(request, timeout=DEFAULT_AGENT_TIMEOUT_SECONDS) as response:  # noqa: S310 - user-configured backend URL.
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
+        raw_error = ""
+        try:
+            raw_error = exc.read().decode("utf-8", errors="replace")
+        except OSError:
+            raw_error = ""
+        if is_policy_error(exc.code, raw_error):
+            raise LlmPolicyError(f"LLM backend policy error: {exc.code}") from exc
         raise LlmInvocationError(f"LLM backend HTTP error: {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise LlmInvocationError(f"LLM backend connection failed: {exc.reason}") from exc
@@ -536,7 +712,23 @@ def post_json(url: str, headers: dict[str, str], body: dict[str, Any]) -> dict[s
         raise LlmInvocationError("LLM backend returned invalid JSON.") from exc
     if not isinstance(payload, dict):
         raise LlmInvocationError("LLM backend returned a non-object JSON payload.")
+    if payload_has_policy_error(payload):
+        raise LlmPolicyError("LLM backend returned a policy error.")
     return payload
+
+
+def is_policy_error(status_code: int, body: str) -> bool:
+    if status_code not in {400, 403}:
+        return False
+    return any(marker in body.lower() for marker in ("policy", "safety", "content_filter", "content filter", "not allowed"))
+
+
+def payload_has_policy_error(payload: dict[str, Any]) -> bool:
+    error = payload.get("error")
+    if not isinstance(error, dict):
+        return False
+    text = json.dumps(error, ensure_ascii=False).lower()
+    return any(marker in text for marker in ("policy", "safety", "content_filter", "content filter", "not allowed"))
 
 
 def api_key_from_ref(value: Any) -> str | None:

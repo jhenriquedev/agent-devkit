@@ -13,13 +13,15 @@ import threading
 import unittest
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 from cli.aikit.credentials import resolve_provider_credentials
 from cli.aikit.fallback import evaluate_provider_requirements
 from cli.aikit.guardrails import evaluate_execution_guardrails
 from cli.aikit.lock import read_simple_lock
 
 
-ROOT = Path(__file__).resolve().parents[1]
 AIKIT = ROOT / "aikit"
 AI_DEVKIT = ROOT / "ai-devkit"
 AGENT = ROOT / "agent"
@@ -197,25 +199,25 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.0.4", result.stdout)
+        self.assertIn("aikit 0.1.0", result.stdout)
 
     def test_short_version_exits_successfully(self) -> None:
         result = self.run_cli("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.0.4", result.stdout)
+        self.assertIn("aikit 0.1.0", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.0.4", result.stdout)
+        self.assertIn("agent 0.1.0", result.stdout)
 
     def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.0.4", result.stdout)
+        self.assertIn("agent 0.1.0", result.stdout)
 
     def test_agents_list_json(self) -> None:
         result = self.run_cli("agents", "list", "--json")
@@ -265,11 +267,11 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(payload["kind"], "doctor")
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["scope"], "auto")
-        self.assertEqual(payload["summary"]["agents"], 22)
-        self.assertEqual(payload["summary"]["capabilities"], 308)
+        self.assertEqual(payload["summary"]["agents"], 23)
+        self.assertEqual(payload["summary"]["capabilities"], 312)
         self.assertEqual(payload["summary"]["declared_runners"], 290)
-        self.assertEqual(payload["summary"]["workflows"], 308)
-        self.assertEqual(payload["summary"]["decision_rules"], 308)
+        self.assertEqual(payload["summary"]["workflows"], 312)
+        self.assertEqual(payload["summary"]["decision_rules"], 312)
 
     def test_doctor_json_includes_expanded_diagnostics(self) -> None:
         result = self.run_cli(
@@ -2018,7 +2020,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.0.4", installed_agent.stdout)
+            self.assertIn("agent 0.1.0", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2162,7 +2164,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.0.4", result.stdout)
+        self.assertIn("ai-devkit 0.1.0", result.stdout)
 
 
 if __name__ == "__main__":

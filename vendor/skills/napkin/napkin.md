@@ -17,15 +17,25 @@
 ## Shell & Command Reliability
 1. **[2026-06-20] Azure DevOps SSL can fail through Python urllib**
    Do instead: use the repository's curl-backed transport for Azure DevOps API calls in local/serverless execution.
-2. **[2026-06-27] Runtime `--source` can conflict with capability domain args**
+2. **[2026-06-28] Toolchain install deve ser plan-first e idempotente**
+   Do instead: diagnosticar PATH antes de planejar instalacao externa; se a ferramenta ja existe, retornar `already-installed` e nao executar reinstalacao.
+3. **[2026-06-28] Saida de instaladores externos pode vazar ambiente**
+   Do instead: antes de persistir stdout/stderr de comandos de setup/toolchain, redigir valores de variaveis com KEY/TOKEN/SECRET/PASSWORD/PASS/PAT.
+4. **[2026-06-27] Runtime `--source` can conflict with capability domain args**
    Do instead: intercept `--source` only for capabilities that explicitly support Agent DevKit source registry injection; otherwise leave it for the runner domain contract.
 
 ## Domain Behavior Guardrails
 1. **[2026-06-28] Agentes devem ser agnosticos de cliente/projeto**
    Do instead: mover nomes de produto, cliente, URLs, paths locais, regras de elegibilidade e campos XML especificos para provider/config/env antes de versionar o agente.
-2. **[2026-06-20] Azure card descriptions may include sensitive production log data**
+2. **[2026-06-28] Sessao ativa nao deve vazar contexto entre projetos**
+   Do instead: ao persistir contexto de conversa, reutilizar automaticamente apenas sessoes do mesmo projeto; para outro projeto, criar nova sessao ou exigir retomada explicita.
+3. **[2026-06-28] Roteamento de PR deve usar tokens reais**
+   Do instead: detectar `pr`, `prs` ou `pull request` como tokens/expressao, nao substring ampla que captura palavras como `problema`.
+4. **[2026-06-28] Tasks com escrita externa devem bloquear por padrao**
+   Do instead: permitir `dry-run`, mas bloquear execucao real quando `action.external_writes=true` sem permissao explicita de escrita externa.
+5. **[2026-06-20] Azure card descriptions may include sensitive production log data**
    Do instead: retrieve the complete card for validation, but summarize PII-heavy log payloads in user-facing responses unless raw content is explicitly required.
-3. **[2026-06-21] N1 restrictive-base uses a scoped SQL Server override**
+6. **[2026-06-21] N1 restrictive-base uses a scoped SQL Server override**
    Do instead: when the N1 agent checks the restrictive base, prefer `DB_RESTRICTIVE_CONN_STRING` only in the subprocess environment for `sqlserver-data-analyzer`, without changing the global SQL Server analyzer default.
 
 ## User Directives

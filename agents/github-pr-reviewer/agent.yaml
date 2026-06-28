@@ -1,0 +1,33 @@
+id: github-pr-reviewer
+kind: specialist-agent
+name: GitHub PR Reviewer
+version: 0.1.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Listar PRs pendentes de revisao, inspecionar diffs, gerar relatorios
+  report-only e criar automacoes locais de revisao diaria com permissoes
+  conservadoras.
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+env:
+  required: []
+  optional:
+    - GITHUB_TOKEN
+
+capabilities:
+  - list-review-requests
+  - inspect-pr
+  - review-pr-diff
+  - create-review-automation
+
+write_policy:
+  read_operations: auto
+  comments: explicit_opt_in
+  approvals: explicit_opt_in
+  request_changes: explicit_opt_in
+  default_mode: report-only

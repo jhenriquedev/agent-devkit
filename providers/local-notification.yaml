@@ -1,0 +1,19 @@
+id: local-notification
+name: Local Notification
+kind: local-runtime
+status: draft
+description: Local notification provider for terminal notifications.
+auth_methods: []
+config_fields: []
+health_check:
+  command: agent provider doctor local-notification
+risk:
+  default: local-notification
+  writes: true
+fallbacks:
+  - skip_provider
+capabilities:
+  read: []
+  write:
+    - notification.terminal
+write: true

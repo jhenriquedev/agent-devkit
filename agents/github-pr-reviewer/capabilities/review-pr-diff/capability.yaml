@@ -1,0 +1,20 @@
+id: github-pr-reviewer.review-pr-diff
+kind: capability
+name: Review PR diff
+status: draft
+version: 0.1.0
+purpose: Carregar diff e gerar revisao report-only.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+  output_template: ../../templates/pr-review-output.md
+inputs:
+  required: [pr_ref]
+  optional: [comment, approve, request_changes]
+outputs:
+  artifacts: []
+requires:
+  providers:
+    - id: github
+      mode: optional
+      fallback: manual_steps

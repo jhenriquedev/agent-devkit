@@ -57,6 +57,9 @@ agents/<agent-id>/
   conciliacao, revisao e exportacao de planilhas Excel.
 - `figma-ui-ux-product-designer`: especialista UI/UX para criar, recriar,
   evoluir e revisar designs mobile e web.
+- `github-pr-reviewer`: especialista em Pull Requests GitHub, revisao
+  report-only, permissao explicita para comentarios/aprovacoes e automacoes
+  locais conservadoras.
 - `knowledge-generator`: especialista em gerar knowledge versionavel a partir de
   fontes locais e documentacoes.
 - `n1-support-agent`: especialista N1 para runbooks operacionais a partir de

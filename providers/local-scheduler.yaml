@@ -1,0 +1,24 @@
+id: local-scheduler
+name: Local Scheduler
+kind: local-runtime
+status: draft
+description: Local scheduler provider for Agent DevKit task execution.
+auth_methods: []
+config_fields: []
+health_check:
+  command: agent scheduler run-once --dry-run
+risk:
+  default: local-write
+  writes: true
+fallbacks:
+  - dry_run
+  - manual_steps
+capabilities:
+  read:
+    - task.list
+    - task.history
+  write:
+    - task.create
+    - task.update
+    - task.delete
+write: true

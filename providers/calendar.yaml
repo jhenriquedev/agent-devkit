@@ -1,0 +1,28 @@
+id: calendar
+name: Calendar
+kind: local-source
+status: draft
+description: Local calendar provider for ICS-backed agenda queries.
+auth_methods: []
+config_fields:
+  - name: CALENDAR_SOURCE_REF
+    required: false
+    secret: false
+  - name: CALENDAR_TIMEZONE
+    required: false
+    secret: false
+health_check:
+  command: agent calendar today
+risk:
+  default: read-sensitive-local
+  writes: false
+fallbacks:
+  - configure_provider
+  - manual_steps
+capabilities:
+  read:
+    - calendar.today
+    - calendar.tomorrow
+    - calendar.list
+  write: []
+write: false

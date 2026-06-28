@@ -552,6 +552,9 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`figma-ui-ux-product-designer`](agents/figma-ui-ux-product-designer/):
   especialista UI/UX para analisar contexto de produto e criar, recriar,
   evoluir e revisar designs mobile e web com Figma quando disponivel.
+- [`github-pr-reviewer`](agents/github-pr-reviewer/): especialista em Pull
+  Requests GitHub para listar revisoes pendentes, inspecionar PRs, revisar diffs
+  em modo report-only e criar automacoes locais conservadoras.
 - [`knowledge-generator`](agents/knowledge-generator/): especialista em gerar
   knowledge versionavel a partir de arquivos, pastas, projetos e documentacoes.
 - [`n1-support-agent`](agents/n1-support-agent/): especialista N1 para executar

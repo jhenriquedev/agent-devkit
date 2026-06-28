@@ -1,0 +1,20 @@
+id: github-pr-reviewer.create-review-automation
+kind: capability
+name: Create review automation
+status: draft
+version: 0.1.0
+purpose: Criar task local diaria para revisar PRs pendentes em modo report-only.
+write_policy: local-write
+entrypoint:
+  workflow: workflow.md
+  output_template: ../../templates/pr-automation-output.md
+inputs:
+  required: []
+  optional: [time, permissions]
+outputs:
+  artifacts: [local-task]
+requires:
+  providers:
+    - id: github
+      mode: optional
+      fallback: manual_steps

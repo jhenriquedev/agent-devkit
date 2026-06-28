@@ -1,0 +1,20 @@
+id: github-pr-reviewer.inspect-pr
+kind: capability
+name: Inspect PR
+status: draft
+version: 0.1.0
+purpose: Inspecionar metadados de uma Pull Request.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+  output_template: ../../templates/pr-inspection-output.md
+inputs:
+  required: [pr_ref]
+  optional: []
+outputs:
+  artifacts: []
+requires:
+  providers:
+    - id: github
+      mode: optional
+      fallback: manual_steps

@@ -1,0 +1,42 @@
+id: github
+name: GitHub
+kind: cli-provider
+status: draft
+description: GitHub provider backed by the official GitHub CLI.
+auth_methods:
+  - id: gh-auth
+    label: GitHub CLI auth
+    native: true
+    secret_fields: []
+  - id: token
+    label: GitHub token
+    secret_fields:
+      - GITHUB_TOKEN
+config_fields:
+  - name: GITHUB_TOKEN
+    required: false
+    secret: true
+  - name: GITHUB_HOST
+    required: false
+    secret: false
+detection:
+  env_any:
+    - GITHUB_TOKEN
+health_check:
+  command: gh auth status
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - report_only
+  - manual_steps
+capabilities:
+  read:
+    - pr.list-review-requests
+    - pr.inspect
+    - pr.review-report
+  write:
+    - pr.comment
+    - pr.approve
+    - pr.request-changes
+write: true

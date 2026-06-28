@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from cli.aikit.app_home import app_home, config_path as app_config_path, ensure_app_home
 from cli.aikit.credentials import CredentialResolverError, resolve_provider_credentials
 
 
@@ -454,14 +455,11 @@ def load_provider_config(provider_id: str) -> dict[str, Any]:
 
 
 def runtime_config_home() -> Path:
-    raw = os.environ.get("AIKIT_CONFIG_HOME") or os.environ.get("AI_DEVKIT_CONFIG_HOME")
-    if raw:
-        return Path(raw).expanduser().resolve()
-    return (Path.home() / ".ai-devkit").resolve()
+    return app_home()
 
 
 def runtime_config_path() -> Path:
-    return runtime_config_home() / "config.json"
+    return app_config_path()
 
 
 def load_runtime_config() -> dict[str, Any]:
@@ -479,6 +477,7 @@ def load_runtime_config() -> dict[str, Any]:
 
 
 def save_runtime_config(config: dict[str, Any]) -> Path:
+    ensure_app_home()
     path = runtime_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -12,19 +12,48 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from cli.aikit.aliases import add_alias, list_aliases, remove_alias, sync_aliases
 from cli.aikit import __version__
+from cli.aikit.audit import export_audit, list_audits, record_audit, show_audit
+from cli.aikit.calendar import calendar_list, calendar_summary, calendar_today, calendar_tomorrow, configure_calendar
 from cli.aikit.diagnostics import build_diagnostics
 from cli.aikit.fallback import evaluate_provider_requirements
+from cli.aikit.github_pr import pr_create_automation, pr_inspect, pr_list_review_requests, pr_review
 from cli.aikit.guardrails import evaluate_execution_guardrails
+from cli.aikit.identity import enforce_identity_response, is_identity_question, local_identity_response, public_name
 from cli.aikit.llm import (
     configure_backend,
     doctor_backends,
     invoke_agent_prompt,
     list_backends,
-    resolve_backend,
+    llm_preference,
     set_default_backend,
+    set_llm_preference,
 )
-from cli.aikit.memory import record_usage, reset_memory, show_memory, napkin_context
+from cli.aikit.memory import memory_path_payload, napkin_context, record_usage, reset_memory, show_memory
+from cli.aikit.personality import load_personality, reset_personality, setup_personality, update_personality
+from cli.aikit.permissions import grant_permission, revoke_permission, show_permissions
+from cli.aikit.sessions import (
+    build_contextual_prompt,
+    get_or_create_session,
+    list_sessions,
+    record_exchange,
+    resume_session,
+    show_session,
+)
+from cli.aikit.setup_wizard import setup_wizard
+from cli.aikit.scheduler import run_scheduler_once, scheduler_daemon_plan
+from cli.aikit.tasks import (
+    create_task,
+    delete_task,
+    list_tasks,
+    run_task,
+    show_task,
+    task_history,
+    update_task_schedule,
+    update_task_status,
+)
+from cli.aikit.toolchain import doctor_toolchain, install_toolchain, list_toolchain
 from cli.aikit.install import InstallError, install_runtime
 from cli.aikit.lock import lock_status, parse_profiles
 from cli.aikit.output import run_payload
@@ -69,6 +98,17 @@ DETERMINISTIC_COMMANDS = (
     "credential",
     "source",
     "memory",
+    "personality",
+    "setup",
+    "alias",
+    "session",
+    "toolchain",
+    "task",
+    "scheduler",
+    "calendar",
+    "pr",
+    "permissions",
+    "audit",
     "install",
 )
 LLM_COMMANDS = ("agent",)
@@ -86,11 +126,13 @@ def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
     try:
         result = dispatch(args)
     except DevKitError as exc:
+        maybe_record_cli_audit(args, result=None, error=str(exc))
         print(f"error: {exc}", file=sys.stderr)
         return 1
 
     if result is None:
         return 0
+    maybe_record_cli_audit(args, result=result, error=None)
 
     if getattr(args, "json", False):
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -109,7 +151,15 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
         description="AI DevKit CLI",
     )
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
+    parser.add_argument("--dry-run", dest="global_dry_run", action="store_true", help="show execution plan without external write effects")
     parser.add_argument("-v", "--version", action="store_true", help="print CLI version and exit")
+    parser.add_argument(
+        "-s",
+        "--sessions",
+        dest="sessions_shortcut",
+        action="store_true",
+        help="list local conversation sessions and exit",
+    )
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -119,6 +169,10 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     )
     agent_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     agent_parser.add_argument("--llm", help="LLM backend id to use")
+    agent_parser.add_argument("--dry-run", action="store_true", help="show execution plan without invoking LLM or external writes")
+    agent_parser.add_argument("--no-llm-fallback", action="store_true", help="disable automatic fallback to secondary LLM backends")
+    agent_parser.add_argument("--session", dest="session_id", help="resume a local conversation session")
+    agent_parser.add_argument("--new-session", action="store_true", help="start a new local conversation session")
     agent_parser.add_argument("prompt", nargs=argparse.REMAINDER)
 
     commands_parser = subparsers.add_parser("commands", help="list CLI command modes")
@@ -159,10 +213,98 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 
     memory_parser = subparsers.add_parser("memory", help="inspect or reset local AI DevKit memory")
     memory_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    memory_parser.add_argument("action", nargs="?", default="show", choices=["show", "reset"])
+    memory_parser.add_argument("action", nargs="?", default="show", choices=["show", "path", "reset"])
     memory_parser.add_argument("--agent", dest="agent_id")
     memory_parser.add_argument("--source", dest="source_id")
     memory_parser.add_argument("--all", action="store_true", help="reset all local memory")
+    memory_parser.add_argument("--sessions", action="store_true", help="reset local conversation sessions")
+    memory_parser.add_argument("--tasks", action="store_true", help="reset local task schedules")
+    memory_parser.add_argument("--cache", action="store_true", help="reset local cache")
+
+    personality_parser = subparsers.add_parser("personality", help="inspect or update local Agent DevKit personality")
+    personality_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    personality_parser.add_argument("action", nargs="?", default="show", choices=["show", "edit", "reset"])
+    personality_parser.add_argument("--name", dest="agent_name", help="public agent name")
+    personality_parser.add_argument("--user-name", help="user name")
+    personality_parser.add_argument("--language", help="default response language")
+    personality_parser.add_argument("--tone", help="response tone")
+    personality_parser.add_argument("--detail-level", help="response detail level")
+
+    setup_parser = subparsers.add_parser("setup", help="run setup helpers")
+    setup_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    setup_parser.add_argument("--dry-run", action="store_true", help="show setup plan without installing external tools")
+    setup_parser.add_argument("--yes", action="store_true", help="confirm setup actions")
+    setup_parser.add_argument("action", nargs="?", default="plan", choices=["plan", "personality"])
+
+    alias_parser = subparsers.add_parser("alias", help="manage local command aliases for agent")
+    alias_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    alias_parser.add_argument("action", nargs="?", default="list", choices=["add", "list", "remove", "sync"])
+    alias_parser.add_argument("name", nargs="?")
+    alias_parser.add_argument("--force", action="store_true", help="allow replacing an existing local alias file")
+
+    session_parser = subparsers.add_parser("session", help="manage local conversation sessions")
+    session_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    session_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "resume"])
+    session_parser.add_argument("session_id", nargs="?")
+
+    toolchain_parser = subparsers.add_parser("toolchain", help="inspect or install external tools")
+    toolchain_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    toolchain_parser.add_argument("action", nargs="?", default="list", choices=["list", "doctor", "install"])
+    toolchain_parser.add_argument("tool", nargs="?", default="all")
+    toolchain_parser.add_argument("--dry-run", action="store_true", help="show install plan without executing it")
+    toolchain_parser.add_argument("--yes", action="store_true", help="confirm external tool installation")
+
+    task_parser = subparsers.add_parser("task", help="manage local scheduled tasks")
+    task_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    task_parser.add_argument("action", nargs="?", default="list", choices=["create", "list", "show", "history", "run", "pause", "resume", "update", "enable", "disable", "delete"])
+    task_parser.add_argument("task_id", nargs="?")
+    task_parser.add_argument("--title")
+    task_parser.add_argument("--prompt")
+    task_parser.add_argument("--every")
+    task_parser.add_argument("--cron")
+    task_parser.add_argument("--dry-run", action="store_true")
+    task_parser.add_argument("--yes", action="store_true")
+
+    scheduler_parser = subparsers.add_parser("scheduler", help="run local scheduler")
+    scheduler_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    scheduler_parser.add_argument("action", nargs="?", default="run-once", choices=["run-once", "daemon"])
+    scheduler_parser.add_argument("--dry-run", action="store_true")
+
+    calendar_parser = subparsers.add_parser("calendar", help="inspect configured calendar")
+    calendar_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    calendar_parser.add_argument("action", nargs="?", default="today", choices=["today", "tomorrow", "list", "configure"])
+    calendar_parser.add_argument("--from", dest="date_from")
+    calendar_parser.add_argument("--to", dest="date_to")
+    calendar_parser.add_argument("--ics")
+    calendar_parser.add_argument("--timezone")
+
+    pr_parser = subparsers.add_parser("pr", help="review GitHub pull requests")
+    pr_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    pr_parser.add_argument("action", nargs="?", default="list-review-requests", choices=["list-review-requests", "inspect", "review", "automation"])
+    pr_parser.add_argument("pr_ref", nargs="?")
+    pr_parser.add_argument("automation_action", nargs="?")
+    pr_parser.add_argument("--approve", action="store_true")
+    pr_parser.add_argument("--request-changes", action="store_true")
+    pr_parser.add_argument("--comment")
+    pr_parser.add_argument("--allow-write", action="store_true")
+    pr_parser.add_argument("--dry-run", action="store_true")
+    pr_parser.add_argument("--time", default="09:00")
+
+    permissions_parser = subparsers.add_parser("permissions", help="manage local permission policies")
+    permissions_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    permissions_parser.add_argument("action", nargs="?", default="show", choices=["show", "grant", "revoke"])
+    permissions_parser.add_argument("agent", nargs="?")
+    permissions_parser.add_argument("provider", nargs="?")
+    permissions_parser.add_argument("level", nargs="?")
+    permissions_parser.add_argument("--project")
+    permissions_parser.add_argument("--task", dest="task_id")
+
+    audit_parser = subparsers.add_parser("audit", help="inspect local execution audit trail")
+    audit_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    audit_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "export"])
+    audit_parser.add_argument("execution_id", nargs="?")
+    audit_parser.add_argument("--limit", type=int, default=20)
+    audit_parser.add_argument("--format", default="md", choices=["md", "json"])
 
     llm_parser = subparsers.add_parser("llm", help="manage LLM backends")
     llm_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -170,14 +312,17 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
         "action",
         nargs="?",
         default="list",
-        choices=["list", "doctor", "configure", "set-default"],
+        choices=["list", "doctor", "configure", "set-default", "preference"],
     )
     llm_parser.add_argument("backend", nargs="?")
+    llm_parser.add_argument("preference_value", nargs="?")
     llm_parser.add_argument("--api-key-env", help="environment variable that stores the API key")
     llm_parser.add_argument("--base-url", help="OpenAI-compatible base URL")
     llm_parser.add_argument("--model", help="default model id")
     llm_parser.add_argument("--command", dest="host_command", help="host CLI command name or path")
     llm_parser.add_argument("--set-default", action="store_true", help="set backend as the default LLM")
+    llm_parser.add_argument("--primary", help="primary backend for LLM preference")
+    llm_parser.add_argument("--order", help="comma-separated fallback order")
 
     install_parser = subparsers.add_parser("install", help="install AI DevKit host artifacts")
     install_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -237,6 +382,8 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
     if args.version:
         return {"kind": "version", "program": getattr(args, "prog_name", "aikit"), "version": __version__}
+    if args.sessions_shortcut:
+        return list_sessions()
 
     if not args.command:
         raise DevKitError("missing command. Use --help for usage.")
@@ -256,6 +403,28 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return dispatch_source(args)
     if command == "memory":
         return dispatch_memory(args)
+    if command == "personality":
+        return dispatch_personality(args)
+    if command == "setup":
+        return dispatch_setup(args)
+    if command == "alias":
+        return dispatch_alias(args)
+    if command == "session":
+        return dispatch_session(args)
+    if command == "toolchain":
+        return dispatch_toolchain(args)
+    if command == "task":
+        return dispatch_task(args)
+    if command == "scheduler":
+        return dispatch_scheduler(args)
+    if command == "calendar":
+        return dispatch_calendar(args)
+    if command == "pr":
+        return dispatch_pr(args)
+    if command == "permissions":
+        return dispatch_permissions(args)
+    if command == "audit":
+        return dispatch_audit(args)
     if command == "llm":
         return dispatch_llm(args)
     if command == "install":
@@ -327,8 +496,22 @@ def list_command_modes() -> dict[str, Any]:
     }
 
 
+def maybe_record_cli_audit(args: argparse.Namespace, *, result: dict[str, Any] | None, error: str | None) -> None:
+    command = canonical_command(getattr(args, "command", None) or "")
+    if command in {"", "audit"} or getattr(args, "version", False):
+        return
+    try:
+        audit = record_audit(command=command, args=vars(args), result=result, error=error)
+    except Exception:
+        return
+    if result is not None:
+        result["audit"] = audit
+
+
 def dispatch_llm(args: argparse.Namespace) -> dict[str, Any]:
     try:
+        if args.action != "preference" and args.preference_value:
+            raise DevKitError(f"llm {args.action} received an unexpected argument: {args.preference_value}")
         if args.action == "list":
             if args.backend:
                 raise DevKitError("llm list does not accept a backend argument")
@@ -350,6 +533,19 @@ def dispatch_llm(args: argparse.Namespace) -> dict[str, Any]:
             if not args.backend:
                 raise DevKitError("llm set-default requires a backend")
             return set_default_backend(args.backend)
+        if args.action == "preference":
+            if args.backend in {None, "show"}:
+                return llm_preference()
+            if args.backend == "set":
+                if not args.primary and not args.order:
+                    raise DevKitError("llm preference set requires --primary or --order")
+                return set_llm_preference(primary=args.primary, order=args.order)
+            if args.backend == "reorder":
+                order = args.preference_value or args.order
+                if not order:
+                    raise DevKitError("llm preference reorder requires an order value or --order")
+                return set_llm_preference(order=order)
+            raise DevKitError("llm preference action must be show, set or reorder")
     except ValueError as exc:
         raise DevKitError(str(exc)) from exc
     raise DevKitError(f"unsupported llm action: {args.action}")
@@ -363,7 +559,7 @@ def dispatch_install(args: argparse.Namespace) -> dict[str, Any]:
             host=args.host,
             target=Path(args.target) if args.target else None,
             home=Path(args.home) if args.home else None,
-            dry_run=args.dry_run,
+            dry_run=effective_dry_run(args),
             profiles=parse_profiles(args.profiles),
         )
     except InstallError as exc:
@@ -452,40 +648,476 @@ def dispatch_source(args: argparse.Namespace) -> dict[str, Any]:
 def dispatch_memory(args: argparse.Namespace) -> dict[str, Any]:
     if args.action == "show":
         return show_memory(ROOT, agent_id=args.agent_id, source_id=args.source_id)
+    if args.action == "path":
+        return memory_path_payload()
     if args.action == "reset":
-        return reset_memory(all_memory=args.all, agent_id=args.agent_id, source_id=args.source_id)
+        return reset_memory(
+            all_memory=args.all,
+            agent_id=args.agent_id,
+            source_id=args.source_id,
+            reset_sessions=args.sessions,
+            reset_tasks=args.tasks,
+            reset_cache=args.cache,
+        )
     raise DevKitError(f"unsupported memory action: {args.action}")
+
+
+def dispatch_personality(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "show":
+        return load_personality()
+    if args.action == "edit":
+        if not any([args.agent_name, args.user_name, args.language, args.tone, args.detail_level]):
+            payload = load_personality()
+            payload["status"] = "needs-input"
+            payload["message"] = "Use --name, --user-name, --language, --tone or --detail-level to edit non-interactively."
+            return payload
+        return update_personality(
+            agent_name=args.agent_name,
+            user_name=args.user_name,
+            language=args.language,
+            tone=args.tone,
+            detail_level=args.detail_level,
+        )
+    if args.action == "reset":
+        return reset_personality()
+    raise DevKitError(f"unsupported personality action: {args.action}")
+
+
+def dispatch_setup(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "personality":
+        return setup_personality()
+    if args.action == "plan":
+        return setup_wizard(ROOT, dry_run=effective_dry_run(args), yes=args.yes)
+    raise DevKitError(f"unsupported setup action: {args.action}")
+
+
+def dispatch_toolchain(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.tool != "all":
+                raise DevKitError("toolchain list does not accept a tool argument")
+            return list_toolchain(ROOT)
+        if args.action == "doctor":
+            return doctor_toolchain(ROOT, None if args.tool == "all" else args.tool)
+        if args.action == "install":
+            return install_toolchain(ROOT, None if args.tool == "all" else args.tool, dry_run=effective_dry_run(args), yes=args.yes)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported toolchain action: {args.action}")
+
+
+def dispatch_task(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            return list_tasks()
+        if args.action == "create":
+            schedule = {"type": "manual"}
+            if args.every:
+                schedule = {"type": "interval", "every": args.every}
+            if args.cron:
+                schedule = {"type": "cron", "cron": args.cron}
+            return create_task(task_id=args.task_id, title=args.title, prompt=args.prompt, schedule=schedule)
+        if args.action == "show":
+            require_id(args.task_id, "task show")
+            return show_task(args.task_id)
+        if args.action == "history":
+            require_id(args.task_id, "task history")
+            return task_history(args.task_id)
+        if args.action == "run":
+            require_id(args.task_id, "task run")
+            return run_task(args.task_id, dry_run=effective_dry_run(args))
+        if args.action in {"pause", "disable"}:
+            require_id(args.task_id, f"task {args.action}")
+            return update_task_status(args.task_id, "paused" if args.action == "pause" else "disabled")
+        if args.action in {"resume", "enable"}:
+            require_id(args.task_id, f"task {args.action}")
+            return update_task_status(args.task_id, "enabled")
+        if args.action == "update":
+            require_id(args.task_id, "task update")
+            return update_task_schedule(args.task_id, every=args.every, cron=args.cron)
+        if args.action == "delete":
+            require_id(args.task_id, "task delete")
+            return delete_task(args.task_id, yes=args.yes)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported task action: {args.action}")
+
+
+def dispatch_scheduler(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "run-once":
+        return run_scheduler_once(dry_run=effective_dry_run(args))
+    if args.action == "daemon":
+        return scheduler_daemon_plan()
+    raise DevKitError(f"unsupported scheduler action: {args.action}")
+
+
+def dispatch_calendar(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "configure":
+            return configure_calendar(ics_path=args.ics, timezone=args.timezone)
+        if args.action == "today":
+            return calendar_today()
+        if args.action == "tomorrow":
+            return calendar_tomorrow()
+        if args.action == "list":
+            return calendar_list(args.date_from, args.date_to)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported calendar action: {args.action}")
+
+
+def dispatch_pr(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "list-review-requests":
+        if effective_dry_run(args):
+            return pr_read_dry_run("list-review-requests")
+        return pr_list_review_requests()
+    if args.action == "inspect":
+        require_id(args.pr_ref, "pr inspect")
+        if effective_dry_run(args):
+            return pr_read_dry_run("inspect", pr_ref=args.pr_ref)
+        return pr_inspect(args.pr_ref)
+    if args.action == "review":
+        require_id(args.pr_ref, "pr review")
+        return pr_review(
+            args.pr_ref,
+            approve=args.approve,
+            request_changes=args.request_changes,
+            comment=args.comment,
+            allow_write=args.allow_write,
+            dry_run=effective_dry_run(args),
+        )
+    if args.action == "automation":
+        if args.automation_action not in {None, "create"}:
+            raise DevKitError("pr automation action must be create")
+        if effective_dry_run(args):
+            return pr_automation_dry_run(time=args.time)
+        return pr_create_automation(time=args.time)
+    raise DevKitError(f"unsupported pr action: {args.action}")
+
+
+def dispatch_permissions(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "show":
+            return show_permissions()
+        if args.action == "grant":
+            if not args.agent or not args.provider or not args.level:
+                raise DevKitError("permissions grant requires agent, provider and level")
+            return grant_permission(args.agent, args.provider, args.level, project=args.project, task_id=args.task_id)
+        if args.action == "revoke":
+            if not args.agent or not args.provider:
+                raise DevKitError("permissions revoke requires agent and provider")
+            return revoke_permission(args.agent, args.provider, args.level, project=args.project, task_id=args.task_id)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported permissions action: {args.action}")
+
+
+def dispatch_audit(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.execution_id:
+                raise DevKitError("audit list does not accept an execution id")
+            return list_audits(limit=max(1, int(args.limit or 20)))
+        if args.action == "show":
+            require_id(args.execution_id, "audit show")
+            return show_audit(args.execution_id)
+        if args.action == "export":
+            require_id(args.execution_id, "audit export")
+            return export_audit(args.execution_id, fmt=args.format)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported audit action: {args.action}")
+
+
+def pr_read_dry_run(action: str, *, pr_ref: str | None = None) -> dict[str, Any]:
+    return {
+        "kind": "pr",
+        "status": "planned",
+        "ok": True,
+        "dry_run": True,
+        "mode": "report-only",
+        "provider": "github",
+        "action": action,
+        "pr_ref": pr_ref,
+        "commands": planned_pr_commands(action, pr_ref=pr_ref),
+        "summary": "Dry-run only. GitHub would be read through gh; no PR write action would be submitted.",
+    }
+
+
+def pr_automation_dry_run(*, time: str) -> dict[str, Any]:
+    return {
+        "kind": "pr-automation",
+        "status": "planned",
+        "ok": True,
+        "dry_run": True,
+        "mode": "report-only",
+        "provider": "github",
+        "task": {
+            "id": "daily-pr-review",
+            "title": "Revisar PRs pendentes diariamente",
+            "schedule": {"type": "daily", "time": time},
+            "action": {
+                "type": "capability",
+                "agent": "github-pr-reviewer",
+                "capability": "list-review-requests",
+                "external_writes": False,
+            },
+            "permissions": {"mode": "report-only", "comment": False, "approve": False, "request_changes": False},
+        },
+        "summary": "Dry-run only. A local report-only PR review task would be created.",
+    }
+
+
+def planned_pr_commands(action: str, *, pr_ref: str | None = None) -> list[list[str]]:
+    if action == "list-review-requests":
+        return [["gh", "pr", "list", "--review-requested", "@me", "--json", "number,title,url,author,headRefName,baseRefName,isDraft"]]
+    if action == "inspect":
+        return [["gh", "pr", "view", str(pr_ref), "--json", "number,title,url,author,body,headRefName,baseRefName,state,isDraft,reviewDecision,mergeable"]]
+    return []
+
+
+def require_id(value: str | None, command: str) -> None:
+    if not value:
+        raise DevKitError(f"{command} requires an id")
+
+
+def effective_dry_run(args: argparse.Namespace) -> bool:
+    return bool(getattr(args, "dry_run", False) or getattr(args, "global_dry_run", False))
+
+
+def dispatch_alias(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.name:
+                raise DevKitError("alias list does not accept a name")
+            return list_aliases()
+        if args.action == "add":
+            if not args.name:
+                raise DevKitError("alias add requires a name")
+            return add_alias(args.name, force=args.force)
+        if args.action == "remove":
+            if not args.name:
+                raise DevKitError("alias remove requires a name")
+            return remove_alias(args.name)
+        if args.action == "sync":
+            if args.name:
+                raise DevKitError("alias sync does not accept a name")
+            return sync_aliases()
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported alias action: {args.action}")
+
+
+def dispatch_session(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.session_id:
+                raise DevKitError("session list does not accept a session id")
+            return list_sessions()
+        if args.action == "show":
+            if not args.session_id:
+                raise DevKitError("session show requires a session id")
+            return show_session(args.session_id)
+        if args.action == "resume":
+            if not args.session_id:
+                raise DevKitError("session resume requires a session id")
+            return resume_session(args.session_id)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported session action: {args.action}")
 
 
 def agent_requires_llm(args: argparse.Namespace) -> dict[str, Any]:
     prompt = " ".join(args.prompt).strip()
     if not prompt:
         raise DevKitError("agent requires a natural-language prompt")
-    route = route_prompt(prompt)
-    if route:
-        return invoke_deterministic_route(prompt, route)
+    if effective_dry_run(args):
+        return build_agent_dry_run_plan(prompt, args)
     try:
-        backend = resolve_backend(args.llm)
+        session = get_or_create_session(
+            session_id=args.session_id,
+            force_new=args.new_session,
+            prompt=prompt,
+            project=str(Path.cwd()),
+            backend=args.llm,
+        )
     except ValueError as exc:
         raise DevKitError(str(exc)) from exc
-    if backend and backend.get("status") == "ok":
-        return invoke_agent_prompt(prompt, args.llm)
-    return {
+    personality = load_personality()
+    name = public_name(personality=personality, invoked_as=getattr(args, "prog_name", "agent"))
+    if is_identity_question(prompt):
+        result = {
+            "kind": "agent",
+            "status": "ok",
+            "ok": True,
+            "requires_llm": False,
+            "prompt_received": True,
+            "prompt_length": len(prompt),
+            "identity": {"name": name, "source": "local"},
+            "response": local_identity_response(prompt, name=name),
+        }
+        return finalize_agent_session(result, session, prompt, backend=args.llm)
+    natural_result = dispatch_natural_operational_prompt(prompt)
+    if natural_result:
+        return finalize_agent_session(natural_result, session, prompt, backend=args.llm)
+    route = route_prompt(prompt)
+    if route:
+        result = invoke_deterministic_route(prompt, route)
+        return finalize_agent_session(result, session, prompt, backend=args.llm)
+    contextual_prompt = build_contextual_prompt(str(session["id"]), prompt)
+    result = invoke_agent_prompt(
+        contextual_prompt,
+        args.llm,
+        public_name=name,
+        allow_fallback=not args.no_llm_fallback,
+    )
+    result["prompt_length"] = len(prompt)
+    result["session_context_applied"] = contextual_prompt != prompt
+    if result.get("response"):
+        result["response"] = enforce_identity_response(str(result["response"]), prompt, name=name)
+    result["identity"] = {"name": name, "source": "local"}
+    return finalize_agent_session(result, session, prompt, backend=result.get("llm_backend") or args.llm)
+
+
+def dispatch_natural_operational_prompt(prompt: str) -> dict[str, Any] | None:
+    normalized = " ".join(prompt.lower().split())
+    if "agenda" in normalized:
+        if "amanha" in normalized or "amanhã" in normalized:
+            payload = calendar_tomorrow()
+        else:
+            payload = calendar_today()
+        payload = dict(payload)
+        payload["kind"] = "agent"
+        payload["mode"] = "calendar-route"
+        payload["requires_llm"] = False
+        payload["prompt_received"] = True
+        payload["prompt_length"] = len(prompt)
+        payload["response"] = calendar_summary(payload)
+        if payload.get("status") == "needs-input":
+            payload["ok"] = False
+        else:
+            payload["ok"] = True
+        return payload
+    if has_pr_intent(normalized):
+        if any(marker in normalized for marker in ("diariamente", "todo dia", "diaria", "diária", "recorrente")):
+            payload = pr_create_automation()
+            return {
+                "kind": "agent",
+                "status": payload.get("status"),
+                "ok": True,
+                "mode": "pr-automation-route",
+                "requires_llm": False,
+                "prompt_received": True,
+                "prompt_length": len(prompt),
+                "response": "Automacao diaria de revisao de PRs criada em modo report-only.",
+                "result": payload,
+            }
+        payload = pr_list_review_requests()
+        return {
+            "kind": "agent",
+            "status": payload.get("status"),
+            "ok": payload.get("status") == "ok",
+            "mode": "pr-route",
+            "requires_llm": False,
+            "prompt_received": True,
+            "prompt_length": len(prompt),
+            "response": summarize_pr_list(payload),
+            "result": payload,
+            "exit_code": payload.get("exit_code", 0 if payload.get("status") == "ok" else 2),
+        }
+    return None
+
+
+def build_agent_dry_run_plan(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
+    normalized = " ".join(prompt.lower().split())
+    route = route_prompt(prompt)
+    plan: dict[str, Any] = {
         "kind": "agent",
-        "status": "blocked",
-        "ok": False,
-        "requires_llm": True,
-        "llm_backend": args.llm,
+        "status": "planned",
+        "ok": True,
+        "dry_run": True,
+        "requires_llm": False,
         "prompt_received": True,
         "prompt_length": len(prompt),
-        "message": "agent requires a configured LLM backend for natural-language tasks.",
-        "next_steps": [
-            "Use `agent run <agent> <capability>` for deterministic execution without LLM.",
-            "Configure a backend with `agent llm configure <backend> --set-default`.",
-            "Inspect available backends with `agent llm list` and their status with `agent llm doctor`.",
-        ],
-        "exit_code": 2,
+        "mode": "dry-run",
+        "intent": "llm" if not route else route.get("intent"),
+        "route": route,
+        "llm_backend": getattr(args, "llm", None),
+        "external_writes": False,
+        "providers": {"used": [], "missing": [], "skipped": []},
+        "commands": [],
+        "permissions": [],
+        "response": "Dry-run: nenhuma chamada LLM ou escrita externa foi executada.",
     }
+    if "agenda" in normalized:
+        plan.update(
+            {
+                "intent": "calendar",
+                "mode": "calendar-dry-run",
+                "providers": {"used": ["calendar"], "missing": [], "skipped": []},
+                "data_reads": ["configured calendar provider, if present"],
+                "response": "Dry-run: o calendario seria consultado localmente se configurado.",
+            }
+        )
+        return plan
+    if has_pr_intent(normalized):
+        recurring = any(marker in normalized for marker in ("diariamente", "todo dia", "diaria", "diária", "recorrente"))
+        plan.update(
+            {
+                "intent": "github-pr-review",
+                "mode": "pr-dry-run",
+                "providers": {"used": ["github"], "missing": [], "skipped": []},
+                "commands": planned_pr_commands("list-review-requests"),
+                "external_writes": False,
+                "permissions": [{"agent": "github-pr-reviewer", "provider": "github", "required_level": "read-only"}],
+                "response": (
+                    "Dry-run: a automacao diaria de PR seria planejada em modo report-only."
+                    if recurring
+                    else "Dry-run: PRs aguardando revisao seriam listadas via gh em modo report-only."
+                ),
+            }
+        )
+        return plan
+    if route:
+        plan["providers"] = {"used": [route.get("provider")], "missing": [], "skipped": []}
+        plan["response"] = "Dry-run: a capability roteada seria executada somente apos validar source/provider."
+        return plan
+    plan["response"] = "Dry-run: o prompt exigiria LLM configurada; nenhuma chamada foi feita."
+    return plan
+
+
+def has_pr_intent(normalized_prompt: str) -> bool:
+    tokens = {token.strip(".,;:!?()[]{}\"'") for token in normalized_prompt.split()}
+    return bool({"pr", "prs"} & tokens) or "pull request" in normalized_prompt or "pull requests" in normalized_prompt
+
+
+def summarize_pr_list(payload: dict[str, Any]) -> str:
+    if payload.get("status") != "ok":
+        return str(payload.get("message") or "Nao foi possivel listar PRs.")
+    items = payload.get("items") or []
+    if not items:
+        return "Nenhuma PR aguardando sua revisao foi encontrada."
+    lines = []
+    for item in items:
+        number = item.get("number")
+        title = item.get("title") or "-"
+        url = item.get("url") or ""
+        lines.append(f"- #{number} {title} {url}".strip())
+    return "\n".join(lines)
+
+
+def finalize_agent_session(
+    result: dict[str, Any],
+    session: dict[str, Any],
+    prompt: str,
+    *,
+    backend: str | None = None,
+) -> dict[str, Any]:
+    try:
+        result["session"] = record_exchange(str(session["id"]), prompt=prompt, result=result, backend=backend)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    return result
 
 
 def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, Any]:
@@ -1050,6 +1682,8 @@ def print_human(result: dict[str, Any]) -> None:
         print_llm_configure(result)
     elif kind == "llm-default":
         print_llm_default(result)
+    elif kind == "llm-preference":
+        print_llm_preference(result)
     elif kind == "providers":
         print_providers(result)
     elif kind == "provider-status":
@@ -1072,8 +1706,48 @@ def print_human(result: dict[str, Any]) -> None:
         print_source_remove(result)
     elif kind == "memory":
         print_memory(result)
+    elif kind == "memory-path":
+        print_memory_path(result)
     elif kind == "memory-reset":
         print_memory_reset(result)
+    elif kind == "personality":
+        print_personality(result)
+    elif kind == "aliases":
+        print_aliases(result)
+    elif kind == "alias":
+        print_alias(result)
+    elif kind == "sessions":
+        print_sessions(result)
+    elif kind == "session":
+        print_session(result)
+    elif kind == "setup":
+        print_setup(result)
+    elif kind == "toolchain":
+        print_toolchain(result)
+    elif kind == "toolchain-doctor":
+        print_toolchain_doctor(result)
+    elif kind == "toolchain-install":
+        print_toolchain_install(result)
+    elif kind == "tasks":
+        print_tasks(result)
+    elif kind == "task":
+        print_task(result)
+    elif kind == "task-history":
+        print_task_history(result)
+    elif kind == "task-run":
+        print_task_run(result)
+    elif kind == "scheduler":
+        print_scheduler(result)
+    elif kind == "calendar":
+        print_calendar(result)
+    elif kind == "calendar-configure":
+        print_calendar_configure(result)
+    elif kind in {"pr", "pr-review", "pr-automation"}:
+        print_pr(result)
+    elif kind == "permissions":
+        print_permissions(result)
+    elif kind in {"audit", "audit-entry", "audit-export"}:
+        print_audit(result)
     elif kind == "install":
         print_install(result)
     else:
@@ -1242,6 +1916,10 @@ def print_source_remove(result: dict[str, Any]) -> None:
 
 def print_memory(result: dict[str, Any]) -> None:
     print(f"Memory home: {result['memory_home']}")
+    if result.get("files"):
+        print("\nFiles:")
+        for item in result["files"]:
+            print(f"- {item['name']}: {item['path']}")
     for bucket in ("prompts", "routes", "sources"):
         print(f"\n{bucket.title()}:")
         items = result["usage"].get(bucket) or []
@@ -1255,6 +1933,218 @@ def print_memory(result: dict[str, Any]) -> None:
 def print_memory_reset(result: dict[str, Any]) -> None:
     print("Memory reset.")
     print(f"Config: {result['config_path']}")
+
+
+def print_memory_path(result: dict[str, Any]) -> None:
+    print(f"Memory home: {result['home']}")
+    if result.get("created"):
+        print("Created:")
+        for path in result["created"]:
+            print(f"- {path}")
+    print("Files:")
+    for item in result["files"]:
+        print(f"- {item['name']}: {item['path']}")
+
+
+def print_personality(result: dict[str, Any]) -> None:
+    print(f"Personality: {result.get('status', 'ok')}")
+    print(f"Path: {result['path']}")
+    print(f"Agent name: {result.get('agent_name') or '-'}")
+    print(f"User name: {result.get('user_name') or '-'}")
+    print(f"Language: {result.get('language') or '-'}")
+    print(f"Tone: {result.get('tone') or '-'}")
+    print(f"Detail level: {result.get('detail_level') or '-'}")
+    if result.get("message"):
+        print(result["message"])
+    if result.get("questions"):
+        print("Setup questions:")
+        for question in result["questions"]:
+            print(f"- {question}")
+
+
+def print_aliases(result: dict[str, Any]) -> None:
+    print(f"Aliases config: {result['config_path']}")
+    if not result["items"]:
+        print("No aliases configured.")
+        return
+    for item in result["items"]:
+        print(f"- {item['name']}: {item['path']}")
+
+
+def print_alias(result: dict[str, Any]) -> None:
+    print(f"Alias {result['status']}: {result['name']}")
+    if result.get("path"):
+        print(f"Path: {result['path']}")
+    if result.get("removed_paths"):
+        print("Removed:")
+        for path in result["removed_paths"]:
+            print(f"- {path}")
+    print(f"Config: {result['config_path']}")
+
+
+def print_sessions(result: dict[str, Any]) -> None:
+    print(f"Sessions home: {result['home']}")
+    if result.get("active_session_id"):
+        print(f"Active: {result['active_session_id']}")
+    if not result["items"]:
+        print("No sessions found.")
+        return
+    for item in result["items"]:
+        marker = " active" if item.get("active") else ""
+        print(
+            f"- {item['id']}{marker}  {item.get('title') or '-'}  "
+            f"{item.get('exchange_count', 0)} exchanges  ~{item.get('token_estimate', 0)} tokens"
+        )
+        if item.get("project"):
+            print(f"  Project: {item['project']}")
+
+
+def print_session(result: dict[str, Any]) -> None:
+    session = result["session"]
+    print(f"Session {result['status']}: {session['id']}")
+    print(f"Title: {session.get('title') or '-'}")
+    print(f"Path: {session.get('path') or '-'}")
+    print(f"Project: {session.get('project') or '-'}")
+    print(f"Exchanges: {session.get('exchange_count', 0)}")
+    print(f"Token estimate: {session.get('token_estimate', 0)}")
+
+
+def print_setup(result: dict[str, Any]) -> None:
+    print(f"Setup: {result['status']}")
+    print(f"Dry-run: {result.get('dry_run', False)}")
+    toolchain = result.get("toolchain") or {}
+    print(f"Toolchain: {toolchain.get('status', '-')}")
+    missing = (toolchain.get("required_missing") or []) + (toolchain.get("optional_missing") or [])
+    if missing:
+        print(f"Missing: {', '.join(missing)}")
+    if result.get("next_steps"):
+        print("Next steps:")
+        for step in result["next_steps"]:
+            print(f"- {step}")
+
+
+def print_toolchain(result: dict[str, Any]) -> None:
+    print(f"Toolchain: {result['status']}")
+    print(f"Platform: {result['platform']}")
+    for item in result["items"]:
+        print(f"- {item['id']}  {item['command']}  required={item['required']}")
+
+
+def print_toolchain_doctor(result: dict[str, Any]) -> None:
+    print(f"Toolchain doctor: {result['status']}")
+    print(f"Platform: {result['platform']}")
+    for item in result["items"]:
+        print(f"- {item['id']}: {item['status']}")
+        if item.get("binary"):
+            print(f"  {item['binary']}")
+        if item.get("install"):
+            print(f"  Install: {item['install']}")
+
+
+def print_toolchain_install(result: dict[str, Any]) -> None:
+    print(f"Toolchain install: {result['status']}")
+    if result.get("message"):
+        print(result["message"])
+    for plan in result["plans"]:
+        print(f"- {plan['id']}: {plan.get('command') or '-'}")
+
+
+def print_tasks(result: dict[str, Any]) -> None:
+    print(f"Tasks: {len(result['items'])}")
+    for item in result["items"]:
+        print(f"- {item['id']}  {item['status']}  {item.get('title') or '-'}")
+
+
+def print_task(result: dict[str, Any]) -> None:
+    if result.get("message"):
+        print(result["message"])
+    task = result.get("task") or {}
+    if task:
+        print(f"Task {result['status']}: {task.get('id')}")
+        print(f"Title: {task.get('title') or '-'}")
+        print(f"Status: {task.get('status') or '-'}")
+
+
+def print_task_history(result: dict[str, Any]) -> None:
+    print(result.get("history") or "No history.")
+
+
+def print_task_run(result: dict[str, Any]) -> None:
+    print(f"Task run: {result['status']}")
+    if result.get("message"):
+        print(result["message"])
+
+
+def print_scheduler(result: dict[str, Any]) -> None:
+    print(f"Scheduler: {result['status']}")
+    if result.get("message"):
+        print(result["message"])
+    if "due_count" in result:
+        print(f"Due tasks: {result['due_count']}")
+
+
+def print_calendar(result: dict[str, Any]) -> None:
+    if result.get("status") != "ok":
+        print(result.get("message") or "Calendar is not available.")
+        for step in result.get("next_steps") or []:
+            print(f"- {step}")
+        return
+    print(calendar_summary(result))
+
+
+def print_calendar_configure(result: dict[str, Any]) -> None:
+    print(f"Calendar configured: {result['provider']}")
+    print(f"Source: {result['source_ref']}")
+    print("Stored secret: no")
+
+
+def print_pr(result: dict[str, Any]) -> None:
+    if result.get("message"):
+        print(result["message"])
+    if result.get("items") is not None:
+        print(summarize_pr_list(result))
+    elif result.get("summary"):
+        print(result["summary"])
+    elif result.get("task"):
+        task = result["task"]
+        print(f"PR automation {result['status']}: {task.get('id')}")
+
+
+def print_permissions(result: dict[str, Any]) -> None:
+    print(f"Permissions: {result['status']}")
+    if result.get("default_level"):
+        print(f"Default: {result['default_level']}")
+    if result.get("grant"):
+        grant = result["grant"]
+        print(f"Grant: {grant.get('agent')} / {grant.get('provider')} -> {grant.get('level')}")
+    if result.get("removed") is not None:
+        print(f"Removed: {len(result.get('removed') or [])}")
+    grants = result.get("grants")
+    if grants is not None:
+        if not grants:
+            print("No explicit grants.")
+        for grant in grants:
+            print(f"- {grant.get('agent')} / {grant.get('provider')} -> {grant.get('level')}")
+    if result.get("json_path"):
+        print(f"Policy: {result['json_path']}")
+
+
+def print_audit(result: dict[str, Any]) -> None:
+    if result["kind"] == "audit":
+        print(f"Audit home: {result['home']}")
+        for item in result.get("items") or []:
+            print(f"- {item.get('id')}  {item.get('created_at')}  {item.get('command')}  {item.get('status')}")
+        return
+    if result["kind"] == "audit-entry":
+        entry = result.get("entry") or {}
+        print(f"Audit: {entry.get('id')}")
+        print(f"Created: {entry.get('created_at')}")
+        print(f"Command: {entry.get('command')}")
+        print(f"Status: {(entry.get('result') or {}).get('status')}")
+        print(f"JSON: {result.get('json_path')}")
+        print(f"Markdown: {result.get('markdown_path')}")
+        return
+    print(result.get("content") or "")
 
 
 def print_llm_backends(result: dict[str, Any]) -> None:
@@ -1291,6 +2181,16 @@ def print_llm_configure(result: dict[str, Any]) -> None:
 
 def print_llm_default(result: dict[str, Any]) -> None:
     print(f"Default LLM backend: {result['default']}")
+    print(f"Config: {result['config_path']}")
+
+
+def print_llm_preference(result: dict[str, Any]) -> None:
+    print(f"LLM preference: {result.get('status', 'ok')}")
+    print(f"Primary: {result.get('primary') or '-'}")
+    print(f"Fallback enabled: {result.get('fallback_enabled', True)}")
+    print("Order:")
+    for backend_id in result.get("order") or []:
+        print(f"- {backend_id}")
     print(f"Config: {result['config_path']}")
 
 

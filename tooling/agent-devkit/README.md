@@ -26,7 +26,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.0.4
+agent 0.1.0
 ```
 
 ## Quick Start

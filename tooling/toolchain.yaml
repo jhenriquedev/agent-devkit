@@ -1,0 +1,74 @@
+version: 1
+tools:
+  claude-code:
+    label: Claude Code CLI
+    command: claude
+    required: false
+    install:
+      darwin: npm install -g @anthropic-ai/claude-code
+      linux: npm install -g @anthropic-ai/claude-code
+      windows: npm install -g @anthropic-ai/claude-code
+    notes: Uses official Claude Code authentication.
+  codex-cli:
+    label: Codex CLI
+    command: codex
+    required: false
+    install:
+      darwin: npm install -g @openai/codex
+      linux: npm install -g @openai/codex
+      windows: npm install -g @openai/codex
+    notes: Uses official Codex CLI authentication.
+  gh-cli:
+    label: GitHub CLI
+    command: gh
+    required: false
+    install:
+      darwin: brew install gh
+      linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+      windows: winget install --id GitHub.cli
+    notes: Required for GitHub PR reviewer workflows.
+  aws-cli:
+    label: AWS CLI
+    command: aws
+    required: false
+    install:
+      darwin: brew install awscli
+      linux: See https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+      windows: winget install --id Amazon.AWSCLI
+    notes: Required for AWS agents using real AWS accounts.
+  figma-mcp:
+    label: Figma MCP
+    command: figma
+    required: false
+    install:
+      darwin: Configure the official Figma MCP integration in your host app.
+      linux: Configure the official Figma MCP integration in your host app.
+      windows: Configure the official Figma MCP integration in your host app.
+    notes: Optional; usually installed through Codex/Claude host integrations.
+  node:
+    label: Node.js
+    command: node
+    required: true
+    install:
+      darwin: brew install node
+      linux: Use your distro package manager or https://nodejs.org/
+      windows: winget install OpenJS.NodeJS.LTS
+    notes: Required by several artifact builders and host CLIs.
+  python:
+    label: Python
+    command: python3
+    required: true
+    install:
+      darwin: brew install python
+      linux: Use your distro package manager.
+      windows: winget install Python.Python.3.12
+    notes: Required by the Agent DevKit CLI runtime.
+  git:
+    label: Git
+    command: git
+    required: true
+    install:
+      darwin: xcode-select --install
+      linux: Use your distro package manager.
+      windows: winget install Git.Git
+    notes: Required for repository-aware workflows.

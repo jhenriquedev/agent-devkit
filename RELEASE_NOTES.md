@@ -1,3 +1,32 @@
+# v0.1.0
+
+Runtime agentic release.
+
+## Highlights
+
+- Adds local Agent DevKit home with memory, personality, aliases, sessions,
+  task state, policies, audit trail and cache directories.
+- Makes `agent` the canonical CLI entrypoint with natural-language prompt
+  routing, configurable personality and custom local aliases.
+- Adds persistent conversation sessions with project-scoped active session
+  reuse, session listing/resume and token estimates.
+- Adds LLM backend preference and fallback across Codex CLI, Claude Code,
+  OpenAI, Anthropic, OpenRouter and Ollama.
+- Adds plan-first toolchain/setup helpers for Codex, Claude, GitHub CLI and
+  supporting external tools.
+- Adds local tasks, scheduler, calendar ICS integration and GitHub PR reviewer
+  automation in report-only mode by default.
+- Adds permission policies, global dry-run behavior and local JSON/Markdown
+  audit logs with secret redaction.
+- Adds the `github-pr-reviewer` specialist agent and providers for GitHub,
+  calendar, local scheduler and local notification.
+
+## Validation
+
+- Repository strict validation passes.
+- Release gate quick check passes.
+- Full Python unittest suite passes locally.
+
 # v0.0.4
 
 Documentation-only patch release.

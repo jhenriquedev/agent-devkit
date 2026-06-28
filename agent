@@ -4,29 +4,45 @@
 from __future__ import annotations
 
 import sys
+import os
+from pathlib import Path
 
 from cli.aikit.main import DETERMINISTIC_COMMANDS, LLM_COMMANDS, main
+
+
+SESSION_SHORTCUTS = {"-s", "--sessions"}
+AGENT_PROMPT_FLAGS = {"--llm", "--no-llm-fallback", "--session", "--new-session"}
+GLOBAL_PROMPT_FLAGS = {"--json", "--dry-run"}
 
 
 def normalize_args(argv: list[str]) -> list[str]:
     if not argv:
         return ["agent"]
     commands = set(DETERMINISTIC_COMMANDS) | set(LLM_COMMANDS)
-    first = argv[0]
+    leading: list[str] = []
+    remaining = list(argv)
+    while remaining and remaining[0] in GLOBAL_PROMPT_FLAGS:
+        leading.append(remaining.pop(0))
+    if leading:
+        if not remaining:
+            return [*leading, "agent"]
+        if remaining[0] in SESSION_SHORTCUTS:
+            return [*leading, *remaining]
+        if remaining[0] in commands:
+            return [*leading, *remaining]
+        return [*leading, "agent", *remaining]
+    first = remaining[0]
     if first in {"--help", "-h", "--version", "-v"}:
-        return argv
-    if first == "--json":
-        if len(argv) == 1:
-            return ["--json", "agent"]
-        if argv[1] in commands:
-            return argv
-        return ["--json", "agent", *argv[1:]]
-    if first in {"--llm"}:
-        return ["agent", *argv]
+        return remaining
+    if first in SESSION_SHORTCUTS:
+        return remaining
+    if first in AGENT_PROMPT_FLAGS:
+        return ["agent", *remaining]
     if first in commands:
-        return argv
-    return ["agent", *argv]
+        return remaining
+    return ["agent", *remaining]
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(normalize_args(sys.argv[1:]), prog="agent"))
+    invoked_as = os.environ.get("AI_DEVKIT_INVOKED_AS") or Path(sys.argv[0]).name
+    raise SystemExit(main(normalize_args(sys.argv[1:]), prog=invoked_as))
