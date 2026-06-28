@@ -30,6 +30,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Python dependencies
+        run: python3 -m pip install PyYAML
+
       - name: Validate repository contracts
         run: python3 scripts/validate-repo.py --strict
 
@@ -63,6 +66,9 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+
+      - name: Install Python dependencies
+        run: python3 -m pip install PyYAML
 
       - name: Install npm metadata
         run: npm ci

@@ -50,6 +50,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install Python dependencies
+        run: python3 -m pip install PyYAML
+
       - name: Install npm metadata
         run: npm ci
 
