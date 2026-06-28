@@ -23,6 +23,7 @@ Valide a instalacao:
 
 ```bash
 agent --version
+agent -v
 agent doctor
 ```
 

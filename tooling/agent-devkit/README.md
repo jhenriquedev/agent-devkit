@@ -19,13 +19,14 @@ Validate the installation:
 
 ```bash
 agent --version
+agent -v
 agent doctor
 ```
 
 Expected version for this release:
 
 ```text
-agent 0.0.2
+agent 0.0.3
 ```
 
 ## Quick Start

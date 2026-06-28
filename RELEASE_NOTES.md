@@ -1,3 +1,13 @@
+# v0.0.3
+
+Patch release.
+
+## Highlights
+
+- Adds `-v` as an alias for `--version` on the `agent`, `aikit` and
+  `ai-devkit` entrypoints.
+- Keeps npm README and CLI documentation aligned with the new version alias.
+
 # v0.0.2
 
 Documentation-only patch release.

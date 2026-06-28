@@ -13,7 +13,7 @@ def normalize_args(argv: list[str]) -> list[str]:
         return ["agent"]
     commands = set(DETERMINISTIC_COMMANDS) | set(LLM_COMMANDS)
     first = argv[0]
-    if first in {"--help", "-h", "--version"}:
+    if first in {"--help", "-h", "--version", "-v"}:
         return argv
     if first == "--json":
         if len(argv) == 1:

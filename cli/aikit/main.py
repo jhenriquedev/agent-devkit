@@ -109,7 +109,7 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
         description="AI DevKit CLI",
     )
     parser.add_argument("--json", action="store_true", help="print machine-readable JSON")
-    parser.add_argument("--version", action="store_true", help="print CLI version and exit")
+    parser.add_argument("-v", "--version", action="store_true", help="print CLI version and exit")
 
     subparsers = parser.add_subparsers(dest="command")
 

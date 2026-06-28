@@ -197,13 +197,25 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.0.2", result.stdout)
+        self.assertIn("aikit 0.0.3", result.stdout)
+
+    def test_short_version_exits_successfully(self) -> None:
+        result = self.run_cli("-v")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("aikit 0.0.3", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.0.2", result.stdout)
+        self.assertIn("agent 0.0.3", result.stdout)
+
+    def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
+        result = self.run_agent("-v")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("agent 0.0.3", result.stdout)
 
     def test_agents_list_json(self) -> None:
         result = self.run_cli("agents", "list", "--json")
@@ -2006,7 +2018,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.0.2", installed_agent.stdout)
+            self.assertIn("agent 0.0.3", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2150,7 +2162,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.0.2", result.stdout)
+        self.assertIn("ai-devkit 0.0.3", result.stdout)
 
 
 if __name__ == "__main__":
