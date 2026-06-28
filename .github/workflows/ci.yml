@@ -74,7 +74,9 @@ jobs:
         run: npm ci
 
       - name: Verify release alignment
-        run: npm run release:verify -- v0.0.1
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          npm run release:verify -- "v${VERSION}"
 
       - name: Build package runtime
         run: npm run package:build
