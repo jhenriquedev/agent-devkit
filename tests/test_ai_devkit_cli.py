@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import importlib.util
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -50,6 +51,12 @@ NODE_MODULES = Path(
         / "node_modules",
     )
 )
+
+
+def artifact_tool_available() -> bool:
+    node_available = NODE.exists() or shutil.which("node") is not None
+    artifact_available = (NODE_MODULES / "@oai" / "artifact-tool").exists()
+    return node_available and artifact_available
 
 
 def load_workbook_support_module():
@@ -108,6 +115,13 @@ await output.save(payload.path);
 
 
 class AiDevKitCliTest(unittest.TestCase):
+    def setUp(self) -> None:
+        if self._testMethodName.startswith("test_excel_") and not artifact_tool_available():
+            self.skipTest(
+                "excel artifact-tool tests require Codex primary runtime "
+                "or CODEX_NODE_MODULES with @oai/artifact-tool"
+            )
+
     def run_cli_ok(self, *args: str) -> subprocess.CompletedProcess[str]:
         try:
             result = subprocess.run(
