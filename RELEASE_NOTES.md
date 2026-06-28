@@ -1,20 +1,65 @@
+# v0.1.6
+
+Runtime agentic stabilization patch.
+
+## Highlights
+
+- Cuts the v0.1.5 hardening work as a patch release after the final delivery
+  review.
+- Keeps the npm-packaged runtime aligned with the repository runtime before
+  publish.
+- Strengthens package verification so the npm artifact must include the
+  runtime agents, orchestration modules, agentic wizard modules and canonical
+  `~/.agent-devkit` home behavior.
+- Updates runtime role agent manifests and release metadata to `0.1.6`.
+
+## Validation
+
+- v0.1.5/v0.1.6 focused contract tests pass locally.
+- Full repository validation, release alignment and npm package verification
+  pass before tag.
+
 # v0.1.5
 
 Runtime agentic hardening release.
 
 ## Highlights
 
+- Adds the first real multi-agent orchestration path for `agent "<prompt>"`,
+  including `execution_plan`, `specialist_tasks`, `configuration_tasks`,
+  `review_task` and `orchestration_trace`.
+- Routes configured read-only prompt tasks through the selected specialist
+  capability runner instead of treating the plan as metadata only.
+- Materializes runtime roles as real agents in `agents/`: `task-orchestrator`,
+  `provider-configurator`, `local-llm-operator` and `execution-reviewer`.
 - Replaces missing-provider/source dead ends with a global agentic setup wizard
   owned by `provider-configurator`, covering prompt-routed sources and
   capability provider requirements.
+- Adds persistent wizard state under `~/.agent-devkit/state/wizards`, `agent
+  wizard list/show/answer/cancel`, safe credential references, source creation
+  and automatic prompt resume after setup completion.
+- Makes `~/.agent-devkit` the canonical global Agent DevKit home, keeps
+  `~/.ai-devkit` as legacy fallback when present, and adds `agent config
+  migrate-home` for explicit migration.
+- Completes the interactive TTY path for setup wizards: without `--json`, the
+  agent asks one question at a time, validates answers before persistence and
+  never stores raw credential values.
 - Adds persistent local decisions for tools, integrations, skills and LLMs,
   including enable/disable commands and prompt-routed control actions.
+- Generalizes prompt-routed control actions across catalogued toolchain items,
+  providers, vendor skills and LLM backends, with `needs-input` for ambiguous
+  targets.
 - Adds Ollama status, model listing, model pull and update planning commands,
   and includes Ollama in the plan-first toolchain registry.
 - Adds model routing metadata so local LLMs are treated as operational workers
   while Claude/Codex remain preferred coordinators and reviewers.
-- Adds review-gate metadata for routed work, documents, code, automations and
-  local-LLM delegated work.
+- Executes selected Ollama delegations through `local-llm-operator` for bounded
+  operational work and feeds the result back to the coordinator as supporting
+  context.
+- Enforces `review_gate` through `execution-reviewer`; required reviews now run
+  on an independent reviewer backend and block completion when no reviewer is
+  configured, when the reviewer returns `REVIEW BLOCKED`, or when the reviewer
+  does not return `REVIEW OK`.
 - Strengthens identity enforcement so backend responses that claim to be
   Claude, Codex or ChatGPT are rewritten to the configured local agent
   identity.

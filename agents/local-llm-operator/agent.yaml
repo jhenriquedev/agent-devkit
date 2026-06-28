@@ -1,0 +1,26 @@
+id: local-llm-operator
+kind: runtime-agent
+name: Local LLM Operator
+version: 0.1.6
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Operar LLMs locais como trabalhadores de baixo custo para tarefas
+  repetitivas, mantendo coordenadores principais responsaveis por decisao,
+  especificacao e revisao.
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - inspect-local-models
+  - select-local-worker
+  - delegate-operational-task
+
+write_policy:
+  external_writes: never
+  default_mode: operational-worker
+  requires_coordinator_review: true
+

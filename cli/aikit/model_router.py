@@ -5,12 +5,12 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from cli.aikit.llm import llm_preference, load_config
+from cli.aikit.llm import BACKENDS, doctor_backend, llm_preference, load_config
 from cli.aikit.ollama import ollama_status
 
 
 OPERATIONAL_PATTERN = re.compile(
-    r"(?i)\b(resum|sumari|classifi|extra(?:i|ir)|normaliz|compar|logs?|rascunho|agrupe|agrupar)\b"
+    r"(?i)\b(resum\w*|sumari\w*|classifi\w*|extra(?:i|ir|ia|cao|ção)\w*|normaliz\w*|compar\w*|logs?|rascunho|agrupe|agrupar)\b"
 )
 HIGH_LEVEL_PATTERN = re.compile(
     r"(?i)\b(arquitet|decid|aprovar|reprovar|especifica|requisit|implemente|codigo|c[oó]digo|documento|automac|deploy|seguran)\b"
@@ -18,9 +18,11 @@ HIGH_LEVEL_PATTERN = re.compile(
 
 
 def build_model_plan(prompt: str, *, route: dict[str, Any] | None = None) -> dict[str, Any]:
-    preference = llm_preference(load_config())
+    config = load_config()
+    preference = llm_preference(config)
     ollama = ollama_status()
-    local_available = ollama.get("status") == "ok"
+    ollama_backend = doctor_backend(BACKENDS["ollama"], config)
+    local_available = ollama.get("status") == "ok" or ollama_backend.get("status") == "ok"
     operational = bool(OPERATIONAL_PATTERN.search(prompt))
     high_level = bool(HIGH_LEVEL_PATTERN.search(prompt))
     use_local = operational and local_available
@@ -32,6 +34,13 @@ def build_model_plan(prompt: str, *, route: dict[str, Any] | None = None) -> dic
         "local_llm_role": "operational-worker",
         "local_llm_available": local_available,
         "local_llm_provider": "ollama",
+        "local_llm_backend_configured": ollama_backend.get("status") == "ok",
+        "local_llm_runtime": {
+            "binary_status": ollama.get("status"),
+            "backend_status": ollama_backend.get("status"),
+            "model": ollama_backend.get("model"),
+            "base_url": ollama_backend.get("base_url"),
+        },
         "local_llm_recommended": operational,
         "local_llm_selected": use_local,
         "delegation": {

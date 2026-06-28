@@ -1,0 +1,15 @@
+id: local-llm-operator.inspect-local-models
+kind: capability
+name: Inspect Local Models
+version: 0.1.6
+status: draft
+purpose: Diagnosticar disponibilidade de Ollama e modelos locais instalados.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: []
+  optional: [model]
+outputs:
+  artifacts: [local-model-report]
+

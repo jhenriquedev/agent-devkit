@@ -122,6 +122,23 @@ def reset_decisions(category: str | None = None) -> dict[str, Any]:
     return {"kind": "decisions-reset", "status": "reset", "category": category, "path": str(path)}
 
 
+def forget_decision(category: str, item_id: str) -> dict[str, Any]:
+    validate_category(category)
+    validate_item_id(item_id)
+    data = load_decisions()
+    key = decision_key(category, item_id)
+    removed = data.get("items", {}).pop(key, None)
+    path = save_decisions(data)
+    return {
+        "kind": "decision-forget",
+        "status": "forgotten" if isinstance(removed, dict) else "not-found",
+        "path": str(path),
+        "category": category,
+        "id": item_id,
+        "removed": public_decision(removed) if isinstance(removed, dict) else None,
+    }
+
+
 def is_disabled(category: str, item_id: str) -> bool:
     decision = get_decision(category, item_id)
     return bool(decision and decision.get("state") in {"disabled_by_user", "denied_by_user"})

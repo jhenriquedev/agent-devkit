@@ -48,9 +48,36 @@ agent run azure-devops-orchestrator read-card --project "Projeto" --id 123 --inc
 backends. `agent providers` e `agent provider` leem o registry local de
 providers e diagnosticam metadados disponiveis no processo atual. `agent
 credential` resolve referencias de credenciais sem imprimir valores. `agent`
-e a entrada em linguagem natural e exige backend LLM configurado; se nao
-houver backend disponivel, retorna uma mensagem instrutiva para usar `agent run`
-ou configurar um backend.
+e a entrada em linguagem natural: ele cria um `execution_plan` multiagente,
+seleciona coordenador, especialistas, configurador de provider e revisor, e usa
+capabilities deterministicas quando a rota estiver pronta. Backend LLM so e
+necessario quando a tarefa nao puder ser resolvida por rota/capability local; se
+nao houver backend disponivel, retorna uma mensagem instrutiva para usar
+`agent run` ou configurar um backend.
+
+Em `--json`, respostas de `agent "<prompt>"` incluem:
+
+- `execution_plan`: contrato `ai-devkit.agentic-plan/v1`;
+- `specialist_tasks`: capabilities escolhidas por agente;
+- `configuration_tasks`: providers/fontes que precisam de opt-in;
+- `review_task`: revisao final exigida pelo runtime;
+- `orchestration_trace`: trilha resumida de coordenacao.
+
+Os papeis de runtime tambem sao agentes reais versionados em `agents/`:
+`task-orchestrator`, `provider-configurator`, `local-llm-operator` e
+`execution-reviewer`. Eles aparecem em `agent agents list` e suas capabilities
+podem ser inspecionadas como qualquer outro agente.
+
+Quando o plano identifica uma tarefa operacional repetitiva e ha Ollama
+configurado, o runtime delega essa parte ao `local-llm-operator` e injeta o
+resultado como contexto para o coordenador principal. Essa delegacao nunca faz
+escrita externa, aprovacao, decisao de permissao ou revisao final.
+
+Quando `review_gate.required = true`, a conclusao passa pelo
+`execution-reviewer` usando um reviewer independente, preferindo `claude-code`
+ou `codex-cli`. Sem reviewer configurado, quando o reviewer retorna
+`REVIEW BLOCKED`, ou quando nao retorna `REVIEW OK`, a execucao termina como
+`needs-review` e nao como `ok`.
 
 ## Instalacao global e por projeto
 
@@ -87,7 +114,7 @@ Destinos criados:
 
 - `.ai-devkit/config.yaml`: configuracao minima da instalacao, sem segredos.
 - `.ai-devkit/ai-devkit.lock`: lock por projeto com runtime, commit e perfis.
-- `~/.ai-devkit/runtime.lock`: lock global com runtime, commit e canal local.
+- `~/.agent-devkit/runtime.lock`: lock global com runtime, commit e canal local.
 - `.codex/plugins/ai-devkit`: bundle local do plugin Codex.
 - `.codex/skills/ai-devkit-router`: skill de roteamento para Codex.
 - `.claude/plugins/ai-devkit`: bundle local do plugin Claude Code.
@@ -124,7 +151,7 @@ agent install project --target . --host all --profiles sustentacao,infra
 
 Arquivos gerados:
 
-- global: `~/.ai-devkit/runtime.lock`
+- global: `~/.agent-devkit/runtime.lock`
 - projeto: `<project>/.ai-devkit/ai-devkit.lock`
 
 O lock registra `source`, `repository`, `ref`, `commit`, `git_ref`, `dirty`,
@@ -309,9 +336,17 @@ agent --llm claude-code "analise este incidente"
 agent --llm openai "crie um plano de testes"
 ```
 
-A configuracao padrao fica em `~/.ai-devkit/config.json`. Para automacao e
-testes, use `AIKIT_CONFIG_HOME` ou `AI_DEVKIT_CONFIG_HOME` para apontar outro
-diretorio.
+A configuracao padrao fica em `~/.agent-devkit/config.json`. Para automacao e
+testes, use `AGENT_DEVKIT_HOME`, `AI_DEVKIT_CONFIG_HOME` ou `AIKIT_CONFIG_HOME`
+para apontar outro diretorio. `~/.ai-devkit` continua aceito como home legado
+quando ja existir.
+
+Para migrar explicitamente o home legado para o caminho canonico:
+
+```bash
+agent config migrate-home --dry-run
+agent config migrate-home
+```
 
 ## Providers
 
@@ -337,7 +372,7 @@ agent provider unset topdesk
 `provider configure` grava apenas referencias seguras, como `env:VAR` e
 `env-file:/caminho#VAR`; valores de segredos nunca sao persistidos nem exibidos.
 Use `--session-only` para validar uma configuracao sem escrever em
-`~/.ai-devkit/config.json`. Arquivos passados com `--env-file` precisam conter
+`~/.agent-devkit/config.json`. Arquivos passados com `--env-file` precisam conter
 ao menos um campo reconhecido pelo provider selecionado.
 
 Quando um prompt ou capability exige uma source/provider ausente, o runtime
@@ -350,10 +385,31 @@ agent --json "analise o card 7914 do projeto sustentacao no azure"
 agent --json run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
 
+Fluxo de continuidade:
+
+```bash
+agent wizard list
+agent wizard show <wizard-id>
+agent wizard answer <wizard-id> sim
+agent wizard answer <wizard-id> <resposta>
+agent wizard cancel <wizard-id>
+```
+
+Quando a ultima resposta valida e recebida, o wizard salva uma source
+reutilizavel em `~/.agent-devkit/config.json`, sem segredos em claro, e retoma o
+prompt original. Use `agent wizard answer <wizard-id> <resposta> --no-run` para
+salvar a configuracao sem retomar a execucao.
+
+Em terminal interativo, `agent "<prompt>"` conduz essas perguntas diretamente.
+Com `--json`, pipes ou automacao, ele retorna `needs-input` com `wizard_id` para
+que o fluxo seja continuado de forma explicita e nao bloqueante.
+
 ## Decisoes, ferramentas e integracoes
 
-Opt-ins e opt-outs ficam em `~/.ai-devkit/config/decisions.json` e podem ser
-gerenciados por comando ou prompt:
+Opt-ins e opt-outs ficam em `~/.agent-devkit/config/decisions.json` e podem ser
+gerenciados por comando ou prompt. O roteamento por prompt usa os catalogos de
+toolchain, providers, skills e backends LLM; nao depende de uma lista fixa de
+alvos.
 
 ```bash
 agent decisions list
@@ -364,8 +420,17 @@ agent integrations list
 agent skills list
 agent "mostre minhas decisoes"
 agent "desative o azure devops por enquanto"
+agent "desative topdesk"
+agent "habilite gh-cli"
+agent "desative a skill security-review"
+agent "desative openrouter"
 agent "reative o ollama"
+agent "liste llms"
+agent "esqueca minha decisao sobre anthropic"
 ```
+
+Quando um nome e ambiguo entre categorias, o retorno fica `needs-input` e inclui
+`matches` para o usuario informar a categoria ou o id exato.
 
 ## Credential Resolver
 

@@ -255,7 +255,9 @@ Referencias oficiais:
 
 Existem dois modos de execucao:
 
-- `agent "<prompt>"`: entrada em linguagem natural; exige backend LLM.
+- `agent "<prompt>"`: entrada em linguagem natural; monta um plano multiagente,
+  usa capabilities deterministicas quando possivel e exige backend LLM apenas
+  quando nenhuma rota local atende a tarefa.
 - `agent run <agent> <capability>`: execucao deterministica; nao exige LLM.
 
 Exemplo em linguagem natural:
@@ -263,6 +265,24 @@ Exemplo em linguagem natural:
 ```bash
 agent "analise o problema relatado no card 9900"
 ```
+
+Em `--json`, prompts roteados retornam `execution_plan` com o coordenador
+`task-orchestrator`, tarefas especialistas, configuracoes pendentes,
+`review_task` e `orchestration_trace`. Se uma fonte ou provider faltar, o plano
+fica `needs-input` e inclui o `provider-configurator` com a proxima pergunta do
+wizard. Quando a fonte esta configurada e a capability e read-only, o runtime
+executa a task primaria pelo runner existente e revisa a conclusao pelo
+`review_gate`.
+
+Para tarefas operacionais como resumo, classificacao, extracao e normalizacao,
+o runtime pode delegar uma subtarefa limitada ao `local-llm-operator` usando
+Ollama. O resultado local aparece em `local_llm_execution` e e usado apenas como
+contexto de apoio pelo coordenador principal.
+
+Quando `review_gate.required = true`, o Agent DevKit exige uma segunda revisao
+concreta pelo `execution-reviewer`, preferindo `claude-code` ou `codex-cli`.
+Sem reviewer independente configurado, ou sem uma decisao explicita
+`REVIEW OK`, a execucao retorna `needs-review` em vez de concluir como `ok`.
 
 Exemplo deterministico:
 
@@ -329,8 +349,31 @@ agent --json "analise o card 7914 do projeto sustentacao no azure"
 agent --json run topdesk-orchestrator read-incident --number "I 2606 001"
 ```
 
+O retorno inclui `setup_wizard.wizard_id`. Continue o roteiro uma resposta por
+vez; ao concluir, o runtime cria a source reutilizavel e retoma o prompt
+original automaticamente:
+
+```bash
+agent wizard list
+agent wizard show wiz-20260628120000-abc12345
+agent wizard answer wiz-20260628120000-abc12345 sim
+agent wizard answer wiz-20260628120000-abc12345 "minha-org"
+agent wizard answer wiz-20260628120000-abc12345 AZURE_DEVOPS_PAT
+agent wizard cancel wiz-20260628120000-abc12345
+```
+
+Em terminal interativo, sem `--json`, o proprio `agent` conduz o roteiro
+pergunta por pergunta. Em automacoes, pipes e testes, use os subcomandos
+`agent wizard ...` para evitar bloqueio de terminal.
+
+Credenciais devem ser informadas por referencia, por exemplo o nome de uma
+variavel de ambiente ou o caminho de um arquivo local. O Agent DevKit nao grava
+o valor bruto do segredo no estado do wizard nem na configuracao da source.
+
 O usuario tambem pode controlar ferramentas, integracoes, skills e LLMs sem
-editar arquivos diretamente:
+editar arquivos diretamente. Os alvos sao resolvidos pelos catalogos locais:
+`tooling/toolchain.yaml`, `providers/*.yaml`, `vendor/skills/CATALOG.md` e
+backends LLM registrados.
 
 ```bash
 agent decisions list
@@ -347,12 +390,27 @@ As mesmas operacoes podem ser feitas por prompt:
 ```bash
 agent "mostre minhas decisoes"
 agent "desative o azure devops por enquanto"
+agent "desative topdesk"
+agent "habilite gh-cli"
+agent "desative a skill security-review"
+agent "desative openrouter"
 agent "reative o ollama"
+agent "liste llms"
+agent "esqueca minha decisao sobre anthropic"
 ```
 
+Se um nome existir em mais de uma categoria, o agente retorna `needs-input` com
+as opcoes encontradas em vez de escolher silenciosamente. Use a categoria no
+prompt para resolver, por exemplo `desative a integracao figma` ou `desative a
+ferramenta figma-mcp`.
+
 Se o usuario negar ou desativar uma ferramenta, a decisao fica persistida em
-`~/.ai-devkit/config/decisions.json` e o agente segue sem usar essa ferramenta
+`~/.agent-devkit/config/decisions.json` e o agente segue sem usar essa ferramenta
 nas proximas sessoes ate reativacao explicita.
+
+O home global canonico e `~/.agent-devkit`. Instancias antigas em `~/.ai-devkit`
+continuam funcionando como legado; use `agent config migrate-home --dry-run` e
+depois `agent config migrate-home` para migrar explicitamente.
 
 Comandos uteis:
 
@@ -522,7 +580,7 @@ solicita provider e nao persiste segredos. Use `--dry-run --json` para revisar
 os caminhos antes de escrever. O host `all` inclui Codex App, Claude Code e
 Claude Desktop/Claude.ai.
 
-Instalacoes globais gravam `~/.ai-devkit/runtime.lock`; instalacoes por projeto
+Instalacoes globais gravam `~/.agent-devkit/runtime.lock`; instalacoes por projeto
 gravam `.ai-devkit/ai-devkit.lock`. Use `agent doctor --project .` para
 verificar se o projeto esta fixado em runtime diferente do global.
 
@@ -542,7 +600,10 @@ Execucoes reais de capabilities com escrita exigem confirmacao dupla no runtime:
 `blocked_by_default` tambem exigem `--allow-dangerous`, alem das validacoes
 internas da capability.
 
-Saidas JSON de `agent run` usam contrato `ai-devkit.run/v1`, com `status`
+Saidas JSON de `agent "<prompt>"` usam o contrato de orquestracao
+`ai-devkit.agentic-plan/v1` dentro de `execution_plan`. Os estados principais
+sao `planned`, `needs-input`, `ok`, `partial` e `blocked`. Saidas JSON de
+`agent run` usam contrato `ai-devkit.run/v1`, com `status`
 parseavel (`ok`, `partial`, `blocked`, `failed`), `agent_id`, `capability_id`,
 `providers`, `fallback_applied`, `evidence`, `risks`, `next_steps` e
 `artifacts` sempre presentes.
@@ -591,6 +652,8 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`elasticsearch-log-analyzer`](agents/elasticsearch-log-analyzer/):
   especialista em Elasticsearch para descoberta de fontes, busca de eventos,
   rastreio de requests, padroes de erro e relatorios de logs.
+- [`execution-reviewer`](agents/execution-reviewer/): agente runtime de
+  revisao final, revisao de planos e revisao de resultados antes da conclusao.
 - [`excel-workbook-builder`](agents/excel-workbook-builder/): especialista em
   templates, preenchimento, conciliacao, revisao e exportacao de planilhas
   Excel.
@@ -602,6 +665,8 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   em modo report-only e criar automacoes locais conservadoras.
 - [`knowledge-generator`](agents/knowledge-generator/): especialista em gerar
   knowledge versionavel a partir de arquivos, pastas, projetos e documentacoes.
+- [`local-llm-operator`](agents/local-llm-operator/): agente runtime para
+  diagnosticar, selecionar e delegar tarefas operacionais a LLMs locais.
 - [`n1-support-agent`](agents/n1-support-agent/): especialista N1 para executar
   runbooks operacionais a partir de cards Azure DevOps, orquestrando Azure,
   SQL Server, logs e TOPdesk.
@@ -611,6 +676,8 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   especialista em PostgreSQL read-only para descoberta de databases, schemas,
   tabelas, relacionamentos, joins, queries assistidas, perfilamento, qualidade
   de dados e relatorios analiticos.
+- [`provider-configurator`](agents/provider-configurator/): agente runtime que
+  conduz wizard de providers, sources e referencias seguras de credenciais.
 - [`presentation-deck-builder`](agents/presentation-deck-builder/):
   especialista em templates versionados de PowerPoint, arquivos de entrada para
   preenchimento e geracao de decks a partir de conteudo estruturado.
@@ -626,6 +693,8 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   especialista em analise de requisitos, entrevistas, analise de projetos,
   documentacao funcional/tecnica, user stories, fluxos de jornada e
   rastreabilidade.
+- [`task-orchestrator`](agents/task-orchestrator/): agente runtime que planeja
+  prompts livres, seleciona especialistas, coordena execucao e aciona revisao.
 - [`technical-integration-analyst`](agents/technical-integration-analyst/):
   especialista em analise de documentacoes tecnicas de integracoes, com suporte
   a REST, SOAP, MCP, SFTP, SMTP e outros protocolos, gerando contratos, fluxos,

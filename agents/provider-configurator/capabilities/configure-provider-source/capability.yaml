@@ -1,0 +1,15 @@
+id: provider-configurator.configure-provider-source
+kind: capability
+name: Configure Provider Source
+version: 0.1.6
+status: draft
+purpose: Conduzir wizard para configurar uma source reutilizavel de provider.
+write_policy: local-config-write
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [provider]
+  optional: [prompt, route, agent_id, capability_id, reason]
+outputs:
+  artifacts: [source-config]
+

@@ -14,11 +14,14 @@ from cli.aikit import __version__
 
 PROJECT_LOCK_NAME = "ai-devkit.lock"
 GLOBAL_LOCK_NAME = "runtime.lock"
+PROJECT_RUNTIME_DIR = ".ai-devkit"
+GLOBAL_RUNTIME_DIR = ".agent-devkit"
 
 
 def lock_path(base: Path, scope: str) -> Path:
     name = GLOBAL_LOCK_NAME if scope == "global" else PROJECT_LOCK_NAME
-    return base / ".ai-devkit" / name
+    runtime_dir = GLOBAL_RUNTIME_DIR if scope == "global" else PROJECT_RUNTIME_DIR
+    return base / runtime_dir / name
 
 
 def write_lock(

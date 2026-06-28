@@ -1,0 +1,15 @@
+id: provider-configurator.validate-provider-readiness
+kind: capability
+name: Validate Provider Readiness
+version: 0.1.6
+status: draft
+purpose: Validar se um provider ou source esta pronto para uso sem expor segredo.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [provider]
+  optional: [source_id]
+outputs:
+  artifacts: [readiness-report]
+

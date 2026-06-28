@@ -236,8 +236,10 @@ class AikitCleanInstallE2ETest(unittest.TestCase):
         self.assertEqual(no_llm.returncode, 2, no_llm.stderr)
         no_llm_payload = json.loads(no_llm.stdout)
         self.assertEqual(no_llm_payload["kind"], "agent")
-        self.assertEqual(no_llm_payload["status"], "blocked")
-        self.assertTrue(no_llm_payload["requires_llm"])
+        self.assertEqual(no_llm_payload["status"], "needs-input")
+        self.assertFalse(no_llm_payload.get("requires_llm", False))
+        self.assertEqual(no_llm_payload["provider"], "elasticsearch")
+        self.assertEqual(no_llm_payload["setup_wizard"]["owner_agent"], "provider-configurator")
 
         self.assertEqual(fallback.returncode, 0, fallback.stderr)
         fallback_payload = json.loads(fallback.stdout)

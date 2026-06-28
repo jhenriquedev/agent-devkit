@@ -60,6 +60,7 @@ def record_audit(
         "prompt_normalized": normalize_prompt(prompt) if prompt else None,
         "session": extract_session(safe_result),
         "route": safe_result.get("route"),
+        "orchestration": extract_orchestration(safe_result),
         "agent": extract_agent(safe_result, args),
         "providers": extract_providers(safe_result),
         "sources": extract_sources(safe_result),
@@ -282,6 +283,43 @@ def extract_external_actions(result: dict[str, Any]) -> list[dict[str, Any]]:
     return actions
 
 
+def extract_orchestration(result: dict[str, Any]) -> dict[str, Any] | None:
+    plan = result.get("execution_plan")
+    if not isinstance(plan, dict):
+        return None
+    return {
+        "kind": plan.get("kind"),
+        "status": plan.get("status"),
+        "coordinator_agent": (plan.get("coordinator_agent") or {}).get("id") if isinstance(plan.get("coordinator_agent"), dict) else None,
+        "domain_agent": (plan.get("domain_agent") or {}).get("id") if isinstance(plan.get("domain_agent"), dict) else None,
+        "specialist_tasks": [
+            {
+                "agent_id": task.get("agent_id"),
+                "capability_id": task.get("capability_id"),
+                "status": task.get("status"),
+            }
+            for task in plan.get("specialist_tasks") or []
+            if isinstance(task, dict)
+        ],
+        "configuration_tasks": [
+            {
+                "agent_id": task.get("agent_id"),
+                "provider": task.get("provider"),
+                "status": task.get("status"),
+            }
+            for task in plan.get("configuration_tasks") or []
+            if isinstance(task, dict)
+        ],
+        "review_task": {
+            "agent_id": (plan.get("review_task") or {}).get("agent_id"),
+            "status": (plan.get("review_task") or {}).get("status"),
+        }
+        if isinstance(plan.get("review_task"), dict)
+        else None,
+        "trace": result.get("orchestration_trace") or plan.get("trace") or [],
+    }
+
+
 def summarize_result(result: dict[str, Any]) -> dict[str, Any]:
     return {
         "kind": result.get("kind"),
@@ -324,6 +362,12 @@ def render_audit_md(entry: dict[str, Any]) -> str:
         "",
         "```json",
         json.dumps(entry.get("providers") or {}, ensure_ascii=False, indent=2, sort_keys=True),
+        "```",
+        "",
+        "## Orchestration",
+        "",
+        "```json",
+        json.dumps(entry.get("orchestration") or {}, ensure_ascii=False, indent=2, sort_keys=True),
         "```",
         "",
         "## Permissions",

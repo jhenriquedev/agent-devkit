@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from cli.aikit.app_home import APP_DIRS, app_home
+from cli.aikit.app_home import APP_DIRS, app_home, app_home_status
 from cli.aikit.llm import config_path as llm_config_path
 from cli.aikit.llm import doctor_backends
 from cli.aikit.lock import lock_path, lock_status, read_lock
@@ -44,6 +44,7 @@ def runtime_diagnostics(
         "status": status,
         "root": str(root),
         "app_home": str(app_home()),
+        "app_home_status": app_home_status(),
         "app_dirs": {
             name: {
                 "path": str(app_home() / name),

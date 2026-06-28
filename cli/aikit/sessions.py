@@ -168,6 +168,8 @@ def record_exchange(
         "ok": result.get("ok"),
         "backend": result.get("llm_backend") or backend,
         "requires_llm": result.get("requires_llm"),
+        "execution_plan": summarize_execution_plan(result.get("execution_plan")),
+        "orchestration_trace": result.get("orchestration_trace") or [],
         "token_estimate": token_delta,
     }
     with (path / "messages.jsonl").open("a", encoding="utf-8") as file:
@@ -187,6 +189,41 @@ def record_exchange(
     write_session_markdown(path, state)
     set_active_session(state["id"])
     return public_session(state, active=True)
+
+
+def summarize_execution_plan(plan: Any) -> dict[str, Any] | None:
+    if not isinstance(plan, dict):
+        return None
+    return {
+        "kind": plan.get("kind"),
+        "status": plan.get("status"),
+        "coordinator_agent": (plan.get("coordinator_agent") or {}).get("id") if isinstance(plan.get("coordinator_agent"), dict) else None,
+        "domain_agent": (plan.get("domain_agent") or {}).get("id") if isinstance(plan.get("domain_agent"), dict) else None,
+        "specialist_tasks": [
+            {
+                "agent_id": task.get("agent_id"),
+                "capability_id": task.get("capability_id"),
+                "status": task.get("status"),
+            }
+            for task in plan.get("specialist_tasks") or []
+            if isinstance(task, dict)
+        ],
+        "configuration_tasks": [
+            {
+                "agent_id": task.get("agent_id"),
+                "provider": task.get("provider"),
+                "status": task.get("status"),
+            }
+            for task in plan.get("configuration_tasks") or []
+            if isinstance(task, dict)
+        ],
+        "review_task": {
+            "agent_id": (plan.get("review_task") or {}).get("agent_id"),
+            "status": (plan.get("review_task") or {}).get("status"),
+        }
+        if isinstance(plan.get("review_task"), dict)
+        else None,
+    }
 
 
 def build_contextual_prompt(session_id: str, prompt: str) -> str:

@@ -26,7 +26,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.1.5
+agent 0.1.6
 ```
 
 ## Quick Start
@@ -259,7 +259,7 @@ agent "desative o azure devops por enquanto"
 agent "reative o ollama"
 ```
 
-Decisions are stored under `~/.ai-devkit/config/decisions.json`; secret values
+Decisions are stored under `~/.agent-devkit/config/decisions.json`; secret values
 are not stored there.
 
 ## Configure LLM Backends

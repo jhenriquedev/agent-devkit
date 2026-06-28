@@ -1,0 +1,15 @@
+id: task-orchestrator.plan-task
+kind: capability
+name: Plan Task
+version: 0.1.6
+status: draft
+purpose: Criar um plano multiagente a partir de um prompt livre.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [prompt]
+  optional: [dry_run, project]
+outputs:
+  artifacts: [execution-plan]
+

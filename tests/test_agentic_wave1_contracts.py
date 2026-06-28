@@ -47,6 +47,51 @@ class AgenticWave1ContractsTest(unittest.TestCase):
                 self.assertIn(name, files)
                 self.assertTrue(files[name].is_file(), name)
 
+    def test_default_home_uses_agent_devkit_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            result = self.run_agent(
+                "memory",
+                "path",
+                "--json",
+                env={
+                    "HOME": str(home),
+                    "PATH": os.environ.get("PATH", ""),
+                    "AGENT_DEVKIT_HOME": "",
+                    "AI_DEVKIT_CONFIG_HOME": "",
+                    "AIKIT_CONFIG_HOME": "",
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(Path(payload["home"]), (home / ".agent-devkit" / "memory").resolve())
+            self.assertTrue((home / ".agent-devkit" / "memory").is_dir())
+            self.assertFalse((home / ".ai-devkit").exists())
+
+    def test_default_home_keeps_existing_ai_devkit_directory_as_legacy_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            legacy = home / ".ai-devkit"
+            legacy.mkdir()
+            result = self.run_agent(
+                "memory",
+                "path",
+                "--json",
+                env={
+                    "HOME": str(home),
+                    "PATH": os.environ.get("PATH", ""),
+                    "AGENT_DEVKIT_HOME": "",
+                    "AI_DEVKIT_CONFIG_HOME": "",
+                    "AIKIT_CONFIG_HOME": "",
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(Path(payload["home"]), (legacy / "memory").resolve())
+            self.assertFalse((home / ".agent-devkit").exists())
+
     def test_memory_path_keeps_legacy_aikit_config_home_compatibility(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             home = Path(tmpdir)
@@ -72,6 +117,25 @@ class AgenticWave1ContractsTest(unittest.TestCase):
             payload = json.loads(result.stdout)
             self.assertEqual(Path(payload["home"]), Path(preferred).resolve() / "memory")
             self.assertFalse((Path(legacy) / "memory").exists())
+
+    def test_agent_devkit_home_takes_precedence_over_legacy_envs(self) -> None:
+        with tempfile.TemporaryDirectory() as canonical, tempfile.TemporaryDirectory() as ai_home, tempfile.TemporaryDirectory() as aikit_home:
+            result = self.run_agent(
+                "memory",
+                "path",
+                "--json",
+                env={
+                    "AGENT_DEVKIT_HOME": canonical,
+                    "AI_DEVKIT_CONFIG_HOME": ai_home,
+                    "AIKIT_CONFIG_HOME": aikit_home,
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(Path(payload["home"]), Path(canonical).resolve() / "memory")
+            self.assertFalse((Path(ai_home) / "memory").exists())
+            self.assertFalse((Path(aikit_home) / "memory").exists())
 
     def test_memory_show_is_idempotent_and_preserves_existing_markdown(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -116,6 +180,9 @@ class AgenticWave1ContractsTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
+            fake_codex = home / "codex"
+            fake_codex.write_text("#!/usr/bin/env sh\nprintf '%s\\n' 'REVIEW OK'\n", encoding="utf-8")
+            fake_codex.chmod(0o755)
 
             configure = self.run_agent(
                 "source",
@@ -132,6 +199,15 @@ class AgenticWave1ContractsTest(unittest.TestCase):
                 "--json",
                 env=env,
             )
+            reviewer = self.run_agent(
+                "llm",
+                "configure",
+                "codex-cli",
+                "--command",
+                str(fake_codex),
+                "--json",
+                env=env,
+            )
             result = self.run_agent(
                 "--json",
                 "analise o card 9900 com token=sk-1234567890abcdef",
@@ -140,6 +216,7 @@ class AgenticWave1ContractsTest(unittest.TestCase):
             memory = self.run_agent("memory", "show", "--json", env=env)
 
             self.assertEqual(configure.returncode, 0, configure.stderr)
+            self.assertEqual(reviewer.returncode, 0, reviewer.stderr)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(memory.returncode, 0, memory.stderr)
             payload = json.loads(memory.stdout)

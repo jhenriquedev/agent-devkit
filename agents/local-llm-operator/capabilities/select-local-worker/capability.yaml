@@ -1,0 +1,15 @@
+id: local-llm-operator.select-local-worker
+kind: capability
+name: Select Local Worker
+version: 0.1.6
+status: draft
+purpose: Escolher se uma tarefa operacional pode ser delegada a LLM local.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [prompt]
+  optional: [model_plan]
+outputs:
+  artifacts: [local-worker-selection]
+

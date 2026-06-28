@@ -69,12 +69,23 @@ async function main() {
 
   await assertExists("agent");
   await assertExists("cli/aikit/main.py");
+  await assertExists("cli/aikit/app_home.py");
+  await assertExists("cli/aikit/control_router.py");
+  await assertExists("cli/aikit/execution_reviewer.py");
+  await assertExists("cli/aikit/local_llm_operator.py");
+  await assertExists("cli/aikit/orchestrator.py");
+  await assertExists("cli/aikit/wizard_state.py");
   await assertExists("agents");
+  await assertExists("agents/task-orchestrator/agent.yaml");
+  await assertExists("agents/provider-configurator/agent.yaml");
+  await assertExists("agents/local-llm-operator/agent.yaml");
+  await assertExists("agents/execution-reviewer/agent.yaml");
   await assertExists("providers");
   await assertExists("plugins");
   await assertNoForbiddenFiles(runtimeRoot);
 
   const configHome = await mkdtemp(path.join(os.tmpdir(), "agent-devkit-package-"));
+  const fakeHome = await mkdtemp(path.join(os.tmpdir(), "agent-devkit-home-"));
   try {
     const env = {
       ...process.env,
@@ -99,9 +110,28 @@ async function main() {
     if (doctorPayload.status !== "ok") {
       throw new Error(`Packaged runtime doctor failed: ${doctor.stdout}`);
     }
+
+    const canonicalEnv = {
+      ...process.env,
+      HOME: fakeHome,
+      PYTHONDONTWRITEBYTECODE: "1",
+    };
+    delete canonicalEnv.AGENT_DEVKIT_HOME;
+    delete canonicalEnv.AI_DEVKIT_CONFIG_HOME;
+    delete canonicalEnv.AIKIT_CONFIG_HOME;
+    const config = await run("node", [agentBin, "config", "show", "--json"], { env: canonicalEnv });
+    const configPayload = JSON.parse(config.stdout);
+    const home = configPayload.home || {};
+    if (!String(home.home || "").endsWith(".agent-devkit")) {
+      throw new Error(`Packaged runtime did not use canonical .agent-devkit home: ${config.stdout}`);
+    }
+    if (home.migration_command !== "agent config migrate-home") {
+      throw new Error(`Packaged runtime is missing home migration command: ${config.stdout}`);
+    }
     await assertNoForbiddenFiles(runtimeRoot);
   } finally {
     await rm(configHome, { recursive: true, force: true });
+    await rm(fakeHome, { recursive: true, force: true });
   }
 
   console.log("Agent DevKit npm package verified.");

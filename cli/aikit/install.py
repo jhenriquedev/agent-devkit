@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from cli.aikit import __version__
-from cli.aikit.lock import lock_path, write_lock
+from cli.aikit.lock import GLOBAL_RUNTIME_DIR, PROJECT_RUNTIME_DIR, lock_path, write_lock
 
 
 HOST_ALIASES = {
@@ -46,7 +46,7 @@ def install_runtime(
     hosts = resolve_hosts(host)
     root = root.resolve()
     base = resolve_base(scope, target=target, home=home)
-    runtime_dir = base / ".ai-devkit"
+    runtime_dir = base / (GLOBAL_RUNTIME_DIR if scope == "global" else PROJECT_RUNTIME_DIR)
     bin_dir = runtime_dir / "bin"
     config_path = runtime_dir / "config.yaml"
     runtime_lock_path = lock_path(base, scope)
@@ -256,7 +256,8 @@ def write_runtime_config(path: Path, root: Path, scope: str, hosts: tuple[str, .
 
 
 def next_steps(scope: str, hosts: tuple[str, ...]) -> list[str]:
-    steps = ["Add `.ai-devkit/bin` to PATH when you want to call the installed `agent` directly."]
+    runtime_dir_name = GLOBAL_RUNTIME_DIR if scope == "global" else PROJECT_RUNTIME_DIR
+    steps = [f"Add `{runtime_dir_name}/bin` to PATH when you want to call the installed `agent` directly."]
     steps.append("Run `agent doctor --json` to validate the local runtime.")
     if "codex" in hosts:
         steps.append("Restart or reload Codex so it can discover the AI DevKit plugin/skill.")

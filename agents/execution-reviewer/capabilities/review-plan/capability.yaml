@@ -1,0 +1,15 @@
+id: execution-reviewer.review-plan
+kind: capability
+name: Review Plan
+version: 0.1.6
+status: draft
+purpose: Revisar plano multiagente antes de execucao sensivel.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [execution_plan]
+  optional: []
+outputs:
+  artifacts: [plan-review]
+

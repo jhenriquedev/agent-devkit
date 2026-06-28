@@ -1,0 +1,25 @@
+id: provider-configurator
+kind: runtime-agent
+name: Provider Configurator
+version: 0.1.6
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Conduzir wizards agenticos de configuracao de providers e sources, coletando
+  opt-in, campos de projeto e referencias seguras de credencial.
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - configure-provider-source
+  - collect-provider-credentials
+  - validate-provider-readiness
+
+write_policy:
+  config_writes: explicit_opt_in
+  stores_secret_values: never
+  default_mode: ask-first
+

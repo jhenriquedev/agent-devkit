@@ -1,0 +1,15 @@
+id: task-orchestrator.coordinate-execution
+kind: capability
+name: Coordinate Execution
+version: 0.1.6
+status: draft
+purpose: Coordenar execucao de tarefas planejadas, bloqueios e revisao final.
+write_policy: delegated
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [execution_plan]
+  optional: [dry_run]
+outputs:
+  artifacts: [orchestration-trace]
+

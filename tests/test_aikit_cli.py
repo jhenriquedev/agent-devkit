@@ -199,25 +199,25 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.1.5", result.stdout)
+        self.assertIn("aikit 0.1.6", result.stdout)
 
     def test_short_version_exits_successfully(self) -> None:
         result = self.run_cli("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.1.5", result.stdout)
+        self.assertIn("aikit 0.1.6", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.1.5", result.stdout)
+        self.assertIn("agent 0.1.6", result.stdout)
 
     def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.1.5", result.stdout)
+        self.assertIn("agent 0.1.6", result.stdout)
 
     def test_agents_list_json(self) -> None:
         result = self.run_cli("agents", "list", "--json")
@@ -267,11 +267,11 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(payload["kind"], "doctor")
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["scope"], "auto")
-        self.assertEqual(payload["summary"]["agents"], 23)
-        self.assertEqual(payload["summary"]["capabilities"], 312)
+        self.assertEqual(payload["summary"]["agents"], 27)
+        self.assertEqual(payload["summary"]["capabilities"], 324)
         self.assertEqual(payload["summary"]["declared_runners"], 290)
-        self.assertEqual(payload["summary"]["workflows"], 312)
-        self.assertEqual(payload["summary"]["decision_rules"], 312)
+        self.assertEqual(payload["summary"]["workflows"], 324)
+        self.assertEqual(payload["summary"]["decision_rules"], 324)
 
     def test_doctor_json_includes_expanded_diagnostics(self) -> None:
         result = self.run_cli(
@@ -333,6 +333,41 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(payload["diagnostics"]["providers"]["status"], "partial")
         self.assertIn(payload["diagnostics"]["llm"]["status"], {"partial", "missing"})
         self.assertFalse(payload["errors"])
+
+    def test_config_migrate_home_dry_run_and_execute(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            home = Path(tmpdir)
+            legacy = home / ".ai-devkit"
+            canonical = home / ".agent-devkit"
+            legacy.mkdir()
+            (legacy / "config.json").write_text('{"version": 1}\n', encoding="utf-8")
+            env = {
+                "HOME": str(home),
+                "PATH": os.environ.get("PATH", ""),
+                "AGENT_DEVKIT_HOME": "",
+                "AI_DEVKIT_CONFIG_HOME": "",
+                "AIKIT_CONFIG_HOME": "",
+            }
+            dry_run = self.run_cli("config", "migrate-home", "--dry-run", "--json", env=env, replace_env=True)
+            execute = self.run_cli("config", "migrate-home", "--json", env=env, replace_env=True)
+            canonical_config_exists = (canonical / "config.json").is_file()
+            legacy_exists_after_execute = legacy.exists()
+            after = self.run_cli("config", "migrate-home", "--json", env=env, replace_env=True)
+
+        self.assertEqual(dry_run.returncode, 0, dry_run.stderr)
+        dry_payload = json.loads(dry_run.stdout)
+        self.assertEqual(dry_payload["status"], "planned")
+        self.assertEqual(Path(dry_payload["source"]), legacy.resolve())
+        self.assertEqual(Path(dry_payload["destination"]), canonical.resolve())
+        self.assertFalse(dry_payload["executed"])
+        self.assertEqual(execute.returncode, 0, execute.stderr)
+        execute_payload = json.loads(execute.stdout)
+        self.assertEqual(execute_payload["status"], "migrated")
+        self.assertTrue(execute_payload["executed"])
+        self.assertTrue(canonical_config_exists)
+        self.assertFalse(legacy_exists_after_execute)
+        self.assertEqual(after.returncode, 0, after.stderr)
+        self.assertEqual(json.loads(after.stdout)["status"], "not-needed")
 
     def test_doctor_project_validates_installed_plugins(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -1156,7 +1191,8 @@ class AikitCliTest(unittest.TestCase):
     def test_agent_prompt_card_uses_default_source_and_fixture(self) -> None:
         with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as tmpdir:
             fixture = self.write_card_fixture(Path(tmpdir) / "card-9900.json", card_id=9900)
-            env = {"AIKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+            fake_codex = self.write_fake_host_cli(tmpdir, "codex", "REVIEW OK")
+            env = {"AIKIT_CONFIG_HOME": config_home, "PATH": f"{tmpdir}:{os.environ.get('PATH', '')}"}
             configure = self.run_agent(
                 "source",
                 "add",
@@ -1173,6 +1209,16 @@ class AikitCliTest(unittest.TestCase):
                 env=env,
                 replace_env=True,
             )
+            reviewer = self.run_agent(
+                "llm",
+                "configure",
+                "codex-cli",
+                "--command",
+                str(fake_codex),
+                "--json",
+                env=env,
+                replace_env=True,
+            )
             result = self.run_agent(
                 "--json",
                 "analise o problema relatado no card 9900",
@@ -1184,15 +1230,19 @@ class AikitCliTest(unittest.TestCase):
             after_reset = self.run_agent("memory", "show", "--json", env=env, replace_env=True)
 
         self.assertEqual(configure.returncode, 0, configure.stderr)
+        self.assertEqual(reviewer.returncode, 0, reviewer.stderr)
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["kind"], "agent")
         self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["mode"], "deterministic-route")
+        self.assertEqual(payload["mode"], "agentic-route")
+        self.assertEqual(payload["legacy_mode"], "deterministic-route")
         self.assertEqual(payload["source"]["id"], "azure-fixture")
         self.assertEqual(payload["route"]["entities"]["card_id"], "9900")
         self.assertIn("# Card Analysis", payload["response"])
         self.assertIn("- ID: 9900", payload["response"])
+        self.assertEqual(payload["review_result"]["status"], "ok")
+        self.assertEqual(payload["review_gate"]["status"], "reviewed")
         self.assertEqual(memory.returncode, 0, memory.stderr)
         memory_payload = json.loads(memory.stdout)
         self.assertEqual(memory_payload["kind"], "memory")
@@ -1992,9 +2042,9 @@ class AikitCliTest(unittest.TestCase):
             home = Path(install_home).resolve()
             codex_plugin = home / ".codex" / "plugins" / "ai-devkit" / ".codex-plugin" / "plugin.json"
             codex_skill = home / ".codex" / "skills" / "ai-devkit-router" / "SKILL.md"
-            runtime_config = home / ".ai-devkit" / "config.yaml"
-            runtime_lock = home / ".ai-devkit" / "runtime.lock"
-            bin_dir = home / ".ai-devkit" / "bin"
+            runtime_config = home / ".agent-devkit" / "config.yaml"
+            runtime_lock = home / ".agent-devkit" / "runtime.lock"
+            bin_dir = home / ".agent-devkit" / "bin"
             agent_command = bin_dir / "agent"
             aikit_command = bin_dir / "aikit"
             ai_devkit_command = bin_dir / "ai-devkit"
@@ -2026,7 +2076,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.1.5", installed_agent.stdout)
+            self.assertIn("agent 0.1.6", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2109,7 +2159,7 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(doctor.returncode, 0, doctor.stderr)
         payload = json.loads(doctor.stdout)
         self.assertTrue(payload["locks"]["global"]["exists"])
-        self.assertEqual(payload["locks"]["global"]["path"], str(Path(install_home).resolve() / ".ai-devkit" / "runtime.lock"))
+        self.assertEqual(payload["locks"]["global"]["path"], str(Path(install_home).resolve() / ".agent-devkit" / "runtime.lock"))
 
     def test_simple_lock_parser_reads_nested_host_lists(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2170,7 +2220,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.1.5", result.stdout)
+        self.assertIn("ai-devkit 0.1.6", result.stdout)
 
 
 if __name__ == "__main__":

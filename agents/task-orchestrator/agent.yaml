@@ -1,0 +1,31 @@
+id: task-orchestrator
+kind: runtime-agent
+name: Task Orchestrator
+version: 0.1.6
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Coordenar prompts livres, selecionar agentes especialistas, montar planos de
+  execucao, identificar configuracoes pendentes e acionar revisao final.
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - plan-task
+  - select-specialists
+  - coordinate-execution
+
+agent_surface:
+  orchestrated_agents:
+    - provider-configurator/configure-provider-source
+    - local-llm-operator/select-local-worker
+    - execution-reviewer/review-final-output
+
+write_policy:
+  default_mode: plan-first
+  external_writes: delegated
+  requires_review: true
+

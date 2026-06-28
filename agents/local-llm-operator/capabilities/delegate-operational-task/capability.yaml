@@ -1,0 +1,15 @@
+id: local-llm-operator.delegate-operational-task
+kind: capability
+name: Delegate Operational Task
+version: 0.1.6
+status: draft
+purpose: Delegar uma tarefa operacional a modelo local e retornar resultado revisavel.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [task]
+  optional: [model]
+outputs:
+  artifacts: [delegated-result]
+

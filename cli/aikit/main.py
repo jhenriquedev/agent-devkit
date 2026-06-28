@@ -14,11 +14,16 @@ from typing import Any
 
 from cli.aikit.aliases import add_alias, list_aliases, remove_alias, sync_aliases
 from cli.aikit import __version__
+from cli.aikit.agent_executor import execute_plan_tasks
+from cli.aikit.app_home import app_home_status, migrate_default_home
 from cli.aikit.audit import export_audit, list_audits, record_audit, show_audit
 from cli.aikit.calendar import calendar_list, calendar_summary, calendar_today, calendar_tomorrow, configure_calendar
 from cli.aikit.configuration_orchestrator import provider_wizard_from_requirement
-from cli.aikit.decision_store import list_decisions, reset_decisions, set_decision
+from cli.aikit.control_router import dispatch_natural_control_prompt as route_natural_control_prompt
+from cli.aikit.control_router import plan_natural_control_prompt
+from cli.aikit.decision_store import forget_decision, list_decisions, reset_decisions, set_decision
 from cli.aikit.diagnostics import build_diagnostics
+from cli.aikit.execution_reviewer import enforce_execution_review
 from cli.aikit.fallback import evaluate_provider_requirements
 from cli.aikit.github_pr import pr_create_automation, pr_inspect, pr_list_review_requests, pr_review
 from cli.aikit.guardrails import evaluate_execution_guardrails
@@ -35,10 +40,17 @@ from cli.aikit.llm import (
 from cli.aikit.memory import memory_path_payload, napkin_context, record_usage, reset_memory, show_memory
 from cli.aikit.model_router import build_model_plan
 from cli.aikit.ollama import ollama_models, ollama_pull, ollama_status, ollama_update
+from cli.aikit.local_llm_operator import enrich_prompt_with_local_result, maybe_delegate_local_llm
+from cli.aikit.orchestrator import (
+    attach_source_to_primary_task,
+    build_execution_plan,
+    mark_plan_after_execution,
+    mark_review_task,
+)
 from cli.aikit.personality import load_personality, reset_personality, setup_personality, update_personality
 from cli.aikit.permissions import grant_permission, revoke_permission, show_permissions
 from cli.aikit.provider_wizard import missing_source_wizard
-from cli.aikit.review_gate import build_review_gate, mark_reviewed
+from cli.aikit.review_gate import build_review_gate
 from cli.aikit.sessions import (
     build_contextual_prompt,
     get_or_create_session,
@@ -85,6 +97,14 @@ from cli.aikit.sources import (
     source_env,
     source_status,
 )
+from cli.aikit.wizard_state import (
+    WizardStateError,
+    answer_wizard,
+    cancel_wizard,
+    create_provider_wizard,
+    list_wizards,
+    show_wizard,
+)
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
@@ -122,6 +142,7 @@ DETERMINISTIC_COMMANDS = (
     "decisions",
     "ollama",
     "install",
+    "wizard",
 )
 LLM_COMMANDS = ("agent",)
 
@@ -144,6 +165,8 @@ def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
 
     if result is None:
         return 0
+    if not getattr(args, "json", False):
+        result = maybe_run_interactive_wizard(result)
     maybe_record_cli_audit(args, result=result, error=None)
 
     if getattr(args, "json", False):
@@ -222,6 +245,14 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     source_parser.add_argument("--default-for", action="append", default=[], help="intent that should use this source by default")
     source_parser.add_argument("--default-for-agent", action="append", default=[], help="agent id that should use this source by default")
     source_parser.add_argument("--set-default", action="store_true", help="set as default source for its provider")
+
+    wizard_parser = subparsers.add_parser("wizard", help="continue agentic setup wizards")
+    wizard_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    wizard_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "answer", "cancel"])
+    wizard_parser.add_argument("wizard_id", nargs="?")
+    wizard_parser.add_argument("answer", nargs="*")
+    wizard_parser.add_argument("--status", help="filter wizard list by status")
+    wizard_parser.add_argument("--no-run", action="store_true", help="do not resume the original prompt after completing a wizard")
 
     memory_parser = subparsers.add_parser("memory", help="inspect or reset local AI DevKit memory")
     memory_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -320,7 +351,8 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 
     config_parser = subparsers.add_parser("config", help="inspect local Agent DevKit configuration")
     config_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    config_parser.add_argument("action", nargs="?", default="show", choices=["show", "path"])
+    config_parser.add_argument("action", nargs="?", default="show", choices=["show", "path", "migrate-home"])
+    config_parser.add_argument("--dry-run", action="store_true", help="plan home migration without moving files")
 
     for command_name, help_text in (
         ("tools", "manage enabled local tools"),
@@ -440,6 +472,8 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return dispatch_credential(args)
     if command == "source":
         return dispatch_source(args)
+    if command == "wizard":
+        return dispatch_wizard(args)
     if command == "memory":
         return dispatch_memory(args)
     if command == "personality":
@@ -607,12 +641,15 @@ def dispatch_config(args: argparse.Namespace) -> dict[str, Any]:
     from cli.aikit.llm import config_path
 
     if args.action == "path":
-        return {"kind": "config", "status": "ok", "path": str(config_path())}
+        return {"kind": "config", "status": "ok", "path": str(config_path()), "home": app_home_status()}
+    if args.action == "migrate-home":
+        return migrate_default_home(dry_run=effective_dry_run(args))
     if args.action == "show":
         return {
             "kind": "config",
             "status": "ok",
             "path": str(config_path()),
+            "home": app_home_status(),
             "decisions": list_decisions(),
             "llm": llm_preference(),
             "ollama": ollama_status(),
@@ -655,7 +692,7 @@ def dispatch_decisions(args: argparse.Namespace) -> dict[str, Any]:
             if not args.item_id:
                 raise DevKitError("decisions forget requires an item id")
             category = args.category or "tools"
-            return set_decision(category, args.item_id, "available", reason="decision forgotten")
+            return forget_decision(category, args.item_id)
     except ValueError as exc:
         raise DevKitError(str(exc)) from exc
     raise DevKitError(f"unsupported decisions action: {args.action}")
@@ -774,6 +811,117 @@ def dispatch_source(args: argparse.Namespace) -> dict[str, Any]:
     except SourceRegistryError as exc:
         raise DevKitError(str(exc)) from exc
     raise DevKitError(f"unsupported source action: {args.action}")
+
+
+def dispatch_wizard(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            return list_wizards(status=args.status)
+        if args.action == "show":
+            require_id(args.wizard_id, "wizard show")
+            return show_wizard(args.wizard_id)
+        if args.action == "cancel":
+            require_id(args.wizard_id, "wizard cancel")
+            return cancel_wizard(args.wizard_id)
+        if args.action == "answer":
+            require_id(args.wizard_id, "wizard answer")
+            answer = " ".join(args.answer or []).strip()
+            if not answer:
+                raise DevKitError("wizard answer requires an answer")
+            payload = answer_wizard(args.wizard_id, answer)
+            if payload.get("status") == "completed" and not args.no_run:
+                resume_prompt = payload.get("resume_prompt") or (payload.get("wizard") or {}).get("resume_prompt")
+                if resume_prompt:
+                    payload["resumed_prompt"] = True
+                    payload["resume_result"] = resume_agent_prompt(str(resume_prompt))
+                else:
+                    payload["resumed_prompt"] = False
+            else:
+                payload.setdefault("resumed_prompt", False)
+            return payload
+    except WizardStateError as exc:
+        raise DevKitError(str(exc)) from exc
+    except SourceRegistryError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported wizard action: {args.action}")
+
+
+def maybe_run_interactive_wizard(result: dict[str, Any]) -> dict[str, Any]:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        return result
+    wizard = result.get("setup_wizard") if isinstance(result.get("setup_wizard"), dict) else None
+    if not wizard or not wizard.get("wizard_id") or result.get("status") != "needs-input":
+        return result
+    print(result.get("message") or "O agente precisa de configuracao antes de continuar.")
+    return run_interactive_wizard(str(wizard["wizard_id"]))
+
+
+def run_interactive_wizard(wizard_id: str) -> dict[str, Any]:
+    payload = show_wizard(wizard_id)
+    while True:
+        wizard = payload.get("wizard") if isinstance(payload.get("wizard"), dict) else {}
+        question = payload.get("next_question") or wizard.get("next_question")
+        if not isinstance(question, dict):
+            return payload
+        print_interactive_question(question)
+        try:
+            answer = input("> ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return cancel_wizard(wizard_id, reason="interactive wizard interrupted")
+        if answer.strip().lower() in {"cancelar", "cancel", "sair", "exit"}:
+            return cancel_wizard(wizard_id, reason="interactive wizard cancelled by user")
+        try:
+            payload = answer_wizard(wizard_id, answer)
+        except WizardStateError as exc:
+            print(f"Erro: {exc}")
+            continue
+        if payload.get("status") == "completed":
+            resume_prompt = payload.get("resume_prompt") or (payload.get("wizard") or {}).get("resume_prompt")
+            if resume_prompt:
+                payload["resumed_prompt"] = True
+                payload["resume_result"] = resume_agent_prompt(str(resume_prompt))
+            else:
+                payload["resumed_prompt"] = False
+            return payload
+        if payload.get("status") in {"cancelled", "denied-by-user", "failed"}:
+            payload.setdefault("resumed_prompt", False)
+            return payload
+
+
+def print_interactive_question(question: dict[str, Any]) -> None:
+    text = question.get("text") or "Informe a resposta."
+    print(f"\nPergunta: {text}")
+    if question.get("type") == "confirm":
+        print("[s/N]")
+    options = question.get("options")
+    if isinstance(options, list) and options:
+        print("Opcoes: " + ", ".join(str(item) for item in options))
+    if question.get("suggested_value"):
+        print(f"Sugestao: {question['suggested_value']}")
+    if question.get("env_ref_key"):
+        print("Informe o nome da variavel de ambiente, nao o valor da credencial.")
+    print("Digite 'cancelar' para interromper.")
+
+
+def resume_agent_prompt(prompt: str) -> dict[str, Any]:
+    args = argparse.Namespace(
+        command="agent",
+        prompt=prompt.split(),
+        session_id=None,
+        new_session=False,
+        llm=None,
+        no_llm_fallback=False,
+        dry_run=False,
+        global_dry_run=False,
+        prog_name="agent",
+        json=True,
+        version=False,
+        sessions_shortcut=False,
+    )
+    result = agent_requires_llm(args)
+    result.pop("audit", None)
+    return result
 
 
 def dispatch_memory(args: argparse.Namespace) -> dict[str, Any]:
@@ -1093,27 +1241,122 @@ def agent_requires_llm(args: argparse.Namespace) -> dict[str, Any]:
         return finalize_agent_session(natural_result, session, prompt, backend=args.llm)
     route = route_prompt(prompt)
     if route:
-        result = invoke_deterministic_route(prompt, route)
+        result = invoke_agentic_route(prompt, route)
         return finalize_agent_session(result, session, prompt, backend=args.llm)
     contextual_prompt = build_contextual_prompt(str(session["id"]), prompt)
-    model_plan = build_model_plan(prompt)
+    execution_plan = build_execution_plan(ROOT, prompt, dry_run=False)
+    if execution_plan.get("configuration_tasks"):
+        result = agentic_needs_input_from_plan(prompt, execution_plan)
+        return finalize_agent_session(result, session, prompt, backend=args.llm)
+    model_plan = execution_plan.get("model_plan") if isinstance(execution_plan.get("model_plan"), dict) else build_model_plan(prompt)
+    review_gate = execution_plan.get("review_gate") if isinstance(execution_plan.get("review_gate"), dict) else build_review_gate(prompt, model_plan=model_plan)
+    local_llm_execution = maybe_delegate_local_llm(prompt, model_plan)
+    coordinator_prompt = enrich_prompt_with_local_result(contextual_prompt, local_llm_execution)
     result = invoke_agent_prompt(
-        contextual_prompt,
+        coordinator_prompt,
         args.llm,
         public_name=name,
         allow_fallback=not args.no_llm_fallback,
     )
-    review_gate = build_review_gate(prompt, model_plan=model_plan)
+    review_result = {
+        "kind": "execution-review",
+        "agent_id": "execution-reviewer",
+        "capability_id": "review-final-output",
+        "status": "not-run",
+        "ok": False,
+    }
     if result.get("ok"):
-        review_gate = mark_reviewed(review_gate, reviewer=str(result.get("llm_backend") or "coordinator"))
+        result, review_gate, review_result = enforce_execution_review(
+            prompt=prompt,
+            result=result,
+            review_gate=review_gate,
+            execution_plan=execution_plan,
+            producer_backend=str(result.get("llm_backend") or args.llm or ""),
+        )
+        if review_result.get("ok"):
+            execution_plan = mark_review_task(execution_plan, reviewer=str(review_result.get("llm_backend") or "execution-reviewer"))
+        elif review_gate.get("status") == "needs-review":
+            execution_plan = mark_review_task_needs_review(execution_plan, review_result)
     result["model_plan"] = model_plan
+    result["local_llm_execution"] = local_llm_execution
     result["review_gate"] = review_gate
+    result["review_result"] = review_result
+    result["review_task"] = execution_plan.get("review_task")
+    result["execution_plan"] = execution_plan
+    result["orchestration_trace"] = execution_plan.get("trace", [])
     result["prompt_length"] = len(prompt)
     result["session_context_applied"] = contextual_prompt != prompt
+    result["local_context_applied"] = coordinator_prompt != contextual_prompt
     if result.get("response"):
         result["response"] = enforce_identity_response(str(result["response"]), prompt, name=name)
     result["identity"] = {"name": name, "source": "local"}
     return finalize_agent_session(result, session, prompt, backend=result.get("llm_backend") or args.llm)
+
+
+def mark_review_task_needs_review(execution_plan: dict[str, Any], review_result: dict[str, Any]) -> dict[str, Any]:
+    task = dict(execution_plan.get("review_task") or {})
+    if task:
+        task["status"] = "needs-review"
+        task["reviewer"] = None
+        task["message"] = review_result.get("message")
+        execution_plan["review_task"] = task
+    return execution_plan
+
+
+def agentic_needs_input_from_plan(prompt: str, execution_plan: dict[str, Any]) -> dict[str, Any]:
+    configuration_task = next(
+        (task for task in execution_plan.get("configuration_tasks") or [] if isinstance(task, dict)),
+        {},
+    )
+    wizard = configuration_task.get("setup_wizard") if isinstance(configuration_task.get("setup_wizard"), dict) else {}
+    provider = configuration_task.get("provider") or wizard.get("provider")
+    payload = {
+        "kind": "agent",
+        "status": "needs-input",
+        "ok": False,
+        "mode": "agentic-plan",
+        "prompt_received": True,
+        "prompt_length": len(prompt),
+        "provider": provider,
+        "source_provider": provider,
+        "requires_source": True,
+        "execution_plan": execution_plan,
+        "orchestration_trace": execution_plan.get("trace", []),
+        "setup_wizard": wizard,
+        "next_question": wizard.get("next_question"),
+        "message": wizard.get("message") or "O plano multiagente precisa de configuracao antes de executar.",
+        "next_steps": [
+            "Responda a pergunta do wizard para autorizar ou negar a configuracao deste provider.",
+            "Depois de configurar a fonte, reexecute ou retome o mesmo prompt.",
+        ],
+        "exit_code": 2,
+    }
+    return persist_setup_wizard_payload(payload, execution_plan=execution_plan)
+
+
+def persist_setup_wizard_payload(
+    payload: dict[str, Any],
+    *,
+    execution_plan: dict[str, Any] | None = None,
+    route: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    wizard = payload.get("setup_wizard")
+    if not isinstance(wizard, dict) or wizard.get("wizard_id"):
+        return payload
+    persisted = create_provider_wizard(
+        wizard,
+        execution_plan=execution_plan or payload.get("execution_plan"),
+        route=route or payload.get("route"),
+    )
+    payload["setup_wizard"] = persisted
+    payload["next_question"] = persisted.get("next_question")
+    if execution_plan and execution_plan.get("configuration_tasks"):
+        for task in execution_plan.get("configuration_tasks") or []:
+            if isinstance(task, dict) and task.get("provider") == persisted.get("provider"):
+                task["setup_wizard"] = persisted
+                break
+    payload.setdefault("wizard_id", persisted.get("wizard_id"))
+    return payload
 
 
 def dispatch_natural_operational_prompt(prompt: str) -> dict[str, Any] | None:
@@ -1171,68 +1414,20 @@ def dispatch_natural_operational_prompt(prompt: str) -> dict[str, Any] | None:
 
 
 def dispatch_natural_control_prompt(normalized_prompt: str) -> dict[str, Any] | None:
-    if "decis" in normalized_prompt and any(marker in normalized_prompt for marker in ("mostre", "liste", "ver", "mostrar", "listar")):
-        return {
-            "kind": "agent",
-            "status": "ok",
-            "ok": True,
-            "mode": "control-center-route",
-            "requires_llm": False,
-            "response": "Estas sao as decisoes locais registradas.",
-            "result": list_decisions(),
-        }
-    control_targets = {
-        "ollama": ("tools", "ollama"),
-        "azure devops": ("tools", "azure-devops"),
-        "azure": ("tools", "azure-devops"),
-        "github": ("integrations", "github"),
-        "figma": ("tools", "figma"),
-    }
-    action: str | None = None
-    if any(marker in normalized_prompt for marker in ("desative", "desabilite", "disable", "bloqueie")):
-        action = "disable"
-    if any(marker in normalized_prompt for marker in ("reative", "ative", "habilite", "enable")):
-        action = "enable"
-    if not action:
-        return None
-    for marker, (category, item_id) in control_targets.items():
-        if marker in normalized_prompt:
-            state = "enabled" if action == "enable" else "disabled_by_user"
-            result = set_decision(category, item_id, state, reason=f"natural prompt: {action}")
-            return {
-                "kind": "agent",
-                "status": "ok",
-                "ok": True,
-                "mode": "control-center-route",
-                "requires_llm": False,
-                "response": f"{item_id} foi {'ativado' if state == 'enabled' else 'desativado'} para {category}.",
-                "result": {
-                    "category": category,
-                    "id": item_id,
-                    "state": state,
-                    "decision": result.get("item"),
-                },
-            }
-    if any(marker in normalized_prompt for marker in ("ferramentas", "tools")) and any(
-        marker in normalized_prompt for marker in ("mostre", "liste", "ver", "mostrar", "listar")
-    ):
-        return {
-            "kind": "agent",
-            "status": "ok",
-            "ok": True,
-            "mode": "control-center-route",
-            "requires_llm": False,
-            "response": "Estas sao as ferramentas com decisoes locais registradas.",
-            "result": list_decisions("tools"),
-        }
-    return None
+    return route_natural_control_prompt(ROOT, normalized_prompt)
 
 
 def build_agent_dry_run_plan(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
     normalized = " ".join(prompt.lower().split())
+    control_plan = plan_natural_control_prompt(ROOT, normalized)
+    if control_plan:
+        control_plan["prompt_received"] = True
+        control_plan["prompt_length"] = len(prompt)
+        return control_plan
     route = route_prompt(prompt)
-    model_plan = build_model_plan(prompt, route=route)
-    review_gate = build_review_gate(prompt, route=route, model_plan=model_plan)
+    execution_plan = build_execution_plan(ROOT, prompt, dry_run=True)
+    model_plan = execution_plan.get("model_plan") if isinstance(execution_plan.get("model_plan"), dict) else build_model_plan(prompt, route=route)
+    review_gate = execution_plan.get("review_gate") if isinstance(execution_plan.get("review_gate"), dict) else build_review_gate(prompt, route=route, model_plan=model_plan)
     plan: dict[str, Any] = {
         "kind": "agent",
         "status": "planned",
@@ -1251,6 +1446,8 @@ def build_agent_dry_run_plan(prompt: str, args: argparse.Namespace) -> dict[str,
         "permissions": [],
         "model_plan": model_plan,
         "review_gate": review_gate,
+        "execution_plan": execution_plan,
+        "orchestration_trace": execution_plan.get("trace", []),
         "response": "Dry-run: nenhuma chamada LLM ou escrita externa foi executada.",
     }
     if "agenda" in normalized:
@@ -1324,7 +1521,8 @@ def finalize_agent_session(
     return result
 
 
-def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, Any]:
+def invoke_agentic_route(prompt: str, route: dict[str, Any]) -> dict[str, Any]:
+    execution_plan = build_execution_plan(ROOT, prompt, dry_run=False)
     try:
         source = resolve_source(
             provider=route.get("provider"),
@@ -1336,7 +1534,14 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
 
     if not source:
         wizard = missing_source_wizard(prompt, route, root=ROOT)
-        return {
+        if execution_plan.get("configuration_tasks"):
+            execution_plan["configuration_tasks"][0]["setup_wizard"] = wizard
+        execution_plan["status"] = "needs-input"
+        execution_plan["trace"] = [
+            {"agent_id": "task-orchestrator", "action": "plan", "status": "needs-input"},
+            {"agent_id": "provider-configurator", "action": "configure", "status": "waiting-for-user"},
+        ]
+        payload = {
             "kind": "agent",
             "status": "needs-input",
             "ok": False,
@@ -1347,6 +1552,8 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
             "prompt_length": len(prompt),
             "route": route,
             "napkin": napkin_context(ROOT, agent_id=route.get("agent_id")),
+            "execution_plan": execution_plan,
+            "orchestration_trace": execution_plan.get("trace", []),
             "setup_wizard": wizard,
             "next_question": wizard.get("next_question"),
             "message": wizard.get("message"),
@@ -1357,21 +1564,51 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
             ],
             "exit_code": 2,
         }
+        return persist_setup_wizard_payload(payload, execution_plan=execution_plan, route=route)
 
-    agent = load_agent(str(route["agent_id"]))
-    capability_args = [*route.get("args", []), "--source", str(source["id"])]
-    result = run_capability(agent, str(route["capability_id"]), capability_args, capture_output=True)
+    execution_plan = attach_source_to_primary_task(execution_plan)
+    executed, blocked = execute_plan_tasks(
+        execution_plan,
+        load_agent=load_agent,
+        run_capability=lambda agent, capability_id, capability_args: run_capability(agent, capability_id, capability_args, capture_output=True),
+    )
+    execution_plan = mark_plan_after_execution(execution_plan, executed, blocked)
+    result = (executed[0].get("result") if executed else blocked[0].get("result") if blocked and isinstance(blocked[0].get("result"), dict) else {}) or {}
     response = result.get("stdout") or result.get("error") or ""
     record_usage(prompt, route=route, source_id=str(source["id"]))
-    model_plan = build_model_plan(prompt, route=route)
-    review_gate = build_review_gate(prompt, route=route, model_plan=model_plan)
+    model_plan = execution_plan.get("model_plan") if isinstance(execution_plan.get("model_plan"), dict) else build_model_plan(prompt, route=route)
+    review_gate = execution_plan.get("review_gate") if isinstance(execution_plan.get("review_gate"), dict) else build_review_gate(prompt, route=route, model_plan=model_plan)
+    review_payload = {
+        "kind": "agent",
+        "status": execution_plan.get("status") if execution_plan.get("status") != "partial" else result.get("status"),
+        "ok": bool(executed) and not blocked,
+        "response": response,
+    }
+    review_result = {
+        "kind": "execution-review",
+        "agent_id": "execution-reviewer",
+        "capability_id": "review-final-output",
+        "status": "not-run",
+        "ok": False,
+    }
     if result.get("ok"):
-        review_gate = mark_reviewed(review_gate, reviewer="deterministic-coordinator")
+        review_payload, review_gate, review_result = enforce_execution_review(
+            prompt=prompt,
+            result=review_payload,
+            review_gate=review_gate,
+            execution_plan=execution_plan,
+            producer_backend="deterministic-capability",
+        )
+        if review_result.get("ok"):
+            execution_plan = mark_review_task(execution_plan, reviewer=str(review_result.get("llm_backend") or "execution-reviewer"))
+        elif review_gate.get("status") == "needs-review":
+            execution_plan = mark_review_task_needs_review(execution_plan, review_result)
     return {
         "kind": "agent",
-        "status": result.get("status"),
-        "ok": result.get("ok", False),
-        "mode": "deterministic-route",
+        "status": review_payload.get("status"),
+        "ok": bool(review_payload.get("ok")),
+        "mode": "agentic-route",
+        "legacy_mode": "deterministic-route",
         "prompt_received": True,
         "prompt_length": len(prompt),
         "route": route,
@@ -1379,9 +1616,13 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
         "napkin": napkin_context(ROOT, agent_id=route.get("agent_id"), source_id=str(source["id"])),
         "model_plan": model_plan,
         "review_gate": review_gate,
-        "response": response,
+        "review_result": review_result,
+        "review_task": execution_plan.get("review_task"),
+        "execution_plan": execution_plan,
+        "orchestration_trace": execution_plan.get("trace", []),
+        "response": review_payload.get("response") or response,
         "result": result,
-        "exit_code": result.get("exit_code", 0 if result.get("ok") else 1),
+        "exit_code": review_payload.get("exit_code", result.get("exit_code", 0 if executed and not blocked else 1)),
     }
 
 
@@ -1601,6 +1842,7 @@ def run_capability(
                 "Informe uma referencia segura de credencial por variavel de ambiente, arquivo ou cadeia nativa quando solicitado.",
                 "Reexecute ou retome a mesma capability depois que a configuracao estiver salva.",
             ]
+            payload = persist_setup_wizard_payload(payload)
         return payload
 
     runner_ref = (data.get("entrypoint", {}) or {}).get("runner")
@@ -1949,6 +2191,8 @@ def print_human(result: dict[str, Any]) -> None:
         print_source_configure(result)
     elif kind == "source-remove":
         print_source_remove(result)
+    elif kind in {"wizards", "wizard"}:
+        print_wizard(result)
     elif kind == "memory":
         print_memory(result)
     elif kind == "memory-path":
@@ -2131,12 +2375,43 @@ def print_agent_response(result: dict[str, Any]) -> None:
         print(f"\nPergunta: {question['text']}")
         if question.get("type") == "confirm":
             print("[s/N]")
+    wizard = result.get("setup_wizard") if isinstance(result.get("setup_wizard"), dict) else {}
+    if wizard.get("wizard_id"):
+        print(f"\nWizard: {wizard['wizard_id']}")
+        print(f"Responder: agent wizard answer {wizard['wizard_id']} <resposta>")
     if result.get("llm_backend"):
         print(f"Requested backend: {result['llm_backend']}")
     if result.get("next_steps"):
         print("\nNext steps:")
         for step in result["next_steps"]:
             print(f"- {step}")
+
+
+def print_wizard(result: dict[str, Any]) -> None:
+    if result.get("kind") == "wizards":
+        items = result.get("items") or []
+        print(f"Wizards: {len(items)}")
+        for item in items:
+            print(f"- {item.get('wizard_id')}  {item.get('status')}  {item.get('provider')}")
+        return
+    wizard = result.get("wizard") if isinstance(result.get("wizard"), dict) else result.get("setup_wizard")
+    if not isinstance(wizard, dict):
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+    print(f"Wizard {wizard.get('wizard_id')}: {wizard.get('status')}")
+    print(f"Provider: {wizard.get('provider')}")
+    question = result.get("next_question") or wizard.get("next_question")
+    if isinstance(question, dict) and question.get("text"):
+        print(f"Pergunta: {question['text']}")
+        if question.get("type") == "confirm":
+            print("[s/N]")
+        print(f"Responder: agent wizard answer {wizard.get('wizard_id')} <resposta>")
+    if result.get("source_result"):
+        source = result["source_result"].get("source") or {}
+        print(f"Source configurada: {source.get('id')}")
+    if result.get("resumed_prompt"):
+        resume = result.get("resume_result") or {}
+        print(f"Prompt retomado: {resume.get('status')}")
 
 
 def print_sources(result: dict[str, Any]) -> None:

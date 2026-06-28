@@ -53,6 +53,8 @@ agents/<agent-id>/
 - `drawio-diagram-builder`: especialista em diagramas Draw.io editaveis a
   partir de fontes reais, entrevista, geracao, revisao e refinamento.
 - `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
+- `execution-reviewer`: agente runtime de revisao final, revisao de planos e
+  revisao de resultados de agentes especialistas.
 - `excel-workbook-builder`: especialista em templates, preenchimento,
   conciliacao, revisao e exportacao de planilhas Excel.
 - `figma-ui-ux-product-designer`: especialista UI/UX para criar, recriar,
@@ -62,6 +64,8 @@ agents/<agent-id>/
   locais conservadoras.
 - `knowledge-generator`: especialista em gerar knowledge versionavel a partir de
   fontes locais e documentacoes.
+- `local-llm-operator`: agente runtime para diagnosticar, selecionar e delegar
+  tarefas operacionais a LLMs locais como Ollama.
 - `n1-support-agent`: especialista N1 para runbooks operacionais a partir de
   cards Azure DevOps.
 - `n2-support-agent`: especialista N2 para investigacao de causa raiz e geracao
@@ -70,12 +74,16 @@ agents/<agent-id>/
   de apresentacoes PowerPoint.
 - `postgres-data-analyzer`: especialista em analise read-only forte de dados
   Postgres.
+- `provider-configurator`: agente runtime para conduzir wizard de configuracao
+  de providers, sources e referencias seguras de credenciais.
 - `sqlserver-data-analyzer`: especialista em analise read-only de dados SQL
   Server.
 - `sqlserver-change-operator`: especialista em mudancas controladas em SQL
   Server.
 - `software-specification-analyst`: especialista em analise de requisitos,
   entrevistas, analise de projetos e especificacoes completas de software.
+- `task-orchestrator`: agente runtime que planeja prompts livres, seleciona
+  especialistas, coordena execucao e aciona revisao.
 - `technical-integration-analyst`: especialista em documentacoes tecnicas de
   integracoes e artefatos de teste.
 - `topdesk-orchestrator`: especialista em TOPdesk para incidentes e triagem.

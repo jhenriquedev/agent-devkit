@@ -1,0 +1,15 @@
+id: execution-reviewer.review-agent-result
+kind: capability
+name: Review Agent Result
+version: 0.1.6
+status: draft
+purpose: Revisar resultado individual de agente especialista.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [agent_id, result]
+  optional: [capability_id]
+outputs:
+  artifacts: [agent-result-review]
+

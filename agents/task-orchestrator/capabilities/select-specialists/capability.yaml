@@ -1,0 +1,15 @@
+id: task-orchestrator.select-specialists
+kind: capability
+name: Select Specialists
+version: 0.1.6
+status: draft
+purpose: Escolher agentes especialistas e capabilities candidatas para um plano.
+write_policy: read-only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  required: [prompt]
+  optional: [route, domain_agent]
+outputs:
+  artifacts: [specialist-selection]
+

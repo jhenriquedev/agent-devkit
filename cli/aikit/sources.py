@@ -15,6 +15,9 @@ ENV_VAR_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 PROVIDER_CONFIG_ENV: dict[str, dict[str, str]] = {
     "azure-devops": {
+        "AZURE_DEVOPS_ORG": "AZURE_DEVOPS_ORG",
+        "AZURE_DEVOPS_PROJECT": "AZURE_DEVOPS_PROJECT",
+        "AZURE_DEVOPS_API_VERSION": "AZURE_DEVOPS_API_VERSION",
         "org": "AZURE_DEVOPS_ORG",
         "organization": "AZURE_DEVOPS_ORG",
         "project": "AZURE_DEVOPS_PROJECT",
@@ -223,8 +226,9 @@ def apply_source_to_args(source: dict[str, Any] | None, agent_id: str, capabilit
     config = source.get("config") or {}
     result = list(args)
     if agent_id == "azure-devops-orchestrator" and capability_id == "read-card":
-        if config.get("project") and not has_arg(result, "--project"):
-            result.extend(["--project", str(config["project"])])
+        project = config.get("project") or config.get("AZURE_DEVOPS_PROJECT")
+        if project and not has_arg(result, "--project"):
+            result.extend(["--project", str(project)])
         if config.get("fixture") and not has_arg(result, "--fixture"):
             result.extend(["--fixture", str(config["fixture"])])
     return result
