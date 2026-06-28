@@ -33,13 +33,13 @@ editar frames exige MCP/plugin API por bridge ou runtime equivalente.
 ## Exemplos
 
 ```bash
-./ai-devkit capabilities figma-ui-ux-product-designer
-./ai-devkit run figma-ui-ux-product-designer setup-figma-mcp-bridge --install-bridge --write-env --login --validate-live --output-dir docs/figma-setup --yes-create-dir
-./ai-devkit run figma-ui-ux-product-designer ingest-design-source --source demanda.md --output-dir docs/design/ui --yes-create-dir
-./ai-devkit run figma-ui-ux-product-designer conduct-design-interview --brief demanda.md --output-dir docs/design/interview --yes-create-dir
-./ai-devkit run figma-ui-ux-product-designer create-web-app-design --brief demanda.md --output-dir docs/design/web --yes-create-dir
-./ai-devkit run figma-ui-ux-product-designer create-web-app-design --brief demanda.md --require-direct --yes-figma-write --figma-file-name "Portal" --output-dir docs/design/web --yes-create-dir
-./ai-devkit run figma-ui-ux-product-designer capture-url-to-figma --url http://localhost:3000 --figma-file-url https://figma.com/design/FILE/... --output-dir docs/design/capture --yes-create-dir
+agent capabilities figma-ui-ux-product-designer
+agent run figma-ui-ux-product-designer setup-figma-mcp-bridge --install-bridge --write-env --login --validate-live --output-dir docs/figma-setup --yes-create-dir
+agent run figma-ui-ux-product-designer ingest-design-source --source demanda.md --output-dir docs/design/ui --yes-create-dir
+agent run figma-ui-ux-product-designer conduct-design-interview --brief demanda.md --output-dir docs/design/interview --yes-create-dir
+agent run figma-ui-ux-product-designer create-web-app-design --brief demanda.md --output-dir docs/design/web --yes-create-dir
+agent run figma-ui-ux-product-designer create-web-app-design --brief demanda.md --require-direct --yes-figma-write --figma-file-name "Portal" --output-dir docs/design/web --yes-create-dir
+agent run figma-ui-ux-product-designer capture-url-to-figma --url http://localhost:3000 --figma-file-url https://figma.com/design/FILE/... --output-dir docs/design/capture --yes-create-dir
 ```
 
 ## Uso De Skills E Plugins

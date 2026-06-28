@@ -82,6 +82,25 @@ class AzureDevOpsAgenticContractsTest(unittest.TestCase):
         self.assertNotIn("- list_queries", policies)
         self.assertIn("host_guidance", policies)
 
+    def test_write_capabilities_document_confirmation_boundary(self) -> None:
+        for capability_id in (
+            "assign-card",
+            "attach-file",
+            "comment-card",
+            "move-card",
+            "update-card-tags",
+        ):
+            with self.subTest(capability=capability_id):
+                capability = read(f"capabilities/{capability_id}/capability.yaml")
+                rules = read(f"capabilities/{capability_id}/decision-rules.md").lower()
+
+                self.assertIn("write_policy: confirm", capability)
+                self.assertIn("confirmacao", rules)
+                self.assertTrue(
+                    "dry-run" in rules or "--execute" in rules,
+                    f"{capability_id} must document dry-run or --execute behavior",
+                )
+
     def test_prompts_preserve_domain_specific_decision_rules(self) -> None:
         expected_markers = {
             "list-cards": [

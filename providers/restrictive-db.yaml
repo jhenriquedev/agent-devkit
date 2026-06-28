@@ -1,0 +1,27 @@
+id: restrictive-db
+name: Restrictive DB
+kind: database
+status: active
+description: Banco restritivo usado por N1 para validacao operacional focada.
+auth_methods:
+  - id: connection-string
+    label: Connection string restritiva
+    secret_fields:
+      - DB_RESTRICTIVE_CONN_STRING
+      - SQLSERVER_DB_CONN_STRING
+config_fields: []
+detection:
+  env_any:
+    - DB_RESTRICTIVE_CONN_STRING
+    - SQLSERVER_DB_CONN_STRING
+capabilities:
+  read:
+    - n1-support-agent/analyze-restrictive-base
+health_check:
+  command: agent provider doctor restrictive-db
+risk:
+  default: read
+  writes: false
+fallbacks:
+  - skip_provider
+  - manual_steps

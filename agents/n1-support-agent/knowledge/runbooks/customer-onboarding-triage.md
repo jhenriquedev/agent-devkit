@@ -7,7 +7,7 @@ falhas relacionadas ao cliente.
 
 1. Ler card Azure DevOps.
 2. Extrair entidades do titulo, descricao, comentarios e anexos.
-3. Classificar sintoma usando `knowledge/domains/meucashcard/symptom-routing.json`.
+3. Classificar sintoma usando `knowledge/domains/customer-support/symptom-routing.json`.
 4. Carregar regras de negocio do dominio selecionado.
 5. Se houver CPF, consultar base restritiva e classificar como `hit`, `clear`
    ou `unavailable`.

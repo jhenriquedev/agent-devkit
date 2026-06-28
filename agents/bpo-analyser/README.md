@@ -1,7 +1,7 @@
 # BPO Analyser
 
 Agente especialista para consultar diretamente a BPO e analisar propostas sem
-passar pela API SelfHire.
+passar por APIs intermediarias de produto.
 
 ## Escopo inicial
 
@@ -17,14 +17,14 @@ passar pela API SelfHire.
 ## Como usar
 
 ```bash
-./ai-devkit run bpo-analyser test-connection
-./ai-devkit run bpo-analyser list-proposals-by-cpf --cpf 12345678901
-./ai-devkit run bpo-analyser analyze-cpf-proposals --cpf 12345678901
-./ai-devkit run bpo-analyser find-latest-proposal-by-cpf --cpf 12345678901
-./ai-devkit run bpo-analyser consult-proposal --proposal-number 123456
-./ai-devkit run bpo-analyser consult-attached-documents --proposal-number 123456
-./ai-devkit run bpo-analyser analyze-proposal --proposal-number 123456
-./ai-devkit run bpo-analyser analyze-proposal --proposal-number 123456 --format json
+agent run bpo-analyser test-connection
+agent run bpo-analyser list-proposals-by-cpf --cpf 12345678901
+agent run bpo-analyser analyze-cpf-proposals --cpf 12345678901
+agent run bpo-analyser find-latest-proposal-by-cpf --cpf 12345678901
+agent run bpo-analyser consult-proposal --proposal-number 123456
+agent run bpo-analyser consult-attached-documents --proposal-number 123456
+agent run bpo-analyser analyze-proposal --proposal-number 123456
+agent run bpo-analyser analyze-proposal --proposal-number 123456 --format json
 ```
 
 As capabilities principais aceitam `--format json` para consumo por outros
@@ -47,8 +47,16 @@ Variaveis opcionais:
 - `BPO_HTTP_TIMEOUT`
 - `BPO_DEFAULT_DOCUMENT_TYPE`
 - `BPO_TLS_VERIFY`
+- `BPO_ELIGIBLE_SITUATIONS`
+- `BPO_ELIGIBLE_PROPOSAL_TYPES`
+- `BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT`
+- `BPO_FORBIDDEN_URL_PATTERNS`
+- `BPO_PARTNER_CONTRACT_FIELDS`
+- `BPO_ORIGINATOR_CONTRACT_FIELDS`
 
-O agente nao usa a API SelfHire; as URLs acima apontam para os servicos BPO.
+O agente usa somente as URLs BPO configuradas. Quando houver APIs de produto que
+nao devem ser chamadas por este agente, informe seus trechos em
+`BPO_FORBIDDEN_URL_PATTERNS`.
 
 `BPO_TLS_VERIFY=false` existe para compatibilidade local com ambientes de
 homologacao que apresentam cadeia de certificado incompleta. O padrao recomendado

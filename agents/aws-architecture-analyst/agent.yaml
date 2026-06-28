@@ -3,7 +3,7 @@ kind: specialist-agent
 name: AWS Architecture Analyst
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Analisar ambientes AWS em modo read-only, identificando recursos, topologia,

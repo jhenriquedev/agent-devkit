@@ -7,9 +7,9 @@
   correlation id e referencia TOPdesk quando existirem.
 - O roteiro operacional prioriza CPF: base restritiva, BPO, Cognito,
   onboarding, proposta/contrato, logs e cards/chamados relacionados.
-- Chamados MeuCashCard devem passar por roteamento de sintoma antes da decisao:
+- Chamados de suporte ao cliente devem passar por roteamento de sintoma antes da decisao:
   login, onboarding, proposta/convenio/margem, restritivo, cartao ou financeiro.
-- Regras de negocio ficam em `knowledge/domains/meucashcard/` e devem ser
+- Regras de negocio ficam em `knowledge/domains/customer-support/` e devem ser
   carregadas sob demanda conforme a rota selecionada.
 - Evidencias BPO devem ser coletadas via `bpo-analyser`; o N1 nao chama BPO
   diretamente.

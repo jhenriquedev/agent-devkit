@@ -11,7 +11,7 @@ import sys
 SHARED_DIR = Path(__file__).resolve().parents[1] / "_shared"
 sys.path.insert(0, str(SHARED_DIR))
 
-from mcc_knowledge import build_diagnostic_gaps, build_evidence_ledger, evaluate_quality_gate  # noqa: E402
+from domain_knowledge import build_diagnostic_gaps, build_evidence_ledger, evaluate_quality_gate  # noqa: E402
 from runner_support import decide, load_fixture, print_error, write_output  # noqa: E402
 
 

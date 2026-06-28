@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-runtime:
+    name: Python runtime (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.13"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Validate repository contracts
+        run: python3 scripts/validate-repo.py --strict
+
+      - name: Run core tests
+        run: |
+          python3 -m unittest \
+            tests.test_aikit_cli \
+            tests.test_ai_devkit_cli \
+            tests.test_ai_devkit_plugins \
+            tests.test_mvp_readiness \
+            tests.test_validate_repo
+
+      - name: Run release gate
+        run: python3 scripts/release-gate.py --quick --json
+
+  npm-package:
+    name: npm package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install npm metadata
+        run: npm ci
+
+      - name: Verify release alignment
+        run: npm run release:verify -- v0.0.1
+
+      - name: Build package runtime
+        run: npm run package:build
+
+      - name: Verify package runtime
+        run: npm run package:verify
+
+      - name: Pack package
+        run: npm pack ./tooling/agent-devkit

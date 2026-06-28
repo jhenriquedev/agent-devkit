@@ -1,0 +1,38 @@
+{
+  "name": "agent-devkit",
+  "version": "0.0.1",
+  "description": "Agent DevKit CLI runtime for specialist AI agents, capabilities and provider-aware automations.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/jhenriquedev/agent-devkit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhenriquedev/agent-devkit.git",
+    "directory": "tooling/agent-devkit"
+  },
+  "bin": {
+    "agent": "bin/agent.mjs"
+  },
+  "files": [
+    "bin",
+    "runtime",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
+  "keywords": [
+    "agent",
+    "ai-agents",
+    "codex",
+    "claude",
+    "devops",
+    "automation",
+    "agent-devkit"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

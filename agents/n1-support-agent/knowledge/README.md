@@ -7,7 +7,7 @@ execucao deterministica do atendimento N1.
 
 ## Dominios
 
-- `domains/meucashcard/`: knowledge operacional MeuCashCard usado para rotear
+- `domains/customer-support/`: knowledge operacional generico usado para rotear
   sintomas, aplicar regras de negocio e montar o quality gate do diagnostico N1.
 
 O carregamento deve ser sob demanda: primeiro o agente identifica a rota do

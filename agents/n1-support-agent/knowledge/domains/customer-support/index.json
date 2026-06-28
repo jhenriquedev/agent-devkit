@@ -1,0 +1,42 @@
+{
+  "id": "customer-support-knowledge-index",
+  "version": "0.1.0",
+  "source": {
+    "policy": "Knowledge normalizado sem segredos. Fontes corporativas, repositorios e paths locais devem ser informados por configuracao do usuario."
+  },
+  "mandatoryFiles": [
+    "contracts/n1-support-triage-contract.json",
+    "playbooks/global-support-diagnostics.json",
+    "symptom-routing.json"
+  ],
+  "domains": {
+    "login": {
+      "rules": ["rules/login-account-rules.json"],
+      "defaultEvidence": ["customer_identity", "cognito_status", "system_of_record_user_status", "api_logs"]
+    },
+    "onboarding": {
+      "rules": ["rules/onboarding-rules.json", "rules/restrictive-base-rules.json", "rules/public-agency-margin-rules.json"],
+      "defaultEvidence": ["onboarding_state", "onboarding_jobs", "restrictive_base", "public_agency", "api_logs"]
+    },
+    "proposal": {
+      "rules": ["rules/public-agency-margin-rules.json", "rules/restrictive-base-rules.json"],
+      "defaultEvidence": ["proposal_status", "margin_source", "public_agency", "bpo_logs"]
+    },
+    "restrictive": {
+      "rules": ["rules/restrictive-base-rules.json"],
+      "defaultEvidence": ["restrictive_base", "restrictive_import_logs"]
+    },
+    "card": {
+      "rules": ["rules/card-rules.json", "rules/public-agency-margin-rules.json"],
+      "defaultEvidence": ["account", "cards", "dock_logs", "invoice"]
+    },
+    "financial": {
+      "rules": ["rules/invoice-transaction-rules.json", "rules/card-rules.json"],
+      "defaultEvidence": ["account", "transactions", "invoices", "payments", "api_logs"]
+    },
+    "unknown": {
+      "rules": [],
+      "defaultEvidence": ["customer_identity", "api_logs"]
+    }
+  }
+}

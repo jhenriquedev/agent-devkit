@@ -3,7 +3,7 @@ kind: capability
 name: Route Customer Symptom
 version: 0.1.0
 status: draft
-purpose: Classify a customer support symptom using MeuCashCard operational knowledge.
+purpose: Classify a customer support symptom using configured operational knowledge.
 entrypoint:
   runner: runner.py
   workflow: workflow.md
@@ -14,6 +14,6 @@ outputs:
   artifacts: [customer-symptom-route.json]
 integration:
   knowledge:
-    - ../../knowledge/domains/meucashcard/index.json
-    - ../../knowledge/domains/meucashcard/symptom-routing.json
+    - ../../knowledge/domains/customer-support/index.json
+    - ../../knowledge/domains/customer-support/symptom-routing.json
 write_policy: read_only

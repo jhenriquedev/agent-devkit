@@ -1,7 +1,7 @@
 # Vendor
 
 Esta pasta contem conteudo externo, importado ou vendorizado que pode ser usado
-pelo AI DevKit, mas nao representa agentes especialistas do projeto.
+pelo Agent DevKit, mas nao representa agentes especialistas do projeto.
 
 ## Objetivo
 

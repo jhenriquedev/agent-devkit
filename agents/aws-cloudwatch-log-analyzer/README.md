@@ -16,17 +16,17 @@ fica em portugues.
 ## Capabilities
 
 ```bash
-./ai-devkit run aws-cloudwatch-log-analyzer list-log-groups --region us-east-1 --log-group-prefix "/aws/elasticbeanstalk/"
-./ai-devkit run aws-cloudwatch-log-analyzer search-log-events --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
-./ai-devkit run aws-cloudwatch-log-analyzer analyze-service-error --region us-east-1 --service mcc-api --environment prd --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
-./ai-devkit run aws-cloudwatch-log-analyzer trace-request --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00" --identifier "request-id"
-./ai-devkit run aws-cloudwatch-log-analyzer detect-error-patterns --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
-./ai-devkit run aws-cloudwatch-log-analyzer extract-log-samples --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
-./ai-devkit run aws-cloudwatch-log-analyzer generate-incident-report --region us-east-1 --service mcc-api --environment prd --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
-./ai-devkit run aws-cloudwatch-log-analyzer correlate-azure-card-logs --azure-project "Sustentação" --work-item-id 7710 --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
-./ai-devkit run aws-cloudwatch-log-analyzer list-log-streams --region us-east-1 --log-group "/aws/example" --log-stream-prefix "app/"
-./ai-devkit run aws-cloudwatch-log-analyzer run-insights-query --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00" --query "fields @timestamp, @message | sort @timestamp desc | limit 20"
-./ai-devkit run aws-cloudwatch-log-analyzer run-insights-query --region us-east-1 --query-id "query-id-retornado"
+agent run aws-cloudwatch-log-analyzer list-log-groups --region us-east-1 --log-group-prefix "/aws/elasticbeanstalk/"
+agent run aws-cloudwatch-log-analyzer search-log-events --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+agent run aws-cloudwatch-log-analyzer analyze-service-error --region us-east-1 --service example-api --environment prd --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+agent run aws-cloudwatch-log-analyzer trace-request --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00" --identifier "request-id"
+agent run aws-cloudwatch-log-analyzer detect-error-patterns --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+agent run aws-cloudwatch-log-analyzer extract-log-samples --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+agent run aws-cloudwatch-log-analyzer generate-incident-report --region us-east-1 --service example-api --environment prd --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+agent run aws-cloudwatch-log-analyzer correlate-azure-card-logs --azure-project "Sustentação" --work-item-id 7710 --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00"
+agent run aws-cloudwatch-log-analyzer list-log-streams --region us-east-1 --log-group "/aws/example" --log-stream-prefix "app/"
+agent run aws-cloudwatch-log-analyzer run-insights-query --region us-east-1 --log-group "/aws/example" --start-time "2026-06-21T10:00:00-03:00" --end-time "2026-06-21T11:00:00-03:00" --query "fields @timestamp, @message | sort @timestamp desc | limit 20"
+agent run aws-cloudwatch-log-analyzer run-insights-query --region us-east-1 --query-id "query-id-retornado"
 ```
 
 ## Infra

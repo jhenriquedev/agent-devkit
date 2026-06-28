@@ -5,3 +5,4 @@
 - Mostrar antes/depois da atribuicao.
 - Nao inferir responsavel pelo texto do card.
 - Usar dry-run por padrao.
+- Nunca executar atribuicao sem confirmacao explicita e nova execucao com `--execute`.

@@ -25,4 +25,11 @@ integration:
     - ../../infra/integrations/elasticsearch/methods/search-events.yaml
     - ../../infra/integrations/elasticsearch/methods/aggregate-terms.yaml
     - ../../infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
+requires:
+  providers:
+    - id: elasticsearch
+      mode: required_for_execute
+      purpose: Buscar logs reais no Elasticsearch.
+      capabilities: [read]
+      fallback: plan_only
 write_policy: read_only

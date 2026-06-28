@@ -3,7 +3,7 @@ kind: specialist-agent
 name: N1 Support Agent
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Execute deterministic N1 operational triage from an Azure DevOps card,
@@ -15,8 +15,8 @@ default_context:
   - knowledge/context.md
   - knowledge/policies.yaml
   - knowledge/runbooks/customer-onboarding-triage.md
-  - knowledge/domains/meucashcard/index.json
-  - knowledge/domains/meucashcard/contracts/n1-support-triage-contract.json
+  - knowledge/domains/customer-support/index.json
+  - knowledge/domains/customer-support/contracts/n1-support-triage-contract.json
 
 env:
   required: []

@@ -8,25 +8,25 @@ codigo e este glossario juntos.
 
 | Codigo ou texto | Classe normalizada | Uso operacional |
 |---|---|---|
-| `INT`, `INTEGRADA` | `integrada` | Proposta integrada. Pode ser elegivel se cumprir a regra Core. |
-| `APR`, `APROVADA` | `aprovada` | Proposta aprovada. Pode ser elegivel se cumprir a regra Core. |
+| `INT`, `INTEGRADA` | `integrada` | Proposta integrada. Pode ser elegivel se cumprir a politica configurada. |
+| `APR`, `APROVADA` | `aprovada` | Proposta aprovada. Pode ser elegivel se cumprir a politica configurada. |
 | `CAD`, `CADASTRADA` | `cadastrada` | Proposta cadastrada, em analise. |
 | `PEN`, `PENDENTE` | `pendente` | Proposta pendente, em analise. |
 | `AND`, `ANDAMENTO` | `andamento` | Proposta em andamento, em analise. |
 | `REP`, `REPROVADA` | `reprovada` | Proposta reprovada; exige observar motivo quando disponivel. |
 | Outro valor | texto em lowercase | Situacao desconhecida; reportar como fato, sem inferir. |
 
-## Regra Core de elegibilidade
+## Politica operacional de elegibilidade
 
-Uma proposta e elegivel somente quando todas as condicoes abaixo sao verdadeiras:
+A politica default considera uma proposta elegivel quando todas as condicoes
+abaixo sao verdadeiras:
 
-- situacao normalizada em `integrada` ou `aprovada`;
-- `tipoProposta == "3"`;
-- `limiteSaque > 0`.
+- situacao esta em `BPO_ELIGIBLE_SITUATIONS`;
+- `tipoProposta` esta em `BPO_ELIGIBLE_PROPOSAL_TYPES`;
+- `limiteSaque > 0` quando `BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT=true`.
 
-Nao relaxe essa regra sem ordem explicita. `tipoProposta == "3"` e a regra
-operacional atual observada no Core; o catalogo completo de tipos de proposta
-ainda nao esta documentado neste agente.
+Nao relaxe essa regra sem ordem explicita. Para operar outro produto, carteira ou
+cliente, ajuste essas variaveis em vez de alterar o codigo do agente.
 
 ## CPF
 

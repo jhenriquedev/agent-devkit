@@ -23,7 +23,7 @@ class ListCardsRunnerTest(unittest.TestCase):
                 {
                     "id": 123,
                     "work_item_type": "Issue",
-                    "title": "Alerta MCC API",
+                    "title": "Service API alert",
                     "state": "To Do",
                     "assigned_to": None,
                     "tags": ["prd", "Warning"],
@@ -35,7 +35,7 @@ class ListCardsRunnerTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("# Listed Cards", result.stdout)
-        self.assertIn("Alerta MCC API", result.stdout)
+        self.assertIn("Service API alert", result.stdout)
         self.assertIn("prd, Warning", result.stdout)
 
 

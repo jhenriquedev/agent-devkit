@@ -61,6 +61,7 @@ class SqlServerChangeOperatorSmokeTest(unittest.TestCase):
             "--where",
             "id = 1",
             "--execute",
+            "--confirm-execute",
         )
 
         self.assertNotEqual(result.returncode, 0)

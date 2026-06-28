@@ -3,7 +3,7 @@ kind: specialist-agent
 name: AWS Security Governance Auditor
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Auditar seguranca e governanca AWS em modo read-only, identificando riscos em

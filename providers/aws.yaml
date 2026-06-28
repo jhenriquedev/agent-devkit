@@ -1,0 +1,57 @@
+id: aws
+name: AWS
+kind: cloud-provider
+status: active
+description: Acesso a contas AWS para arquitetura, observabilidade, operacoes e seguranca.
+auth_methods:
+  - id: aws-default-chain
+    label: AWS default credential chain
+    native: true
+    secret_fields:
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+  - id: aws-profile
+    label: AWS profile or SSO
+    native: true
+    config_fields:
+      - AWS_PROFILE
+config_fields:
+  - name: AWS_PROFILE
+    required: false
+    secret: false
+  - name: AWS_REGION
+    required: false
+    secret: false
+  - name: AWS_ACCESS_KEY_ID
+    required: false
+    secret: false
+  - name: AWS_ARCHITECTURE_TIMEOUT
+    required: false
+    secret: false
+  - name: AWS_OPERATIONS_TIMEOUT
+    required: false
+    secret: false
+  - name: AWS_SECURITY_TIMEOUT
+    required: false
+    secret: false
+detection:
+  env_any:
+    - AWS_PROFILE
+    - AWS_REGION
+    - AWS_ACCESS_KEY_ID
+capabilities:
+  read:
+    - aws-architecture-analyst
+    - aws-cloudwatch-log-analyzer
+    - aws-security-governance-auditor
+  write:
+    - aws-operations-operator
+health_check:
+  command: agent provider doctor aws
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - dry_run
+  - manual_steps

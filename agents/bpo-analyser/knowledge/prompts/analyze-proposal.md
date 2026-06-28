@@ -33,5 +33,6 @@ atencao. CPF sempre mascarado; sem base64 ou SOAP bruto.
 
 ## Nao faca
 
-Nao sugira mutacao de esteira, formalizacao ou status. Nao use API SelfHire. Nao
-trate inferencia como decisao final.
+Nao sugira mutacao de esteira, formalizacao ou status. Nao chame alvos
+configurados em `BPO_FORBIDDEN_URL_PATTERNS`. Nao trate inferencia como decisao
+final.

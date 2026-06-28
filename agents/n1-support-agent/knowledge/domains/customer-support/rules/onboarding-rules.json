@@ -1,0 +1,70 @@
+{
+  "id": "customer-support-onboarding-rules",
+  "version": "0.1.0",
+  "domain": "onboarding",
+  "rules": [
+    {
+      "id": "onboarding.start.public_agency_required",
+      "category": "start",
+      "source": "StepOrchestrator.StartOnboardingAsync",
+      "rule": "StartOnboardingAsync exige PublicAgencyId valido antes de qualquer fluxo.",
+      "supportImpact": "Sem convenio valido, o onboarding nao deveria iniciar; N1 deve verificar PublicAgencyId e disponibilidade."
+    },
+    {
+      "id": "onboarding.start.restrictive_base_blocks",
+      "category": "start",
+      "source": "StepOrchestrator.StartOnboardingAsync",
+      "rule": "Falha tecnica ao consultar base restritiva aborta o onboarding; cliente nao aprovado na base restritiva tambem aborta.",
+      "supportImpact": "Restritiva clear/hit/unavailable muda o diagnostico de cadastro travado."
+    },
+    {
+      "id": "onboarding.start.bpo_business_failure_blocks",
+      "category": "start",
+      "source": "StepOrchestrator.StartOnboardingAsync",
+      "rule": "Falha BPO com codigo de proposta em analise ou proposta rejeitada bloqueia o onboarding.",
+      "supportImpact": "Proposta em analise/rejeitada e regra de negocio, nao bug direto."
+    },
+    {
+      "id": "onboarding.start.bpo_technical_failure_falls_back",
+      "category": "start",
+      "source": "StepOrchestrator.StartOnboardingAsync",
+      "rule": "Falha tecnica na consulta de propostas BPO nao bloqueia; o fluxo segue para SelfContractingFlow.",
+      "supportImpact": "Cliente pode cair no onboarding completo por falha tecnica BPO."
+    },
+    {
+      "id": "onboarding.existing_finalized_blocks",
+      "category": "idempotency",
+      "source": "StepOrchestrator.SelfContractingFlow",
+      "rule": "Se ja existe onboarding finalizado para o documento, StartOnboarding retorna OnboardingAlreadyExists.",
+      "supportImpact": "Novo cadastro bloqueado pode ser comportamento esperado se ja existe onboarding finalizado."
+    },
+    {
+      "id": "onboarding.existing_non_finalized_returns_existing",
+      "category": "idempotency",
+      "source": "StepOrchestrator.SelfContractingFlow",
+      "rule": "Se existe onboarding aberto por documento, o fluxo retorna o onboarding existente em vez de criar novo.",
+      "supportImpact": "N1 deve consultar o onboarding mais recente e nao assumir criacao nova."
+    },
+    {
+      "id": "onboarding.current_step.from_last_evolution",
+      "category": "state",
+      "source": "Onboarding.CurrentStep",
+      "rule": "CurrentStep e LastEvolution.StepFor; a investigacao deve olhar evolutions e nao apenas a maior step por created_at.",
+      "supportImpact": "Estado aparente pode estar errado se a consulta ignorar evolutions."
+    },
+    {
+      "id": "onboarding.move.two_transactions",
+      "category": "api",
+      "source": "MoverStepHandler",
+      "rule": "MoverStepHandler atualiza a etapa atual e move para a proxima em duas transacoes separadas.",
+      "supportImpact": "Pode haver etapa com Json atualizado mas falha ao mover; investigar ambos os eventos/logs."
+    },
+    {
+      "id": "onboarding.terms.accept_required",
+      "category": "terms",
+      "source": "TermsMover",
+      "rule": "TermsMover so avanca para Registered quando Accept=true.",
+      "supportImpact": "Cliente parado em termos pode estar aguardando aceite, nao necessariamente erro."
+    }
+  ]
+}

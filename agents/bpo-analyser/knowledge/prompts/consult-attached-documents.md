@@ -35,4 +35,5 @@ de tabela de documentos. Indique que a capability trata metadados e presenca.
 ## Nao faca
 
 Nao imprima ArquivoBase64/file_base64. Nao interprete o conteudo do documento.
-Nao afirme o que esta dentro do arquivo. Nao chame API SelfHire.
+Nao afirme o que esta dentro do arquivo. Nao chame alvos configurados em
+`BPO_FORBIDDEN_URL_PATTERNS`.

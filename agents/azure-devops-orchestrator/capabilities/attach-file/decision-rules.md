@@ -7,3 +7,4 @@
 - Sem `--execute`, retornar apenas plano de escrita em dry-run.
 - Com `--execute`, fazer upload e adicionar relacao `AttachedFile`.
 - Nao enviar arquivo diferente do path informado pelo usuario.
+- Mesmo com `--execute`, exigir confirmacao explicita do usuario para anexar o arquivo.

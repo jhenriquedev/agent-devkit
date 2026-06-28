@@ -25,12 +25,12 @@ Agente especialista para analise read-only de dados em Microsoft SQL Server.
 ## Como usar
 
 ```bash
-./ai-devkit run sqlserver-data-analyzer test-connection
-./ai-devkit run sqlserver-data-analyzer list-tables --schema dbo
-./ai-devkit run sqlserver-data-analyzer describe-table --schema dbo --table Customers
-./ai-devkit run sqlserver-data-analyzer run-readonly-query --query "select * from dbo.Customers" --limit 50
-./ai-devkit run sqlserver-data-analyzer run-readonly-query --query "select * from dbo.Customers" --format json
-./ai-devkit run sqlserver-data-analyzer suggest-joins --schema dbo
+agent run sqlserver-data-analyzer test-connection
+agent run sqlserver-data-analyzer list-tables --schema dbo
+agent run sqlserver-data-analyzer describe-table --schema dbo --table Customers
+agent run sqlserver-data-analyzer run-readonly-query --query "select * from dbo.Customers" --limit 50
+agent run sqlserver-data-analyzer run-readonly-query --query "select * from dbo.Customers" --format json
+agent run sqlserver-data-analyzer suggest-joins --schema dbo
 ```
 
 ## Configuracao

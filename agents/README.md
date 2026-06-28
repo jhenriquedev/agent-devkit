@@ -1,6 +1,6 @@
 # Agents
 
-Esta pasta contem os agentes especialistas do AI DevKit. Cada agente representa
+Esta pasta contem os agentes especialistas do Agent DevKit. Cada agente representa
 uma inteligencia pre-criada, versionada e pronta para uso por Codex, Claude,
 Cursor ou outro agente compativel.
 
@@ -37,16 +37,32 @@ agents/<agent-id>/
 
 ## Agentes atuais
 
-- `azure-devops-orchestrator`: especialista em Azure DevOps Boards.
+- `aws-architecture-analyst`: especialista em analise arquitetural AWS
+  read-only.
 - `aws-cloudwatch-log-analyzer`: especialista em AWS CloudWatch Logs.
+- `aws-operations-operator`: especialista em operacoes AWS controladas com
+  dry-run por padrao.
+- `aws-security-governance-auditor`: especialista em auditoria AWS read-only de
+  seguranca e governanca.
+- `azure-devops-orchestrator`: especialista em Azure DevOps Boards.
 - `bpo-analyser`: especialista em consulta direta a BPO para analisar propostas
-  por CPF ou numero e documentos anexados sem usar API SelfHire.
-- `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
-- `n1-support-agent`: especialista N1 para runbooks operacionais a partir de
-  cards Azure DevOps.
+  por CPF ou numero e documentos anexados sem usar APIs intermediarias de produto.
+- `data-scientist-analyst`: especialista em analise de dados tabulares,
+  profiling, conciliacao e relatorios tecnicos.
 - `database-change-operator`: especialista em mudancas controladas em Postgres.
 - `drawio-diagram-builder`: especialista em diagramas Draw.io editaveis a
   partir de fontes reais, entrevista, geracao, revisao e refinamento.
+- `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
+- `excel-workbook-builder`: especialista em templates, preenchimento,
+  conciliacao, revisao e exportacao de planilhas Excel.
+- `figma-ui-ux-product-designer`: especialista UI/UX para criar, recriar,
+  evoluir e revisar designs mobile e web.
+- `knowledge-generator`: especialista em gerar knowledge versionavel a partir de
+  fontes locais e documentacoes.
+- `n1-support-agent`: especialista N1 para runbooks operacionais a partir de
+  cards Azure DevOps.
+- `n2-support-agent`: especialista N2 para investigacao de causa raiz e geracao
+  de `patch_plan.md`.
 - `presentation-deck-builder`: especialista em templates versionados e geracao
   de apresentacoes PowerPoint.
 - `postgres-data-analyzer`: especialista em analise read-only forte de dados

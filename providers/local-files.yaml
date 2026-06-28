@@ -1,0 +1,26 @@
+id: local-files
+name: Local Files
+kind: local-source
+status: active
+description: Leitura de arquivos e diretorios locais autorizados pelo usuario.
+auth_methods: []
+config_fields:
+  - name: AI_DEVKIT_MAX_FILE_BYTES
+    required: false
+    secret: false
+  - name: AI_DEVKIT_MAX_DIRECTORY_FILES
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-generator
+    - software-specification-analyst
+    - data-scientist-analyst
+health_check:
+  command: agent provider doctor local-files
+risk:
+  default: read
+  writes: false
+fallbacks:
+  - manual_steps
+  - blocked

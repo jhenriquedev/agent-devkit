@@ -15,12 +15,14 @@ sys.path.insert(0, str(BPO_DIR))
 
 from bpo_repository import (  # noqa: E402
     BpoConfig,
+    BpoEligibilityPolicy,
     build_attached_documents_envelope,
     build_cpf_proposals_analysis,
     build_consult_proposal_envelope,
     build_list_proposals_by_cpf_envelope,
     build_proposal_analysis,
-    is_core_eligible,
+    first_matching_forbidden_pattern,
+    is_operationally_eligible,
     parse_attached_documents_response,
     parse_proposal_response,
     parse_proposals_by_cpf_response,
@@ -150,6 +152,33 @@ class BpoRepositoryTest(unittest.TestCase):
         self.assertEqual(config.ws_proposta_url, "https://example.com/WsProposta.asmx")
         self.assertEqual(config.user, "agent")
         self.assertEqual(config.default_document_type, "Nao_Definido")
+        self.assertEqual(config.eligibility_policy.eligible_proposal_types, ("3",))
+        self.assertEqual(config.forbidden_url_patterns, ())
+
+    def test_config_reads_optional_policy_env(self) -> None:
+        env = {
+            "BPO_SERVICO_API_URL": "https://example.com/ServicoAPI",
+            "BPO_WS_PROPOSTA_URL": "https://example.com/WsProposta.asmx",
+            "BPO_CARTAO_USER": "agent",
+            "BPO_CARTAO_PASSWORD": "secret",
+            "BPO_ELIGIBLE_SITUATIONS": "INT;APR;CUSTOM",
+            "BPO_ELIGIBLE_PROPOSAL_TYPES": "3,7",
+            "BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT": "false",
+            "BPO_FORBIDDEN_URL_PATTERNS": "/internal-api,/legacy-app",
+            "BPO_PARTNER_CONTRACT_FIELDS": "numeroContratoParceiro",
+            "BPO_ORIGINATOR_CONTRACT_FIELDS": "numeroContratoOriginador",
+        }
+        with patch("bpo_repository.load_dotenv", lambda: None), patch.dict(
+            os.environ, env, clear=True
+        ):
+            config = BpoConfig.from_env()
+
+        self.assertEqual(config.eligibility_policy.eligible_situations, ("INT", "APR", "CUSTOM"))
+        self.assertEqual(config.eligibility_policy.eligible_proposal_types, ("3", "7"))
+        self.assertFalse(config.eligibility_policy.require_positive_withdraw_limit)
+        self.assertEqual(config.forbidden_url_patterns, ("/internal-api", "/legacy-app"))
+        self.assertEqual(config.partner_contract_fields, ("numeroContratoParceiro",))
+        self.assertEqual(config.originator_contract_fields, ("numeroContratoOriginador",))
 
     def test_builds_consult_proposal_envelope(self) -> None:
         envelope = build_consult_proposal_envelope("user&", "p<ss", "123")
@@ -252,13 +281,30 @@ class BpoRepositoryTest(unittest.TestCase):
         self.assertEqual(situation_kind("REP"), "reprovada")
         self.assertEqual(situation_kind("DESCONHECIDA"), "desconhecida")
 
-    def test_core_eligibility_requires_status_type_and_withdraw_limit(self) -> None:
-        self.assertTrue(is_core_eligible("INT", "3", 1.0))
-        self.assertTrue(is_core_eligible("APR", 3, 1.0))
-        self.assertFalse(is_core_eligible("PEN", "3", 1.0))
-        self.assertFalse(is_core_eligible("INT", "2", 1.0))
-        self.assertFalse(is_core_eligible("INT", "3", 0.0))
-        self.assertFalse(is_core_eligible("DESCONHECIDA", "3", 1.0))
+    def test_operational_eligibility_uses_configured_policy(self) -> None:
+        self.assertTrue(is_operationally_eligible("INT", "3", 1.0))
+        self.assertTrue(is_operationally_eligible("APR", 3, 1.0))
+        self.assertFalse(is_operationally_eligible("PEN", "3", 1.0))
+        self.assertFalse(is_operationally_eligible("INT", "2", 1.0))
+        self.assertFalse(is_operationally_eligible("INT", "3", 0.0))
+        self.assertFalse(is_operationally_eligible("DESCONHECIDA", "3", 1.0))
+
+        policy = BpoEligibilityPolicy(
+            eligible_situations=("PEN",),
+            eligible_proposal_types=("2",),
+            require_positive_withdraw_limit=False,
+        )
+        self.assertTrue(is_operationally_eligible("PEN", "2", 0.0, policy=policy))
+
+    def test_forbidden_url_patterns_are_user_configured(self) -> None:
+        self.assertEqual(
+            first_matching_forbidden_pattern(
+                "https://example.com/internal-api/proposals",
+                ("/internal-api",),
+            ),
+            "/internal-api",
+        )
+        self.assertEqual(first_matching_forbidden_pattern("https://example.com/bpo", ()), "")
 
     def test_latest_integrated_or_approved_prioritizes_integrated_over_newer_approved(self) -> None:
         payload = {

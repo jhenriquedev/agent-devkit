@@ -1,0 +1,24 @@
+{
+  "id": "codex-ai-devkit",
+  "name": "AI DevKit",
+  "version": "0.1.0-dev",
+  "description": "Thin Codex App adapter for routing software support, infrastructure, data, and development tasks through the local AI DevKit runtime.",
+  "runtime": {
+    "command": "agent",
+    "mode": "host",
+    "requires_llm_api": false
+  },
+  "skills": [
+    {
+      "id": "ai-devkit-router",
+      "path": "skills/ai-devkit-router/SKILL.md"
+    }
+  ],
+  "scripts": {
+    "bootstrap": "scripts/bootstrap.py",
+    "doctor": "scripts/doctor.py",
+    "install_runtime": "scripts/install-runtime.py",
+    "resolve_capability": "scripts/resolve-capability.py",
+    "run_capability": "scripts/run-capability.py"
+  }
+}

@@ -19,7 +19,7 @@ class AssignCardRunnerTest(unittest.TestCase):
         fixture = {
             "work_item": {
                 "id": 123,
-                "title": "Alerta MCC API",
+                "title": "Service API alert",
                 "assigned_to": None,
             },
             "users": [

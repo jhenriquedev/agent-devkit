@@ -1,0 +1,39 @@
+id: postgres
+name: PostgreSQL
+kind: database
+status: active
+description: Acesso a bancos PostgreSQL para analise de dados e mudancas controladas.
+auth_methods:
+  - id: connection-string
+    label: Connection string
+    secret_fields:
+      - POSTGRES_DB_CONN_STRING
+      - DATABASE_URL
+      - PGPASSWORD
+config_fields:
+  - name: POSTGRES_STATEMENT_TIMEOUT
+    default: "15000"
+    required: false
+    secret: false
+  - name: POSTGRES_LOCK_TIMEOUT
+    default: "5000"
+    required: false
+    secret: false
+detection:
+  env_any:
+    - POSTGRES_DB_CONN_STRING
+    - DATABASE_URL
+capabilities:
+  read:
+    - postgres-data-analyzer
+  write:
+    - database-change-operator
+health_check:
+  command: agent provider doctor postgres
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - dry_run
+  - manual_steps

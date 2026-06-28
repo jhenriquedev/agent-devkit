@@ -1,0 +1,48 @@
+id: figma
+name: Figma
+kind: remote-tool
+status: active
+description: Integracao com Figma MCP/direct mode para leitura, criacao e atualizacao de designs.
+auth_methods:
+  - id: mcp-bridge
+    label: Figma MCP bridge
+    secret_fields: []
+  - id: access-token
+    label: Figma access token
+    secret_fields:
+      - FIGMA_ACCESS_TOKEN
+config_fields:
+  - name: FIGMA_MCP_BRIDGE_COMMAND
+    required: false
+    secret: false
+  - name: FIGMA_MCP_ENABLED
+    required: false
+    secret: false
+  - name: FIGMA_DIRECT_MODE
+    required: false
+    secret: false
+  - name: FIGMA_DEFAULT_PLAN_KEY
+    required: false
+    secret: false
+  - name: FIGMA_DEFAULT_PROJECT_ID
+    required: false
+    secret: false
+detection:
+  env_any:
+    - FIGMA_MCP_BRIDGE_COMMAND
+    - FIGMA_MCP_ENABLED
+    - FIGMA_DIRECT_MODE
+    - FIGMA_ACCESS_TOKEN
+capabilities:
+  read:
+    - figma-ui-ux-product-designer/analyze-existing-figma-project
+  write:
+    - figma-ui-ux-product-designer
+health_check:
+  command: agent provider doctor figma
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps

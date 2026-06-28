@@ -20,7 +20,8 @@ elegibilidade, limites e datas.
 ## Decisao
 
 - Lista vazia e fato: nenhuma proposta retornada para o CPF.
-- `is_eligible` vem da regra do Core; nao amplie a elegibilidade por inferencia.
+- `is_eligible` vem da politica operacional configurada; nao amplie a
+  elegibilidade por inferencia.
 - Esta capability lista; analise operacional em profundidade fica em
   `analyze-cpf-proposals`.
 
@@ -32,5 +33,5 @@ orgao.
 
 ## Nao faca
 
-Nao exiba CPF completo. Nao imprima payload SOAP bruto. Nao chame API SelfHire.
-Nao conclua aprovacao final.
+Nao exiba CPF completo. Nao imprima payload SOAP bruto. Nao chame alvos
+configurados em `BPO_FORBIDDEN_URL_PATTERNS`. Nao conclua aprovacao final.

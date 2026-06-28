@@ -1,0 +1,43 @@
+{
+  "id": "customer-support-invoice-transaction-rules",
+  "version": "0.1.0",
+  "domain": "financial",
+  "rules": [
+    {
+      "id": "account.limit_positive_filter",
+      "source": "AccountRepository.GetAccountsDetailsWithLimitPagedAsync",
+      "rule": "Consulta de limites usa apenas contas com Limit > 0.",
+      "supportImpact": "Cliente com limite zero nao aparece na tela de limites."
+    },
+    {
+      "id": "transaction.status_map",
+      "source": "GetAllTransactionsHandler.Map",
+      "rule": "PerformTransactionCreditCardId vira PerformedTransaction; ReversalTransactionCreditId vira ReversedTransaction; CancelCreditCardTransactionId vira CanceledTransaction; demais viram PerformedTransaction.",
+      "supportImpact": "Status do app pode ser mapeado a partir do tipo, nao do texto bruto."
+    },
+    {
+      "id": "transaction.type_by_value",
+      "source": "GetAllTransactionsHandler",
+      "rule": "Type e Credit quando Value > 0; caso contrario Debit.",
+      "supportImpact": "Credito/debito divergente deve ser validado pelo sinal do valor."
+    },
+    {
+      "id": "invoice.account_required",
+      "source": "GetInvoicesHandler",
+      "rule": "Se a conta do usuario nao existe, listagem de faturas retorna NotFound.",
+      "supportImpact": "Fatura ausente pode ser falta de Account."
+    },
+    {
+      "id": "invoice.negative_total_paid",
+      "source": "GetInvoicesHandler",
+      "rule": "Se TotalValue e menor que 0, a situacao exibida e forca Paid para o app.",
+      "supportImpact": "Status no app pode divergir do backoffice por regra de exibicao."
+    },
+    {
+      "id": "invoice.processed_status",
+      "source": "SituationInvoiceMap",
+      "rule": "Financing e BillingExpenditureFile sao exibidos no app como Processed.",
+      "supportImpact": "Status Processed pode representar estados financeiros especificos."
+    }
+  ]
+}

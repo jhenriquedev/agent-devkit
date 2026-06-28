@@ -6,3 +6,4 @@
   risco.
 - Nao alterar tags ou responsavel nesta capability.
 - Usar dry-run por padrao.
+- Nunca mover estado ou coluna sem confirmacao explicita e nova execucao com `--execute`.

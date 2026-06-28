@@ -1,0 +1,18 @@
+{
+  "id": "claude-skill-ai-devkit",
+  "name": "AI DevKit Claude Skill",
+  "version": "0.0.1",
+  "description": "Skill bundle for Claude Desktop and Claude.ai to route support, infrastructure, data, documentation, and development work through AI DevKit practices.",
+  "runtime": {
+    "command": "agent",
+    "mode": "skill-only",
+    "requires_llm_api": false
+  },
+  "skills": [
+    {
+      "id": "ai-devkit",
+      "path": "ai-devkit/SKILL.md"
+    }
+  ],
+  "scripts": {}
+}

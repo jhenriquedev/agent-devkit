@@ -7,13 +7,13 @@ Ler um card e transformar os dados em uma analise objetiva para decisao.
 ## Execucao local
 
 ```bash
-./ai-devkit run azure-devops-orchestrator read-card --project <project> --id <work-item-id> --include-comments
+agent run azure-devops-orchestrator read-card --project <project> --id <work-item-id> --include-comments
 ```
 
 Para testes sem Azure DevOps real:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator read-card --fixture <fixture.json> --include-comments
+agent run azure-devops-orchestrator read-card --fixture <fixture.json> --include-comments
 ```
 
 ## Passos

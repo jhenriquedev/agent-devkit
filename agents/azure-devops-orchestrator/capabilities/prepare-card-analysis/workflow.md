@@ -8,7 +8,7 @@ escrita no Azure DevOps.
 ## Execucao local
 
 ```bash
-./ai-devkit run azure-devops-orchestrator prepare-card-analysis --project <project> --id <work-item-id> --include-comment-draft
+agent run azure-devops-orchestrator prepare-card-analysis --project <project> --id <work-item-id> --include-comment-draft
 ```
 
 ## Passos

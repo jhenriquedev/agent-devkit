@@ -50,9 +50,14 @@ env/
 
 # Go
 bin/
+!tooling/agent-devkit/bin/
+!tooling/agent-devkit/bin/agent.mjs
 *.exe
 *.test
 *.out
+
+# Build local do pacote npm. O workflow recria este runtime antes do publish.
+tooling/agent-devkit/runtime/
 
 # Java / .NET
 target/

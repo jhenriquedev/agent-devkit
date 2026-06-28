@@ -3,7 +3,7 @@
 Use uncompressed XML for versionable output:
 
 ```xml
-<mxfile host="AI DevKit">
+<mxfile host="Agent DevKit">
   <diagram id="diagram-1" name="Page-1">
     <mxGraphModel>
       <root>

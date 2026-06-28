@@ -8,13 +8,13 @@ automatica quando houver ambiguidade.
 ## Execucao local
 
 ```bash
-./ai-devkit run azure-devops-orchestrator assign-card --project <project> --id <work-item-id> --assignee pessoa@example.com
+agent run azure-devops-orchestrator assign-card --project <project> --id <work-item-id> --assignee pessoa@example.com
 ```
 
 Para executar a escrita real:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator assign-card --project <project> --id <work-item-id> --assignee pessoa@example.com --execute
+agent run azure-devops-orchestrator assign-card --project <project> --id <work-item-id> --assignee pessoa@example.com --execute
 ```
 
 ## Passos

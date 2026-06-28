@@ -19,7 +19,7 @@ class UpdateCardTagsRunnerTest(unittest.TestCase):
         fixture = {
             "work_item": {
                 "id": 123,
-                "title": "Alerta MCC API",
+                "title": "Service API alert",
                 "tags": ["prd", "Warning"],
             }
         }

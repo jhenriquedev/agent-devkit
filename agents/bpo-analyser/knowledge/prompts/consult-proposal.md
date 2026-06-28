@@ -32,5 +32,6 @@ proposta, contrato, formalizacao, status, situacao, atividade, cliente, CPF masc
 
 ## Nao faca
 
-Nao chame API SelfHire. Nao exiba CPF completo, senha, token ou payload SOAP
-bruto. Nao conclua situacao final alem do que a BPO retornou.
+Nao chame alvos configurados em `BPO_FORBIDDEN_URL_PATTERNS`. Nao exiba CPF
+completo, senha, token ou payload SOAP bruto. Nao conclua situacao final alem do
+que a BPO retornou.

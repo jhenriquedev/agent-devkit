@@ -1,0 +1,17 @@
+{
+  "name": "agent-devkit-repo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Repository tooling for Agent DevKit.",
+  "scripts": {
+    "release:verify": "node scripts/verify-release-alignment.mjs",
+    "package:build": "node tooling/agent-devkit/scripts/build-package.mjs",
+    "package:verify": "node tooling/agent-devkit/scripts/verify-package.mjs",
+    "package:pack": "npm pack ./tooling/agent-devkit"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

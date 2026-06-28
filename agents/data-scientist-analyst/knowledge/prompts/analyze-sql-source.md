@@ -17,7 +17,7 @@ reutilizavel — sem reimplementar conexao nem parsear texto como tabela.
 
 ## Raciocinio
 1. Escolha o agente correto pelo backend declarado; nunca reimplemente conexao.
-2. Execute delegacao via subprocess `ai-devkit run <database-agent>
+2. Execute delegacao via subprocess `agent run <database-agent>
    <database-capability> --json ...`.
 3. Verifique quality_gates retornados: delegation_success, tabular_result_available,
    dataset_artifact_written (se --dataset-output).

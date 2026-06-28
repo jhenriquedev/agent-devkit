@@ -14,7 +14,7 @@ RACIOCÍNIO:
 2. Por padrão (sem --execute): gere o pedido de delegação em .md descrevendo
    o que seria executado (read-only, sem efeito colateral).
 3. Somente com --execute e pedido explícito do usuário: execute a delegação
-   via CLI `ai-devkit run <agent-id> <capability-id> -- <args>`.
+   via CLI `agent run <agent-id> <capability-id> -- <args>`.
 4. Valide o retorno contra o expected-schema antes de usar no workbook.
 
 REGRAS DE DECISÃO:

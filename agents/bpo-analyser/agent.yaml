@@ -3,12 +3,12 @@ kind: specialist-agent
 name: BPO Analyser
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Consultar diretamente servicos BPO para analisar status, situacao,
   observacoes e documentos anexados de propostas por numero de proposta ou CPF,
-  sem depender da API SelfHire.
+  sem depender de APIs intermediarias de produto.
 
 default_context:
   - knowledge/system.md
@@ -29,6 +29,12 @@ env:
     - BPO_HTTP_TIMEOUT
     - BPO_DEFAULT_DOCUMENT_TYPE
     - BPO_TLS_VERIFY
+    - BPO_ELIGIBLE_SITUATIONS
+    - BPO_ELIGIBLE_PROPOSAL_TYPES
+    - BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT
+    - BPO_FORBIDDEN_URL_PATTERNS
+    - BPO_PARTNER_CONTRACT_FIELDS
+    - BPO_ORIGINATOR_CONTRACT_FIELDS
 
 capabilities:
   - test-connection

@@ -17,7 +17,7 @@ RUNNER = Path(__file__).resolve().parents[1] / "runner.py"
 class CorrelateAzureCardLogsRunnerTest(unittest.TestCase):
     def test_renders_correlation_from_fixture(self) -> None:
         fixture = {
-            "card": {"id": 7710, "project": "Sustentacao", "title": "Health warning"},
+            "card": {"id": 7710, "project": "SupportProject", "title": "Health warning"},
             "cloudwatch": {
                 "region": "us-east-1",
                 "log_group": "/aws/app/service",

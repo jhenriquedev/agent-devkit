@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from mcc_knowledge import (  # noqa: E402
+from domain_knowledge import (  # noqa: E402
     build_diagnostic_gaps,
     build_evidence_ledger,
     evaluate_quality_gate,
@@ -612,7 +612,7 @@ def build_checks(
             "status": "unavailable" if has_customer_ref else "skipped",
             "agent": "n1-support-agent",
             "capability": "analyze-onboarding-status",
-            "source": "core-database",
+            "source": "system-of-record-database",
             "reason": "Canonical onboarding query is not configured for this agent",
         },
         {
@@ -620,7 +620,7 @@ def build_checks(
             "status": "unavailable" if entities.get("proposalNumber") else "skipped",
             "agent": "n1-support-agent",
             "capability": "analyze-proposal-status",
-            "source": "core-database",
+            "source": "system-of-record-database",
             "reason": "Canonical proposal query is not configured for this agent",
         },
         {

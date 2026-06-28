@@ -1,0 +1,22 @@
+id: drawio
+name: Draw.io
+kind: local-tool
+status: active
+description: Renderizacao e manipulacao local de diagramas draw.io.
+auth_methods: []
+config_fields:
+  - name: DRAWIO_RENDER_TIMEOUT_SECONDS
+    required: false
+    secret: false
+capabilities:
+  read:
+    - drawio-diagram-builder/review-drawio-diagram
+  write:
+    - drawio-diagram-builder
+health_check:
+  command: agent provider doctor drawio
+risk:
+  default: write-local-file
+  writes: true
+fallbacks:
+  - manual_steps

@@ -1,0 +1,40 @@
+{
+  "id": "claude-code-ai-devkit",
+  "name": "AI DevKit",
+  "version": "0.0.1",
+  "description": "Thin Claude Code adapter for routing software support, infrastructure, data, and development tasks through the local AI DevKit runtime.",
+  "runtime": {
+    "command": "agent",
+    "mode": "host",
+    "requires_llm_api": false
+  },
+  "skills": [
+    {
+      "id": "ai-devkit-router",
+      "path": "skills/ai-devkit-router/SKILL.md"
+    }
+  ],
+  "commands": [
+    {
+      "id": "devkit-setup",
+      "path": "commands/devkit-setup.md"
+    },
+    {
+      "id": "devkit-doctor",
+      "path": "commands/devkit-doctor.md"
+    },
+    {
+      "id": "devkit-provider",
+      "path": "commands/devkit-provider.md"
+    },
+    {
+      "id": "devkit-run",
+      "path": "commands/devkit-run.md"
+    }
+  ],
+  "scripts": {
+    "bootstrap": "scripts/bootstrap.py",
+    "doctor": "scripts/doctor.py",
+    "run_capability": "scripts/run-capability.py"
+  }
+}

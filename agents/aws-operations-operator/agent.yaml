@@ -3,7 +3,7 @@ kind: specialist-agent
 name: AWS Operations Operator
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Executar operacoes AWS controladas com dry-run por padrao, plano antes de

@@ -5,7 +5,7 @@ version: 0.1.0
 status: draft
 purpose: >
   Encontrar a proposta BPO mais recente/elegivel de um CPF com base nas regras
-  usadas pelo Core.
+  operacionais configuradas.
 entrypoint:
   runner: runner.py
   workflow: workflow.md

@@ -1,0 +1,22 @@
+id: workbook-renderer
+name: Workbook Renderer
+kind: local-tool
+status: active
+description: Geracao, validacao e atualizacao local de arquivos Excel.
+auth_methods: []
+config_fields:
+  - name: WORKBOOK_RENDER_TIMEOUT_SECONDS
+    required: false
+    secret: false
+capabilities:
+  read:
+    - excel-workbook-builder/inspect-template
+  write:
+    - excel-workbook-builder
+health_check:
+  command: agent provider doctor workbook-renderer
+risk:
+  default: write-local-file
+  writes: true
+fallbacks:
+  - manual_steps

@@ -8,3 +8,9 @@
 - Nao escrever no chamado.
 - Nao pedir informacao ja presente.
 - Usar `knowledge/triage-rules.md` como rubrica.
+- Separar fatos TOPdesk de inferencias sobre insuficiencia.
+- Considerar resumo, request, categoria, prioridade, impacto, sistema afetado e evidencia especifica.
+- Gerar perguntas objetivas e minimais, uma por lacuna real.
+- Nao classificar prioridade, grupo ou responsavel nesta capability.
+- Nao expor payload bruto, credenciais, anexos sensiveis ou dados pessoais desnecessarios.
+- Quando o incidente estiver suficiente, retornar explicitamente que nao ha pedido de informacao planejado.

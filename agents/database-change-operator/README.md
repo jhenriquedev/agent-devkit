@@ -16,11 +16,11 @@ Agente especialista para aplicar mudancas controladas em banco PostgreSQL.
 ## Como usar
 
 ```bash
-./ai-devkit run database-change-operator test-write-permissions
-./ai-devkit run database-change-operator plan-migration --path migrations/202606211200_create_table.up.sql
-./ai-devkit run database-change-operator apply-migration --path migrations/202606211200_create_table.up.sql --execute
-./ai-devkit run database-change-operator migration-report
-./ai-devkit run database-change-operator plan-migration --database outro_banco --path migrations/202606211200_create_table.up.sql
+agent run database-change-operator test-write-permissions
+agent run database-change-operator plan-migration --path migrations/202606211200_create_table.up.sql
+agent run database-change-operator apply-migration --path migrations/202606211200_create_table.up.sql --execute
+agent run database-change-operator migration-report
+agent run database-change-operator plan-migration --database outro_banco --path migrations/202606211200_create_table.up.sql
 ```
 
 Sem `--execute`, operacoes de escrita rodam como dry-run.

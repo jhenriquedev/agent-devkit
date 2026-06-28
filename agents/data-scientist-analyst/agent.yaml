@@ -3,7 +3,7 @@ kind: specialist-agent
 name: Data Scientist Analyst
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Analisar dados tabulares, planilhas, arquivos locais e resultados vindos de

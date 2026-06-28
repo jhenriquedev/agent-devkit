@@ -19,13 +19,13 @@ o refinamento altera a spec e re-renderiza o `.drawio`.
 ## Uso
 
 ```bash
-./ai-devkit capabilities drawio-diagram-builder
-./ai-devkit run drawio-diagram-builder conduct-diagram-interview --brief "Fluxo de onboarding"
-./ai-devkit run drawio-diagram-builder ingest-diagram-sources --directory specs --output source-context.json
-./ai-devkit run drawio-diagram-builder generate-drawio-diagram --brief "Usuario compra produto e sistema confirma pagamento" --output checkout.drawio
-./ai-devkit run drawio-diagram-builder generate-architecture-diagram --brief "Cliente acessa app. App chama API. API grava no Postgres." --output arquitetura.drawio --spec-output arquitetura.json
-./ai-devkit run drawio-diagram-builder generate-erd-diagram --brief "Tabela cliente possui id nome. Tabela pedido possui id cliente_id valor." --output erd.drawio --spec-output erd.json
-./ai-devkit run drawio-diagram-builder execute-diagram-delivery --file spec.md --diagram-type flowchart --output-dir diagrams --yes-create-dir
+agent capabilities drawio-diagram-builder
+agent run drawio-diagram-builder conduct-diagram-interview --brief "Fluxo de onboarding"
+agent run drawio-diagram-builder ingest-diagram-sources --directory specs --output source-context.json
+agent run drawio-diagram-builder generate-drawio-diagram --brief "Usuario compra produto e sistema confirma pagamento" --output checkout.drawio
+agent run drawio-diagram-builder generate-architecture-diagram --brief "Cliente acessa app. App chama API. API grava no Postgres." --output arquitetura.drawio --spec-output arquitetura.json
+agent run drawio-diagram-builder generate-erd-diagram --brief "Tabela cliente possui id nome. Tabela pedido possui id cliente_id valor." --output erd.drawio --spec-output erd.json
+agent run drawio-diagram-builder execute-diagram-delivery --file spec.md --diagram-type flowchart --output-dir diagrams --yes-create-dir
 ```
 
 ## Tipos de diagrama

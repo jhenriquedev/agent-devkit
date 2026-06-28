@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""AI DevKit public agent entrypoint."""
+
+from __future__ import annotations
+
+import sys
+
+from cli.aikit.main import DETERMINISTIC_COMMANDS, LLM_COMMANDS, main
+
+
+def normalize_args(argv: list[str]) -> list[str]:
+    if not argv:
+        return ["agent"]
+    commands = set(DETERMINISTIC_COMMANDS) | set(LLM_COMMANDS)
+    first = argv[0]
+    if first in {"--help", "-h", "--version"}:
+        return argv
+    if first == "--json":
+        if len(argv) == 1:
+            return ["--json", "agent"]
+        if argv[1] in commands:
+            return argv
+        return ["--json", "agent", *argv[1:]]
+    if first in {"--llm"}:
+        return ["agent", *argv]
+    if first in commands:
+        return argv
+    return ["agent", *argv]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(normalize_args(sys.argv[1:]), prog="agent"))

@@ -19,10 +19,10 @@ Agente especialista para mudancas controladas em Microsoft SQL Server.
 ## Como usar
 
 ```bash
-./ai-devkit run sqlserver-change-operator plan-migration --path migrations/001_create_table.up.sql
-./ai-devkit run sqlserver-change-operator apply-migration --path migrations/001_create_table.up.sql --rollback-path migrations/001_create_table.down.sql --execute
-./ai-devkit run sqlserver-change-operator update-records --schema dbo --table Customers --set-json '{"status":"inactive"}' --where "id = 1"
-./ai-devkit run sqlserver-change-operator delete-records --schema dbo --table Customers --where "id = 1" --confirm-delete --execute
+agent run sqlserver-change-operator plan-migration --path migrations/001_create_table.up.sql
+agent run sqlserver-change-operator apply-migration --path migrations/001_create_table.up.sql --rollback-path migrations/001_create_table.down.sql --execute
+agent run sqlserver-change-operator update-records --schema dbo --table Customers --set-json '{"status":"inactive"}' --where "id = 1"
+agent run sqlserver-change-operator delete-records --schema dbo --table Customers --where "id = 1" --confirm-delete --execute
 ```
 
 ## Configuracao

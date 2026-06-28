@@ -8,13 +8,13 @@ diff antes da escrita.
 ## Execucao local
 
 ```bash
-./ai-devkit run azure-devops-orchestrator update-card-tags --project <project> --id <work-item-id> --add-tag Bugfix
+agent run azure-devops-orchestrator update-card-tags --project <project> --id <work-item-id> --add-tag Bugfix
 ```
 
 Para executar a escrita real:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator update-card-tags --project <project> --id <work-item-id> --add-tag Bugfix --execute
+agent run azure-devops-orchestrator update-card-tags --project <project> --id <work-item-id> --add-tag Bugfix --execute
 ```
 
 ## Passos

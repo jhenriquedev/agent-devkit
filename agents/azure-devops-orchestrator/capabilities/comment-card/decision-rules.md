@@ -3,6 +3,7 @@
 - Sempre ler o card antes de propor comentario.
 - Sempre apresentar preview do comentario.
 - Nunca executar `add-comment` sem confirmacao explicita.
+- Sem `--execute`, manter dry-run e retornar apenas o plano de comentario.
 - Se o comentario tiver risco de compromisso, prazo ou atribuicao, marcar risco
   como medio ou alto.
 - Se o usuario pedir comentario agressivo, reescrever em tom profissional.

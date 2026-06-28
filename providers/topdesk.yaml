@@ -1,0 +1,44 @@
+id: topdesk
+name: TOPdesk
+kind: remote-api
+status: active
+description: Acesso a incidentes, comentarios e atualizacoes no TOPdesk.
+auth_methods:
+  - id: app-password
+    label: Usuario e app password
+    secret_fields:
+      - TOPDESK_APP_PASSWORD
+      - TOPDESK_PASSWORD
+config_fields:
+  - name: TOPDESK_BASE_URL
+    required: true
+    secret: false
+  - name: TOPDESK_USERNAME
+    required: true
+    secret: false
+  - name: TOPDESK_REQUEST_TIMEOUT_SECONDS
+    default: "30"
+    required: false
+    secret: false
+detection:
+  env_any:
+    - TOPDESK_BASE_URL
+    - TOPDESK_USERNAME
+    - TOPDESK_APP_PASSWORD
+    - TOPDESK_PASSWORD
+capabilities:
+  read:
+    - topdesk-orchestrator/list-incidents
+    - topdesk-orchestrator/read-incident
+  write:
+    - topdesk-orchestrator/create-incident
+    - topdesk-orchestrator/update-incident
+    - topdesk-orchestrator/request-more-info
+health_check:
+  command: agent provider doctor topdesk
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - use_user_supplied_context
+  - manual_steps

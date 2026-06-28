@@ -3,7 +3,7 @@ kind: specialist-agent
 name: Software Specification Analyst
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Atuar como analista de requisitos completo, entrevistando stakeholders,

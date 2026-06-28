@@ -98,7 +98,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
             fixture,
             [
                 "--project",
-                "Sustentacao",
+                "SupportProject",
                 "--card",
                 "7710",
                 "--target-column",
@@ -131,7 +131,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         result = run_capability(
             "execute-n1-card-runbook",
             fixture,
-            ["--project", "Sustentacao", "--card", "42", "--format", "json"],
+            ["--project", "SupportProject", "--card", "42", "--format", "json"],
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -155,7 +155,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         result = run_capability(
             "execute-n1-card-runbook",
             fixture,
-            ["--project", "Sustentacao", "--card", "43", "--format", "json"],
+            ["--project", "SupportProject", "--card", "43", "--format", "json"],
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -166,7 +166,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         self.assertNotIn("12345678909", result.stdout)
         self.assertNotIn("raw-secret-token", result.stdout)
 
-    def test_execute_card_runbook_enriches_contract_with_mcc_knowledge(self) -> None:
+    def test_execute_card_runbook_enriches_contract_with_domain_knowledge(self) -> None:
         fixture = {
             "work_item": {
                 "id": 7711,
@@ -192,7 +192,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         result = run_capability(
             "execute-n1-card-runbook",
             fixture,
-            ["--project", "Sustentacao", "--card", "7711", "--format", "json"],
+            ["--project", "SupportProject", "--card", "7711", "--format", "json"],
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -227,7 +227,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         result = run_capability(
             "execute-n1-card-runbook",
             fixture,
-            ["--project", "Sustentacao", "--card", "7713", "--format", "json"],
+            ["--project", "SupportProject", "--card", "7713", "--format", "json"],
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -338,7 +338,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
         result = run_capability(
             "execute-n1-card-runbook",
             fixture,
-            ["--project", "Sustentacao", "--card", "7712", "--format", "json"],
+            ["--project", "SupportProject", "--card", "7712", "--format", "json"],
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -500,7 +500,7 @@ class N1SupportAgentRunnerTest(unittest.TestCase):
             fixture,
             [
                 "--project",
-                "Sustentacao",
+                "SupportProject",
                 "--card",
                 "7710",
                 "--tag",

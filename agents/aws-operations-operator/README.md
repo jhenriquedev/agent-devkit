@@ -15,14 +15,14 @@ export AWS_OPERATIONS_DEFAULT_REGION_PRD=us-east-1
 ```
 
 ```bash
-./ai-devkit run aws-operations-operator force-ecs-deployment \
+agent run aws-operations-operator force-ecs-deployment \
   --cluster orders \
   --service orders-api \
   --environment dev \
   --output-dir ops/orders \
   --yes-create-dir
 
-./ai-devkit run aws-operations-operator force-ecs-deployment \
+agent run aws-operations-operator force-ecs-deployment \
   --cluster orders \
   --service orders-api \
   --environment prd \

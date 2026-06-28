@@ -7,13 +7,13 @@ Alterar estado e, opcionalmente, coluna de um card com preview completo.
 ## Execucao local
 
 ```bash
-./ai-devkit run azure-devops-orchestrator move-card --project <project> --id <work-item-id> --state Active
+agent run azure-devops-orchestrator move-card --project <project> --id <work-item-id> --state Active
 ```
 
 Para executar a escrita real:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator move-card --project <project> --id <work-item-id> --state Active --execute
+agent run azure-devops-orchestrator move-card --project <project> --id <work-item-id> --state Active --execute
 ```
 
 ## Passos

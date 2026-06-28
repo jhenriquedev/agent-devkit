@@ -17,7 +17,7 @@ class N1SupportAgentContractTest(unittest.TestCase):
 
         self.assertIn("knowledge/system.md", manifest)
         self.assertIn(
-            "knowledge/domains/meucashcard/contracts/n1-support-triage-contract.json",
+            "knowledge/domains/customer-support/contracts/n1-support-triage-contract.json",
             manifest,
         )
 

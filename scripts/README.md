@@ -1,6 +1,6 @@
 # Scripts
 
-Esta pasta contem automacoes operacionais do repositorio AI DevKit como um todo.
+Esta pasta contem automacoes operacionais do repositorio Agent DevKit como um todo.
 
 ## Objetivo
 
@@ -13,6 +13,29 @@ do repositorio.
 - Gerar catalogos globais a partir dos manifests dos agentes.
 - Rodar checagens de consistencia em todos os agentes.
 - Empacotar agentes para distribuicao.
+
+## Scripts atuais
+
+- `validate-repo.py`: valida estrutura de agentes, capabilities, runners,
+  referencias internas, cobertura dos READMEs e higiene basica da raiz sem
+  chamar rede, bancos, AWS, Azure ou qualquer sistema externo.
+- `mvp-readiness.py`: executa um smoke gate local do MVP instalavel, com
+  instalacao temporaria, backends LLM, provider registry, fallback `plan_only`,
+  `agent` sem LLM, plugins e validacao estrita, sem chamar sistemas
+  externos.
+- `verify-release-alignment.mjs`: valida alinhamento de versao entre CLI,
+  pacote npm, notas de release e contratos estruturais antes do corte.
+
+Uso:
+
+```bash
+python3 scripts/validate-repo.py
+python3 scripts/validate-repo.py --json
+python3 scripts/validate-repo.py --strict
+python3 scripts/mvp-readiness.py
+python3 scripts/mvp-readiness.py --json
+npm run release:verify -- v0.0.1
+```
 
 ## Regras
 

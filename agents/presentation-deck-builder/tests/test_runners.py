@@ -84,6 +84,7 @@ class PresentationDeckBuilderRunnerSmokeTest(unittest.TestCase):
                     "--templates-root",
                     str(templates_root),
                     "--yes-confirm",
+                    "--confirm-execute",
                 )
             )
             self._assert_ok(
@@ -126,6 +127,7 @@ class PresentationDeckBuilderRunnerSmokeTest(unittest.TestCase):
                     "--templates-root",
                     str(templates_root),
                     "--yes-confirm",
+                    "--confirm-execute",
                 )
             )
 
@@ -218,6 +220,7 @@ class PresentationDeckBuilderRunnerSmokeTest(unittest.TestCase):
                 "--templates-root",
                 str(templates_root),
                 "--yes-save",
+                "--confirm-execute",
             )
             self._assert_ok(result)
         finally:

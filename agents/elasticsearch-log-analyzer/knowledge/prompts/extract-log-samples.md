@@ -17,7 +17,7 @@ tickets externos.
 ## Regras de decisão
 - Amostras sempre bounded. Ver também: decision-rules.md.
 - Mantenha event ids quando disponíveis (úteis para `get-event` posterior).
-- Não redija/oculte campos por default (a menos que política futura exija).
+- Se houver segredo, token, API key, Authorization ou payload sensível, sinalize sem reproduzir o valor.
 
 ## Formato de saída
 Cabeçalho (source/quantidade) + tabela de amostras.

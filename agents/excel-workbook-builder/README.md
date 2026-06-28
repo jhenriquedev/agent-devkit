@@ -26,23 +26,23 @@ para o nucleo operacional de Excel:
 ## Exemplos
 
 ```bash
-./ai-devkit run excel-workbook-builder register-template \
+agent run excel-workbook-builder register-template \
   --template ./modelo.xlsx \
   --template-id conciliacao \
   --version 0.1.0 \
   --status validated \
   --yes-save
 
-./ai-devkit run excel-workbook-builder ingest-source-document \
+agent run excel-workbook-builder ingest-source-document \
   --source ./dados.csv \
   --output ./dados.json
 
-./ai-devkit run excel-workbook-builder generate-workbook-from-data \
+agent run excel-workbook-builder generate-workbook-from-data \
   --input ./dados.json \
   --output ./relatorio.xlsx \
   --title "Relatorio Operacional"
 
-./ai-devkit run excel-workbook-builder reconcile-datasets \
+agent run excel-workbook-builder reconcile-datasets \
   --left ./base-a.csv \
   --right ./base-b.csv \
   --key id \

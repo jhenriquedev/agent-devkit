@@ -20,7 +20,7 @@ renderizacao. Ele deve ser simples, auditavel e versionavel.
 - PDF, DOCX, XLSX e PPTX por extracao textual;
 - diretorios com multiplos arquivos;
 - cards Azure DevOps por delegacao ao `azure-devops-orchestrator`;
-- artefatos gerados por outros agentes do AI DevKit.
+- artefatos gerados por outros agentes do Agent DevKit.
 
 ## Saidas padrao
 

@@ -8,3 +8,9 @@
 - Escrita real exige `--execute`.
 - Nao pedir dados ja presentes no chamado.
 - Se nao houver lacunas, nao enviar pedido.
+- Payload deve usar `action` ou nota adicional, nunca `request`.
+- Bloquear qualquer campo de fechamento, resolucao, arquivamento ou escalonamento.
+- Perguntas devem ser especificas, curtas e relacionadas a lacunas detectadas.
+- Nao pedir segredo bruto; solicitar evidencias, timestamps, mensagens de erro e impacto quando necessario.
+- Em dry-run, mostrar mensagem planejada e perguntas sem atualizar TOPdesk.
+- Em execucao real, relatar resultado sem expor payload sensivel completo.

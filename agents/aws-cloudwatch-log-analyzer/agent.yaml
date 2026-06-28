@@ -3,7 +3,7 @@ kind: specialist-agent
 name: AWS CloudWatch Log Analyzer
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Analisar logs de servicos no AWS CloudWatch Logs, buscando eventos,

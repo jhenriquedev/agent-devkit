@@ -12,12 +12,12 @@ contrato fixo de saida com evidencias, checks, decisao e artefatos.
 ## Uso
 
 ```bash
-./ai-devkit run n1-support-agent execute-n1-card-runbook --project "Sustentacao" --card 7710
-./ai-devkit run n1-support-agent execute-n1-card-runbook --project "Sustentacao" --card 7710 --target-column "Em Analise N1"
-./ai-devkit run n1-support-agent execute-n1-card-runbook --project "Sustentacao" --card 7710 --target-column "Em Analise N1" --execute
-./ai-devkit run n1-support-agent route-customer-symptom --text "cliente nao consegue concluir cadastro" --format json
-./ai-devkit run n1-support-agent analyze-restrictive-base --cpf "123.456.789-09" --format json
-./ai-devkit run n1-support-agent analyze-bpo-proposal --proposal-number 123456 --format json
+agent run n1-support-agent execute-n1-card-runbook --project "$AZURE_DEVOPS_PROJECT" --card 7710
+agent run n1-support-agent execute-n1-card-runbook --project "$AZURE_DEVOPS_PROJECT" --card 7710 --target-column "Em Analise N1"
+agent run n1-support-agent execute-n1-card-runbook --project "$AZURE_DEVOPS_PROJECT" --card 7710 --target-column "Em Analise N1" --execute
+agent run n1-support-agent route-customer-symptom --text "cliente nao consegue concluir cadastro" --format json
+agent run n1-support-agent analyze-restrictive-base --cpf "123.456.789-09" --format json
+agent run n1-support-agent analyze-bpo-proposal --proposal-number 123456 --format json
 ```
 
 Sem `--execute`, o agente apenas le o card e planeja tags/movimentacao. Com
@@ -28,7 +28,7 @@ A capability `analyze-restrictive-base` executa consulta read-only via
 variavel existir no `.env` local. O contrato retorna `hit`, `clear`, `skipped`
 ou `unavailable`, sempre com CPF mascarado.
 
-A capability `route-customer-symptom` usa o knowledge MeuCashCard para escolher
+A capability `route-customer-symptom` usa o knowledge de suporte ao cliente para escolher
 dominio, checks minimos e regras de negocio relevantes antes da decisao N1.
 
 A capability `analyze-bpo-proposal` consulta evidencias de proposta por meio do

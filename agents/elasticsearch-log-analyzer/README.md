@@ -19,10 +19,10 @@ O MVP cobre analise read-only:
 ## Como usar
 
 ```bash
-./ai-devkit run elasticsearch-log-analyzer list-log-sources --pattern "logs-*"
-./ai-devkit run elasticsearch-log-analyzer search-log-events --source "logs-prod-*" --from "now-2h" --to "now" --service "checkout-api" --level error
-./ai-devkit run elasticsearch-log-analyzer trace-request --source "logs-prod-*" --request-id "abc-123" --from "now-24h" --to "now"
-./ai-devkit run elasticsearch-log-analyzer generate-log-report --source "logs-prod-*" --from "now-6h" --to "now" --service "checkout-api"
+agent run elasticsearch-log-analyzer list-log-sources --pattern "logs-*"
+agent run elasticsearch-log-analyzer search-log-events --source "logs-prod-*" --from "now-2h" --to "now" --service "checkout-api" --level error
+agent run elasticsearch-log-analyzer trace-request --source "logs-prod-*" --request-id "abc-123" --from "now-24h" --to "now"
+agent run elasticsearch-log-analyzer generate-log-report --source "logs-prod-*" --from "now-6h" --to "now" --service "checkout-api"
 ```
 
 O `.env.local` guarda credenciais e endpoint locais, com `.env` como fallback.

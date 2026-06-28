@@ -20,14 +20,14 @@ O MVP cobre incidentes:
 ## Como usar
 
 ```bash
-./ai-devkit run topdesk-orchestrator list-incidents --limit 20
-./ai-devkit run topdesk-orchestrator read-incident --number "I 2506 123"
-./ai-devkit run topdesk-orchestrator create-incident --brief-description "Erro no sistema" --request "Usuario informa erro ao acessar."
-./ai-devkit run topdesk-orchestrator update-incident --id <id> --fields-json '{"briefDescription":"Novo resumo"}'
-./ai-devkit run topdesk-orchestrator analyze-incident-insufficiency --fixture /tmp/incident.json
-./ai-devkit run topdesk-orchestrator request-more-info --id <id>
-./ai-devkit run topdesk-orchestrator triage-incident --id <id>
-./ai-devkit run topdesk-orchestrator incident-report --fixture /tmp/incidents.json
+agent run topdesk-orchestrator list-incidents --limit 20
+agent run topdesk-orchestrator read-incident --number "I 2506 123"
+agent run topdesk-orchestrator create-incident --brief-description "Erro no sistema" --request "Usuario informa erro ao acessar."
+agent run topdesk-orchestrator update-incident --id <id> --fields-json '{"briefDescription":"Novo resumo"}'
+agent run topdesk-orchestrator analyze-incident-insufficiency --fixture /tmp/incident.json
+agent run topdesk-orchestrator request-more-info --id <id>
+agent run topdesk-orchestrator triage-incident --id <id>
+agent run topdesk-orchestrator incident-report --fixture /tmp/incidents.json
 ```
 
 Escritas reais exigem `--execute`.

@@ -6,7 +6,6 @@ from __future__ import annotations
 import json
 import importlib.util
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -159,12 +158,13 @@ class AiDevKitCliTest(unittest.TestCase):
     def test_run_capability_times_out_slow_runner(self) -> None:
         agent_id = "timeout-test-agent"
         capability_id = "sleep-runner"
-        agent_dir = ROOT / "agents" / agent_id
-        capability_dir = agent_dir / "capabilities" / capability_id
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_root = Path(tmpdir)
+            agent_dir = test_root / "agents" / agent_id
+            capability_dir = agent_dir / "capabilities" / capability_id
             capability_dir.mkdir(parents=True)
             (agent_dir / "agent.yaml").write_text(
-                f"id: {agent_id}\nkind: agent\nname: Timeout Test Agent\nstatus: test\n",
+                f"id: {agent_id}\nkind: agent\nname: Timeout Test Agent\nstatus: draft\n",
                 encoding="utf-8",
             )
             (capability_dir / "capability.yaml").write_text(
@@ -179,15 +179,13 @@ class AiDevKitCliTest(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, str(CLI), "run", agent_id, capability_id],
                 cwd=ROOT,
-                env=os.environ | {"AI_DEVKIT_RUN_TIMEOUT": "1"},
+                env=os.environ | {"AI_DEVKIT_ROOT": str(test_root), "AI_DEVKIT_RUN_TIMEOUT": "1"},
                 check=False,
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=CLI_TIMEOUT_SECONDS,
             )
-        finally:
-            shutil.rmtree(agent_dir, ignore_errors=True)
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(f"runner timed out after 1s: {agent_id}/{capability_id}", result.stderr)
@@ -561,6 +559,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-save",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,
@@ -606,6 +605,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-save",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,
@@ -697,6 +697,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-save",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,
@@ -822,6 +823,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-save",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,
@@ -884,6 +886,7 @@ json.dump(
                 "--templates-root",
                 str(templates_root),
                 "--yes-save",
+                "--confirm-execute",
             )
             self.run_cli_ok(
                 "run",
@@ -986,6 +989,7 @@ json.dump(
                 "--templates-root",
                 str(templates_root),
                 "--yes-save",
+                "--confirm-execute",
             )
 
             result = subprocess.run(
@@ -1032,6 +1036,7 @@ json.dump(
                 "--templates-root",
                 str(templates_root),
                 "--yes-save",
+                "--confirm-execute",
             )
 
             self.run_cli_ok(
@@ -3028,6 +3033,7 @@ json.dump(
                 "--templates-root",
                 str(templates_root),
                 "--yes-save",
+                "--confirm-execute",
             ],
             cwd=ROOT,
             check=False,
@@ -3112,6 +3118,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-confirm",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,
@@ -3144,6 +3151,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-confirm",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,
@@ -3176,6 +3184,7 @@ json.dump(
                     "--templates-root",
                     str(templates_root),
                     "--yes-confirm",
+                    "--confirm-execute",
                 ],
                 cwd=ROOT,
                 check=False,

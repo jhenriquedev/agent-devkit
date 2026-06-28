@@ -1,0 +1,82 @@
+id: bpo
+name: BPO
+kind: remote-api
+status: active
+description: Consulta SOAP aos servicos BPO de propostas, documentos e formalizacao.
+auth_methods:
+  - id: soap-basic-auth
+    label: Usuario e senha BPO
+    secret_fields:
+      - BPO_CARTAO_PASSWORD
+config_fields:
+  - name: BPO_SERVICO_API_URL
+    required: true
+    secret: false
+  - name: BPO_WS_PROPOSTA_URL
+    required: true
+    secret: false
+  - name: BPO_CARTAO_USER
+    required: true
+    secret: false
+  - name: BPO_WS_ESTEIRA_URL
+    required: false
+    secret: false
+  - name: BPO_WS_FORMALIZACAO_URL
+    required: false
+    secret: false
+  - name: BPO_CONSIGNACAO_URL
+    required: false
+    secret: false
+  - name: BPO_HTTP_TIMEOUT
+    default: "30"
+    required: false
+    secret: false
+  - name: BPO_DEFAULT_DOCUMENT_TYPE
+    default: "Nao_Definido"
+    required: false
+    secret: false
+  - name: BPO_TLS_VERIFY
+    default: "true"
+    required: false
+    secret: false
+  - name: BPO_ELIGIBLE_SITUATIONS
+    default: "INT,INTEGRADA,APR,APROVADA"
+    required: false
+    secret: false
+  - name: BPO_ELIGIBLE_PROPOSAL_TYPES
+    default: "3"
+    required: false
+    secret: false
+  - name: BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT
+    default: "true"
+    required: false
+    secret: false
+  - name: BPO_FORBIDDEN_URL_PATTERNS
+    required: false
+    secret: true
+  - name: BPO_PARTNER_CONTRACT_FIELDS
+    required: false
+    secret: false
+  - name: BPO_ORIGINATOR_CONTRACT_FIELDS
+    required: false
+    secret: false
+detection:
+  env_any:
+    - BPO_SERVICO_API_URL
+    - BPO_WS_PROPOSTA_URL
+    - BPO_CARTAO_USER
+    - BPO_CARTAO_PASSWORD
+capabilities:
+  read:
+    - bpo-analyser
+    - n1-support-agent/analyze-bpo-proposal
+    - n2-support-agent/execute-specialist-validation
+health_check:
+  command: agent provider doctor bpo
+risk:
+  default: read
+  writes: false
+fallbacks:
+  - use_user_supplied_context
+  - skip_provider
+  - manual_steps

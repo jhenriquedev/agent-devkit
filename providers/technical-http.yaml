@@ -1,0 +1,45 @@
+id: technical-http
+name: Technical HTTP
+kind: remote-api
+status: active
+description: Execucao controlada de chamadas HTTP para validacao de integracoes tecnicas.
+auth_methods:
+  - id: bearer-token
+    label: Bearer token
+    secret_fields:
+      - TECH_INTEGRATION_DEFAULT_AUTH_TOKEN
+  - id: none
+    label: Sem autenticacao
+    secret_fields: []
+config_fields:
+  - name: TECH_INTEGRATION_DEFAULT_BASE_URL
+    required: false
+    secret: false
+  - name: TECH_INTEGRATION_ALLOWED_HOSTS
+    required: false
+    secret: false
+  - name: TECH_INTEGRATION_HTTP_TIMEOUT
+    default: "30"
+    required: false
+    secret: false
+  - name: TECH_INTEGRATION_ALLOW_HTTP
+    required: false
+    secret: false
+detection:
+  env_any:
+    - TECH_INTEGRATION_DEFAULT_BASE_URL
+    - TECH_INTEGRATION_ALLOWED_HOSTS
+    - TECH_INTEGRATION_DEFAULT_AUTH_TOKEN
+capabilities:
+  read:
+    - technical-integration-analyst/generate-http-artifacts
+  write:
+    - technical-integration-analyst/run-integration-tests
+health_check:
+  command: agent provider doctor technical-http
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - dry_run
+  - manual_steps

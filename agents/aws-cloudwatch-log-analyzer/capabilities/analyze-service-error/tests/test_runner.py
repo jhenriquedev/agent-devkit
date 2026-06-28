@@ -17,7 +17,7 @@ RUNNER = Path(__file__).resolve().parents[1] / "runner.py"
 class AnalyzeServiceErrorRunnerTest(unittest.TestCase):
     def test_renders_error_analysis_from_fixture(self) -> None:
         fixture = {
-            "service": "mcc-api",
+            "service": "example-api",
             "environment": "prd",
             "events": [
                 {"timestamp": 1, "log_stream_name": "s1", "message": "POST /api/test 500 ERROR timeout"}

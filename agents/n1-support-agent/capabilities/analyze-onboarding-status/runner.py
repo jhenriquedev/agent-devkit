@@ -30,7 +30,7 @@ def main() -> int:
         payload = diagnostic_gap_payload(
             capability="analyze-onboarding-status",
             check_id="onboarding-status",
-            source="core-database",
+            source="system-of-record-database",
             reason="Canonical onboarding SQL query is not configured; current step/evolutions/jobs cannot be verified automatically.",
             cpf=cpf,
             proposal_number=proposal_number,

@@ -1,0 +1,43 @@
+id: sqlserver
+name: SQL Server
+kind: database
+status: active
+description: Acesso a bancos SQL Server para analise de dados, suporte e mudancas controladas.
+auth_methods:
+  - id: connection-string
+    label: Connection string
+    secret_fields:
+      - SQLSERVER_DB_CONN_STRING
+      - MSSQL_DB_CONN_STRING
+config_fields:
+  - name: SQLSERVER_STATEMENT_TIMEOUT
+    default: "15000"
+    required: false
+    secret: false
+  - name: SQLSERVER_LOCK_TIMEOUT
+    default: "5000"
+    required: false
+    secret: false
+  - name: SQLSERVER_QUERY_LIMIT
+    default: "100"
+    required: false
+    secret: false
+detection:
+  env_any:
+    - SQLSERVER_DB_CONN_STRING
+    - MSSQL_DB_CONN_STRING
+capabilities:
+  read:
+    - sqlserver-data-analyzer
+    - n1-support-agent/analyze-restrictive-base
+  write:
+    - sqlserver-change-operator
+health_check:
+  command: agent provider doctor sqlserver
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - dry_run
+  - manual_steps

@@ -1,0 +1,22 @@
+id: presentation-renderer
+name: Presentation Renderer
+kind: local-tool
+status: active
+description: Geracao, revisao e atualizacao local de apresentacoes.
+auth_methods: []
+config_fields:
+  - name: PRESENTATION_RENDER_TIMEOUT_SECONDS
+    required: false
+    secret: false
+capabilities:
+  read:
+    - presentation-deck-builder/inspect-template
+  write:
+    - presentation-deck-builder
+health_check:
+  command: agent provider doctor presentation-renderer
+risk:
+  default: write-local-file
+  writes: true
+fallbacks:
+  - manual_steps

@@ -20,10 +20,10 @@ documentacao tecnica.
 ## Como usar
 
 ```bash
-./ai-devkit run technical-integration-analyst ingest-technical-docs --file manual.pdf
-./ai-devkit run technical-integration-analyst extract-integration-contract --url https://example.com/docs
-./ai-devkit run technical-integration-analyst generate-http-artifacts --file api.md --postman-output /tmp/collection.json
-./ai-devkit run technical-integration-analyst run-integration-tests --file api.md --base-url https://sandbox.example.com
+agent run technical-integration-analyst ingest-technical-docs --file manual.pdf
+agent run technical-integration-analyst extract-integration-contract --url https://example.com/docs
+agent run technical-integration-analyst generate-http-artifacts --file api.md --postman-output /tmp/collection.json
+agent run technical-integration-analyst run-integration-tests --file api.md --base-url https://sandbox.example.com
 ```
 
 ## Configuracao

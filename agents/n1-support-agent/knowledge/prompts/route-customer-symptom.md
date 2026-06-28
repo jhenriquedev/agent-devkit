@@ -1,6 +1,6 @@
 # Prompt
 
-Classifique o sintoma do cliente usando o roteamento MeuCashCard.
+Classifique o sintoma do cliente usando o roteamento de suporte ao cliente.
 
 ## Regras
 

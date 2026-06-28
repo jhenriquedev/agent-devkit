@@ -60,21 +60,21 @@ azure-devops-orchestrator/
 Use a CLI raiz quando quiser validar uma capability completa:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
+agent run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
 ```
 
 Capabilities executaveis atuais:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator list-cards --project "Projeto" --limit 20
-./ai-devkit run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
-./ai-devkit run azure-devops-orchestrator comment-card --project "Projeto" --id 123 --comment "Atualizacao."
-./ai-devkit run azure-devops-orchestrator update-card-tags --project "Projeto" --id 123 --add-tag Bugfix
-./ai-devkit run azure-devops-orchestrator assign-card --project "Projeto" --id 123 --assignee pessoa@example.com
-./ai-devkit run azure-devops-orchestrator move-card --project "Projeto" --id 123 --state Active
-./ai-devkit run azure-devops-orchestrator prepare-card-analysis --project "Projeto" --id 123 --include-comment-draft
-./ai-devkit run azure-devops-orchestrator generate-cards-report --project "Projeto" --state "To Do" --limit 50 --include-comments
-./ai-devkit run azure-devops-orchestrator attach-file --project "Projeto" --id 123 --file evidencia.txt --comment "Evidencia operacional."
+agent run azure-devops-orchestrator list-cards --project "Projeto" --limit 20
+agent run azure-devops-orchestrator read-card --project "Projeto" --id 123 --include-comments
+agent run azure-devops-orchestrator comment-card --project "Projeto" --id 123 --comment "Atualizacao."
+agent run azure-devops-orchestrator update-card-tags --project "Projeto" --id 123 --add-tag Bugfix
+agent run azure-devops-orchestrator assign-card --project "Projeto" --id 123 --assignee pessoa@example.com
+agent run azure-devops-orchestrator move-card --project "Projeto" --id 123 --state Active
+agent run azure-devops-orchestrator prepare-card-analysis --project "Projeto" --id 123 --include-comment-draft
+agent run azure-devops-orchestrator generate-cards-report --project "Projeto" --state "To Do" --limit 50 --include-comments
+agent run azure-devops-orchestrator attach-file --project "Projeto" --id 123 --file evidencia.txt --comment "Evidencia operacional."
 ```
 
 Use a CLI da integracao apenas quando precisar testar diretamente o repository:

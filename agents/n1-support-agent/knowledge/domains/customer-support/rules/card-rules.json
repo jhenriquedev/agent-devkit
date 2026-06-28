@@ -1,0 +1,43 @@
+{
+  "id": "customer-support-card-rules",
+  "version": "0.1.0",
+  "domain": "card",
+  "rules": [
+    {
+      "id": "card.public_agency_has_card",
+      "source": "CardService.UserIsEligibleForCard",
+      "rule": "Usuario so pode criar cartao se PublicAgency existir e HasCard for verdadeiro.",
+      "supportImpact": "Sem HasCard, ausencia de cartao pode ser regra."
+    },
+    {
+      "id": "card.account_required",
+      "source": "CardService.CreateNewVirtualCardAsync",
+      "rule": "Conta do usuario deve existir antes da criacao do cartao.",
+      "supportImpact": "Cartao ausente deve checar Account antes do processador externo."
+    },
+    {
+      "id": "card.under_analysis_lock",
+      "source": "CardService.CreateNewVirtualCardAsync",
+      "rule": "Se ja existe cartao virtual UnderAnalysis, nao pode gerar outro ate concluir a analise de margem.",
+      "supportImpact": "Bloqueio de novo cartao pode ser esperado por proposta/cartao em analise."
+    },
+    {
+      "id": "card.dock_account_recovery",
+      "source": "CardService.CanContinueWithError",
+      "rule": "Falha de conta Dock com codigos 1006 ou 1007 permite aprovacao blind local.",
+      "supportImpact": "Aprovacao blind exige evidencia de conta/cartao Dock antes de classificar bug."
+    },
+    {
+      "id": "card.limit_invoice_after_approval",
+      "source": "CardService.GenerateLimitAndInvoice",
+      "rule": "Apos aprovacao, recalcula margem multiplicada, atualiza limite da conta e cria fatura se nao houver fatura aberta.",
+      "supportImpact": "Limite/fatura ausente apos cartao exige checar essa etapa."
+    },
+    {
+      "id": "card.list_fallback_local_status",
+      "source": "GetAllCardsHandler",
+      "rule": "Se consulta Dock falhar por excecao, retorna status local dos cartoes sem detectar LockedIncorrectPassword.",
+      "supportImpact": "Lista pode divergir do Dock quando houve fallback."
+    }
+  ]
+}

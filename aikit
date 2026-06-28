@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+"""AI DevKit public CLI entrypoint."""
+
+from __future__ import annotations
+
+from cli.aikit.main import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(prog="aikit"))

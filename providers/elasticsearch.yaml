@@ -1,0 +1,52 @@
+id: elasticsearch
+name: Elasticsearch
+kind: remote-api
+status: active
+description: Consulta indices, eventos e evidencias em Elasticsearch ou Elastic Cloud.
+auth_methods:
+  - id: api-key
+    label: API key
+    secret_fields:
+      - ELASTICSEARCH_API_KEY
+      - ELASTIC_API_KEY
+      - EC_API_KEY
+  - id: elastic-cloud-proxy
+    label: Elastic Cloud management proxy
+    secret_fields:
+      - EC_API_KEY
+config_fields:
+  - name: ELASTICSEARCH_URL
+    required: false
+    secret: false
+  - name: ELASTICSEARCH_DEFAULT_TIME_FIELD
+    default: "@timestamp"
+    required: false
+    secret: false
+  - name: ELASTICSEARCH_CLOUD_API_BASE_URL
+    default: "https://api.elastic-cloud.com"
+    required: false
+    secret: false
+  - name: ELASTICSEARCH_CLOUD_DEPLOYMENT_ID
+    required: false
+    secret: false
+  - name: ELASTICSEARCH_CLOUD_RESOURCE_REF_ID
+    required: false
+    secret: false
+detection:
+  env_any:
+    - ELASTICSEARCH_URL
+    - ELASTICSEARCH_API_KEY
+    - ELASTIC_API_KEY
+    - EC_API_KEY
+capabilities:
+  read:
+    - elasticsearch-log-analyzer
+health_check:
+  command: agent provider doctor elasticsearch
+risk:
+  default: read
+  writes: false
+fallbacks:
+  - plan_only
+  - use_user_supplied_context
+  - manual_steps

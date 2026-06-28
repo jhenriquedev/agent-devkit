@@ -11,7 +11,7 @@ azure-devops-orchestrator/read-card via CLI raiz.
 
 ## RACIOCINIO (passos)
 1. Verificar se a delegacao esta disponivel:
-   - Disponivel: acionar `ai-devkit --json run azure-devops-orchestrator read-card --id <id>` e consumir o artefato retornado.
+   - Disponivel: acionar `agent --json run azure-devops-orchestrator read-card --id <id>` e consumir o artefato retornado.
    - Indisponivel (sem CLI ou credenciais): declarar modo degradado, solicitar conteudo do card como arquivo/texto colado.
 2. Extrair do card: objetivo/titulo, criterios de aceite, descricao, anexos, comentarios relevantes.
 3. Gerar brief de design a partir do conteudo do card.

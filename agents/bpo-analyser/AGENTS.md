@@ -5,13 +5,13 @@ Instrucoes especificas para agentes trabalhando em `agents/bpo-analyser/`.
 ## Papel do agente
 
 Este agente e especialista em consultar diretamente os servicos BPO usados pelo
-modulo SelfHire do MCC, sem chamar a API SelfHire. O foco e analisar proposta,
-status, situacao, observacoes e documentos anexados.
+dominio configurado pelo usuario, sem chamar APIs intermediarias de produto. O
+foco e analisar proposta, status, situacao, observacoes e documentos anexados.
 
 ## Regras obrigatorias
 
 - Usar endpoints BPO diretos configurados por ambiente.
-- Nunca chamar `api/v1/self-hire` ou qualquer endpoint da API MCC/SelfHire.
+- Nunca chamar alvos configurados em `BPO_FORBIDDEN_URL_PATTERNS`.
 - Operacoes de leitura podem ser automaticas.
 - Operacoes de mutacao em BPO sao fora de escopo deste agente.
 - Nao imprimir senhas, tokens, documentos base64 ou payloads SOAP completos em

@@ -1,0 +1,24 @@
+id: agent-bridge
+name: Agent Bridge
+kind: local-runtime
+status: active
+description: Delegacao local entre agentes e capabilities via agent run.
+auth_methods: []
+config_fields:
+  - name: AI_DEVKIT_ROOT
+    required: false
+    secret: false
+capabilities:
+  read:
+    - n1-support-agent
+    - n2-support-agent
+    - excel-workbook-builder/request-database-data
+    - drawio-diagram-builder/read-azure-card-context
+health_check:
+  command: agent provider doctor agent-bridge
+risk:
+  default: local-delegation
+  writes: false
+fallbacks:
+  - skip_provider
+  - manual_steps

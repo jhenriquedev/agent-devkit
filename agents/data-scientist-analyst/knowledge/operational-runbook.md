@@ -12,15 +12,15 @@ Execute antes de liberar mudancas no agente:
 ```bash
 python3 -m unittest agents/data-scientist-analyst/tests/test_runners.py
 python3 -m py_compile agents/data-scientist-analyst/infra/integrations/file-dataset/*.py agents/data-scientist-analyst/capabilities/_shared/runner_support.py
-./ai-devkit --json capabilities data-scientist-analyst
+agent --json capabilities data-scientist-analyst
 ```
 
 Smoke tests recomendados:
 
 ```bash
-./ai-devkit --json run data-scientist-analyst profile-dataset --source dados.csv --max-rows 1000
-./ai-devkit --json run data-scientist-analyst run-data-pipeline --source dados.csv --output docs/pipeline
-./ai-devkit --json run data-scientist-analyst evaluate-model --source base.csv --target-column converted --feature-columns score --test-size 0.3
+agent --json run data-scientist-analyst profile-dataset --source dados.csv --max-rows 1000
+agent --json run data-scientist-analyst run-data-pipeline --source dados.csv --output docs/pipeline
+agent --json run data-scientist-analyst evaluate-model --source base.csv --target-column converted --feature-columns score --test-size 0.3
 ```
 
 ## Limites operacionais

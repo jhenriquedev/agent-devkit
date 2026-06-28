@@ -32,14 +32,14 @@ Agente especialista para analise read-only de dados em PostgreSQL.
 ## Como usar
 
 ```bash
-./ai-devkit run postgres-data-analyzer test-connection
-./ai-devkit run postgres-data-analyzer list-tables --schema public
-./ai-devkit run postgres-data-analyzer describe-table --schema public --table customers
-./ai-devkit run postgres-data-analyzer run-readonly-query --query "select * from public.customers" --limit 50
-./ai-devkit run postgres-data-analyzer suggest-joins --schema public
-./ai-devkit run postgres-data-analyzer generate-erd-report --schema public
-./ai-devkit run postgres-data-analyzer analyze-cpf-column --schema public --table customers --column cpf
-./ai-devkit run postgres-data-analyzer list-tables --database outro_banco --schema public
+agent run postgres-data-analyzer test-connection
+agent run postgres-data-analyzer list-tables --schema public
+agent run postgres-data-analyzer describe-table --schema public --table customers
+agent run postgres-data-analyzer run-readonly-query --query "select * from public.customers" --limit 50
+agent run postgres-data-analyzer suggest-joins --schema public
+agent run postgres-data-analyzer generate-erd-report --schema public
+agent run postgres-data-analyzer analyze-cpf-column --schema public --table customers --column cpf
+agent run postgres-data-analyzer list-tables --database outro_banco --schema public
 ```
 
 ## Configuracao

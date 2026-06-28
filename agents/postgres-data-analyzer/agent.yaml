@@ -3,7 +3,7 @@ kind: specialist-agent
 name: Postgres Data Analyzer
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Analyze PostgreSQL data in read-only mode, including database discovery,

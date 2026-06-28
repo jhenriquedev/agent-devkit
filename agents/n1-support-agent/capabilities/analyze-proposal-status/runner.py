@@ -30,7 +30,7 @@ def main() -> int:
         payload = diagnostic_gap_payload(
             capability="analyze-proposal-status",
             check_id="proposal-status",
-            source="core-database",
+            source="system-of-record-database",
             reason="Canonical proposal SQL query is not configured; local proposal/margin/public-agency state cannot be verified automatically.",
             cpf=cpf,
             proposal_number=proposal_number,

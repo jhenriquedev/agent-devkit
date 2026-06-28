@@ -8,13 +8,13 @@ e leitura detalhada dos work items retornados.
 ## Execucao local
 
 ```bash
-./ai-devkit run azure-devops-orchestrator generate-cards-report --project <project> --state "To Do" --limit 50 --include-comments
+agent run azure-devops-orchestrator generate-cards-report --project <project> --state "To Do" --limit 50 --include-comments
 ```
 
 Com fixture:
 
 ```bash
-./ai-devkit run azure-devops-orchestrator generate-cards-report --fixture <fixture.json>
+agent run azure-devops-orchestrator generate-cards-report --fixture <fixture.json>
 ```
 
 ## Passos

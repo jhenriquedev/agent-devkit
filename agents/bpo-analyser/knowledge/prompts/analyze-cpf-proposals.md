@@ -14,8 +14,9 @@ reprovadas, e apontando a proposta mais recente integrada/aprovada.
 
 1. Liste as propostas do CPF.
 2. Classifique por `situation_kind`.
-3. Elegiveis seguem a regra do Core: situacao integrada/aprovada,
-   `tipoProposta == "3"` e `limiteSaque > 0`.
+3. Elegiveis seguem a politica operacional configurada:
+   `BPO_ELIGIBLE_SITUATIONS`, `BPO_ELIGIBLE_PROPOSAL_TYPES` e
+   `BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT`.
 4. Em analise inclui `cadastrada`, `pendente` e `andamento`.
 5. Reprovadas usam `reprovada`.
 6. Selecione a mais recente integrada/aprovada por `last_due_date`.
@@ -35,5 +36,5 @@ mais recente; tabela completa; inferencias e pontos de atencao.
 
 ## Nao faca
 
-Nao exiba CPF completo. Nao conclua aprovacao final. Nao chame API SelfHire. Nao
-relaxe a regra do Core.
+Nao exiba CPF completo. Nao conclua aprovacao final. Nao chame alvos
+configurados em `BPO_FORBIDDEN_URL_PATTERNS`. Nao relaxe a politica operacional.

@@ -25,7 +25,7 @@ O bridge recebe JSON em stdin:
     "capability": "create-web-app-design",
     "action": "create_file_with_screens",
     "file_name": "Portal",
-    "page_name": "AI DevKit Design",
+    "page_name": "Agent DevKit Design",
     "screens": ["Dashboard"],
     "components": ["Button", "Card"]
   }
@@ -39,7 +39,7 @@ E retorna JSON em stdout:
   "status": "executed",
   "file_key": "ABC123",
   "file_url": "https://figma.com/design/ABC123/Portal",
-  "page_name": "AI DevKit Design",
+  "page_name": "Agent DevKit Design",
   "created_node_ids": ["10:1"],
   "mutated_node_ids": [],
   "screenshot_refs": ["dashboard.png"]
@@ -54,7 +54,7 @@ Sem `file_key`, `file_url`, `created_node_ids`, `mutated_node_ids` ou
 Primeiro configure o bridge:
 
 ```bash
-./ai-devkit run figma-ui-ux-product-designer setup-figma-mcp-bridge \
+agent run figma-ui-ux-product-designer setup-figma-mcp-bridge \
   --install-bridge \
   --write-env \
   --login \
@@ -69,7 +69,7 @@ Depois execute uma capability de design:
 FIGMA_MCP_ENABLED=true \
 FIGMA_DIRECT_MODE=true \
 FIGMA_MCP_BRIDGE_COMMAND="figma-mcp-bridge" \
-./ai-devkit run figma-ui-ux-product-designer create-web-app-design \
+agent run figma-ui-ux-product-designer create-web-app-design \
   --brief demanda.md \
   --figma-file-name "Portal" \
   --require-direct \

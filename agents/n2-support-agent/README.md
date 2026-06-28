@@ -12,13 +12,13 @@ patch seguro, testavel e ordenado para um dev ou outro agente executar.
 ## Uso
 
 ```bash
-./ai-devkit run n2-support-agent execute-n2-investigation --project "Sustentacao" --card 8801 --codebase-path ~/jhss/dev/meucashcard/mcc_lambda --output /tmp/patch_plan.md --format json
-./ai-devkit run n2-support-agent generate-patch-plan --codebase-path ~/jhss/dev/meucashcard/mcc_lambda --output /tmp/patch_plan.md
-./ai-devkit run n2-support-agent validate-n1-handoff --n1-contract /tmp/n1.json --format json
-./ai-devkit run n2-support-agent select-specialist-checks --n1-contract /tmp/n1.json --codebase-path ~/jhss/dev/meucashcard/mcc_lambda --format json
-./ai-devkit run n2-support-agent execute-specialist-validation --n1-contract /tmp/n1.json --codebase-path ~/jhss/dev/meucashcard/mcc_lambda --execute --format json
-./ai-devkit run n2-support-agent review-patch-plan-readiness --project "Sustentacao" --card 8801 --codebase-path ~/jhss/dev/meucashcard/mcc_lambda --format json
-./ai-devkit run n2-support-agent update-n2-card-workflow --project "Sustentacao" --card 8801 --target-state Active --target-column "Analise N2" --assign-to pessoa@example.com --format json
+agent run n2-support-agent execute-n2-investigation --project "$AZURE_DEVOPS_PROJECT" --card 8801 --codebase-path /path/to/application --output /tmp/patch_plan.md --format json
+agent run n2-support-agent generate-patch-plan --codebase-path /path/to/application --output /tmp/patch_plan.md
+agent run n2-support-agent validate-n1-handoff --n1-contract /tmp/n1.json --format json
+agent run n2-support-agent select-specialist-checks --n1-contract /tmp/n1.json --codebase-path /path/to/application --format json
+agent run n2-support-agent execute-specialist-validation --n1-contract /tmp/n1.json --codebase-path /path/to/application --execute --format json
+agent run n2-support-agent review-patch-plan-readiness --project "$AZURE_DEVOPS_PROJECT" --card 8801 --codebase-path /path/to/application --format json
+agent run n2-support-agent update-n2-card-workflow --project "$AZURE_DEVOPS_PROJECT" --card 8801 --target-state Active --target-column "Analise N2" --assign-to pessoa@example.com --format json
 ```
 
 Sem `--execute`, atualizacoes no Azure ficam planejadas. Com `--execute`, o

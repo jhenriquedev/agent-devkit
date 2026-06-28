@@ -1,7 +1,7 @@
 # Workflow
 
 Classificar o sintoma do cliente com base no knowledge operacional
-MeuCashCard.
+suporte ao cliente configurado.
 
 ## Entradas
 

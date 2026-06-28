@@ -10,7 +10,7 @@ de instrucoes que todo agente deve ler antes de trabalhar neste repositorio.
 
 ## Sobre este projeto
 
-O **AI DevKit** e uma biblioteca de agentes especialistas, capabilities,
+O **Agent DevKit** e uma biblioteca de agentes especialistas, capabilities,
 prompts, repositories, MCPs, templates e conhecimento operacional para
 desenvolvimento e sustentacao de software com IA.
 
@@ -39,8 +39,10 @@ compativel.
 
 - `.github/`: governanca GitHub, workflows, templates de issue/PR e CODEOWNERS.
 - `agents/`: agentes especialistas e suas capabilities.
-- `cli/`: documentacao da CLI do DevKit; o executavel fica na raiz como
-  `ai-devkit`.
+- `cli/`: documentacao da CLI do DevKit; o executavel canonico fica na raiz
+  como `agent`. `ai-devkit` e `aikit` sao aliases legados de compatibilidade.
+- `providers/`: registry global dos providers usados pelo runtime.
+- `plugins/`: adaptadores nativos finos para hosts como Codex App e Claude Code.
 - `vendor/`: skills, plugins e bundles externos/importados.
 - `scripts/`: automacoes operacionais globais do repositorio.
 

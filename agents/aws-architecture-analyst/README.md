@@ -5,10 +5,10 @@ Agente especialista em analise arquitetural AWS em modo read-only.
 ## Capabilities
 
 ```bash
-./ai-devkit capabilities aws-architecture-analyst
-./ai-devkit run aws-architecture-analyst discover-account-inventory --profile dev --region us-east-1 --output-dir aws-analysis --yes-create-dir
-./ai-devkit run aws-architecture-analyst map-service-dependencies --inventory aws-analysis/inventory.json --output-dir aws-analysis --yes-overwrite
-./ai-devkit run aws-architecture-analyst generate-architecture-report --inventory aws-analysis/inventory.json --dependency-map aws-analysis/dependency-map.json --output-dir aws-analysis --yes-overwrite
+agent capabilities aws-architecture-analyst
+agent run aws-architecture-analyst discover-account-inventory --profile dev --region us-east-1 --output-dir aws-analysis --yes-create-dir
+agent run aws-architecture-analyst map-service-dependencies --inventory aws-analysis/inventory.json --output-dir aws-analysis --yes-overwrite
+agent run aws-architecture-analyst generate-architecture-report --inventory aws-analysis/inventory.json --dependency-map aws-analysis/dependency-map.json --output-dir aws-analysis --yes-overwrite
 ```
 
 ## Guardrails

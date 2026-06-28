@@ -19,6 +19,9 @@
    sem executar, sugerir reformulação.
 4. Timeout → reportar sem revelar credenciais; sugerir simplificar query.
 5. Não remover TOP nem desabilitar timeouts em nenhuma circunstância.
+6. Aplicar `LOCK_TIMEOUT` e timeout de statement/conexao em todas as execucoes.
+7. Bloquear `EXEC` livre, `DBCC`, `MERGE`, `BACKUP`, `RESTORE` e qualquer DDL/DML.
+8. Nao executar multiplas statements em uma unica chamada.
 
 ## Quando pedir info
 

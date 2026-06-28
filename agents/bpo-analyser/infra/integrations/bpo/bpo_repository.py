@@ -21,6 +21,16 @@ class BpoRepositoryError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class BpoEligibilityPolicy:
+    eligible_situations: tuple[str, ...] = ("INT", "INTEGRADA", "APR", "APROVADA")
+    eligible_proposal_types: tuple[str, ...] = ("3",)
+    require_positive_withdraw_limit: bool = True
+
+
+DEFAULT_ELIGIBILITY_POLICY = BpoEligibilityPolicy()
+
+
+@dataclass(frozen=True)
 class BpoConfig:
     servico_api_url: str
     ws_proposta_url: str
@@ -32,6 +42,10 @@ class BpoConfig:
     timeout: int = 30
     default_document_type: str = "Nao_Definido"
     tls_verify: bool = True
+    eligibility_policy: BpoEligibilityPolicy = DEFAULT_ELIGIBILITY_POLICY
+    forbidden_url_patterns: tuple[str, ...] = ()
+    partner_contract_fields: tuple[str, ...] = ()
+    originator_contract_fields: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> "BpoConfig":
@@ -59,6 +73,23 @@ class BpoConfig:
             timeout=int(os.environ.get("BPO_HTTP_TIMEOUT") or "30"),
             default_document_type=os.environ.get("BPO_DEFAULT_DOCUMENT_TYPE", "Nao_Definido"),
             tls_verify=parse_bool(os.environ.get("BPO_TLS_VERIFY"), default=True),
+            eligibility_policy=BpoEligibilityPolicy(
+                eligible_situations=parse_csv_env(
+                    "BPO_ELIGIBLE_SITUATIONS",
+                    DEFAULT_ELIGIBILITY_POLICY.eligible_situations,
+                ),
+                eligible_proposal_types=parse_csv_env(
+                    "BPO_ELIGIBLE_PROPOSAL_TYPES",
+                    DEFAULT_ELIGIBILITY_POLICY.eligible_proposal_types,
+                ),
+                require_positive_withdraw_limit=parse_bool(
+                    os.environ.get("BPO_REQUIRE_POSITIVE_WITHDRAW_LIMIT"),
+                    default=True,
+                ),
+            ),
+            forbidden_url_patterns=parse_csv_env("BPO_FORBIDDEN_URL_PATTERNS", ()),
+            partner_contract_fields=parse_csv_env("BPO_PARTNER_CONTRACT_FIELDS", ()),
+            originator_contract_fields=parse_csv_env("BPO_ORIGINATOR_CONTRACT_FIELDS", ()),
         )
 
 
@@ -83,6 +114,19 @@ class BpoRepository:
             "timeout": self.config.timeout,
             "default_document_type": self.config.default_document_type,
             "tls_verify": self.config.tls_verify,
+            "eligibility_policy": {
+                "eligible_situations": list(self.config.eligibility_policy.eligible_situations),
+                "eligible_proposal_types": list(
+                    self.config.eligibility_policy.eligible_proposal_types
+                ),
+                "require_positive_withdraw_limit": (
+                    self.config.eligibility_policy.require_positive_withdraw_limit
+                ),
+            },
+            "contract_field_mapping": {
+                "partner": list(self.config.partner_contract_fields),
+                "originator": list(self.config.originator_contract_fields),
+            },
             "endpoints": {
                 key: {"configured": bool(value), "url": redact_url(value)}
                 for key, value in endpoints.items()
@@ -118,7 +162,13 @@ class BpoRepository:
             envelope,
             soap_action="listarPropostasPorCpf",
         )
-        return parse_proposals_by_cpf_response(xml, document)
+        return parse_proposals_by_cpf_response(
+            xml,
+            document,
+            eligibility_policy=self.config.eligibility_policy,
+            partner_contract_fields=self.config.partner_contract_fields,
+            originator_contract_fields=self.config.originator_contract_fields,
+        )
 
     def analyze_cpf_proposals(self, cpf: str) -> dict[str, Any]:
         proposals = self.list_proposals_by_cpf(cpf)
@@ -130,7 +180,7 @@ class BpoRepository:
             "cpf": analysis["cpf"],
             "masked_cpf": analysis["masked_cpf"],
             "selected": analysis["facts"].get("latest_integrated_or_approved"),
-            "criteria": "situacao INT/APR com data_ultimo_vencimento mais recente",
+            "criteria": "politica de elegibilidade configurada com data_ultimo_vencimento mais recente",
             "source_count": analysis["facts"].get("total"),
             "eligible_count": analysis["facts"].get("eligible_count"),
         }
@@ -179,8 +229,11 @@ class BpoRepository:
         return build_proposal_analysis(proposal, documents)
 
     def _soap_post(self, url: str, envelope: str, *, soap_action: str) -> str:
-        if "/api/v1/self-hire" in url:
-            raise BpoRepositoryError("SelfHire API endpoints are forbidden for bpo-analyser")
+        forbidden_pattern = first_matching_forbidden_pattern(url, self.config.forbidden_url_patterns)
+        if forbidden_pattern:
+            raise BpoRepositoryError(
+                f"URL matches configured forbidden BPO target pattern: {forbidden_pattern}"
+            )
         request = urllib.request.Request(
             url,
             data=envelope.encode("utf-8"),
@@ -375,7 +428,14 @@ def parse_attached_documents_response(
     }
 
 
-def parse_proposals_by_cpf_response(xml: str, cpf: str) -> dict[str, Any]:
+def parse_proposals_by_cpf_response(
+    xml: str,
+    cpf: str,
+    *,
+    eligibility_policy: BpoEligibilityPolicy = DEFAULT_ELIGIBILITY_POLICY,
+    partner_contract_fields: tuple[str, ...] = (),
+    originator_contract_fields: tuple[str, ...] = (),
+) -> dict[str, Any]:
     root = parse_xml(xml)
     proposal_nodes = [
         node
@@ -383,7 +443,15 @@ def parse_proposals_by_cpf_response(xml: str, cpf: str) -> dict[str, Any]:
         if local_name(node.tag) == "listarPropostasPorCpfReturn"
         or local_name(node.tag) == "PropostaAPI"
     ]
-    proposals = [parse_cpf_proposal_node(node) for node in proposal_nodes]
+    proposals = [
+        parse_cpf_proposal_node(
+            node,
+            eligibility_policy=eligibility_policy,
+            partner_contract_fields=partner_contract_fields,
+            originator_contract_fields=originator_contract_fields,
+        )
+        for node in proposal_nodes
+    ]
     return {
         "cpf": cpf,
         "masked_cpf": mask_cpf(cpf),
@@ -392,7 +460,13 @@ def parse_proposals_by_cpf_response(xml: str, cpf: str) -> dict[str, Any]:
     }
 
 
-def parse_cpf_proposal_node(node: ET.Element) -> dict[str, Any]:
+def parse_cpf_proposal_node(
+    node: ET.Element,
+    *,
+    eligibility_policy: BpoEligibilityPolicy = DEFAULT_ELIGIBILITY_POLICY,
+    partner_contract_fields: tuple[str, ...] = (),
+    originator_contract_fields: tuple[str, ...] = (),
+) -> dict[str, Any]:
     customer = first_child(node, "cliente")
     situation = first_text(node, ["situacao"])
     proposal_type = first_text(node, ["tipoProposta"])
@@ -401,8 +475,8 @@ def parse_cpf_proposal_node(node: ET.Element) -> dict[str, Any]:
         "proposal_number": int_or_none(first_text(node, ["nrProposta", "numeroProposta"])),
         "bank_proposal_number": first_text(node, ["nrPropostaBanco"]),
         "id": first_text(node, ["id"]),
-        "contract_number_lecca": first_text(node, ["numeroContratoLecca"]),
-        "contract_number_mcc": first_text(node, ["numeroContratoMcc"]),
+        "contract_number_partner": first_text(node, list(partner_contract_fields)),
+        "contract_number_originator": first_text(node, list(originator_contract_fields)),
         "situation": situation,
         "situation_kind": situation_kind(situation),
         "activity": first_text(node, ["atividade"]),
@@ -431,7 +505,12 @@ def parse_cpf_proposal_node(node: ET.Element) -> dict[str, Any]:
             "product_name": first_text(customer, ["nomeProduto"]) if customer is not None else "",
         },
         "observations": parse_observations(node),
-        "is_eligible": is_core_eligible(situation, proposal_type, withdraw_limit),
+        "is_eligible": is_operationally_eligible(
+            situation,
+            proposal_type,
+            withdraw_limit,
+            policy=eligibility_policy,
+        ),
     }
 
 
@@ -486,7 +565,7 @@ def build_cpf_proposals_analysis(payload: dict[str, Any]) -> dict[str, Any]:
     if rejected:
         attention_points.append("Existe proposta reprovada para o CPF.")
     if eligible:
-        attention_points.append("Existe proposta elegivel pela regra operacional do Core.")
+        attention_points.append("Existe proposta elegivel pela politica operacional configurada.")
     return {
         "cpf": payload.get("cpf"),
         "masked_cpf": payload.get("masked_cpf"),
@@ -635,12 +714,26 @@ def situation_kind(value: str | None) -> str:
     return mapping.get(text, text.lower())
 
 
-def is_core_eligible(situation: str | None, proposal_type: str | int | None, withdraw_limit: float | None) -> bool:
-    return (
-        situation_kind(situation) in {"integrada", "aprovada"}
-        and str(proposal_type or "").strip() == "3"
-        and (withdraw_limit or 0) > 0
-    )
+def is_operationally_eligible(
+    situation: str | None,
+    proposal_type: str | int | None,
+    withdraw_limit: float | None,
+    *,
+    policy: BpoEligibilityPolicy = DEFAULT_ELIGIBILITY_POLICY,
+) -> bool:
+    normalized_situations = {
+        situation_kind(item).upper() for item in policy.eligible_situations if str(item).strip()
+    }
+    current_situation = situation_kind(situation).upper()
+    allowed_types = {str(item).strip() for item in policy.eligible_proposal_types if str(item).strip()}
+    current_type = str(proposal_type or "").strip()
+    if current_situation not in normalized_situations:
+        return False
+    if allowed_types and current_type not in allowed_types:
+        return False
+    if policy.require_positive_withdraw_limit and (withdraw_limit or 0) <= 0:
+        return False
+    return True
 
 
 def parse_date_key(value: str | None) -> datetime:
@@ -662,6 +755,22 @@ def parse_bool(value: str | None, *, default: bool) -> bool:
     if value is None or value == "":
         return default
     return str(value).strip().lower() in {"1", "true", "yes", "sim"}
+
+
+def parse_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return default
+    return tuple(item.strip() for item in re.split(r"[,;\n]", value) if item.strip())
+
+
+def first_matching_forbidden_pattern(url: str, patterns: tuple[str, ...]) -> str:
+    normalized_url = url.lower()
+    for pattern in patterns:
+        normalized_pattern = pattern.strip().lower()
+        if normalized_pattern and normalized_pattern in normalized_url:
+            return pattern
+    return ""
 
 
 def int_or_none(value: str) -> int | None:

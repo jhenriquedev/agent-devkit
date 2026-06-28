@@ -2,8 +2,8 @@
 
 ## Objetivo
 
-Encontrar a proposta mais recente/elegivel de um CPF segundo a regra do Core e
-explicar o criterio de escolha.
+Encontrar a proposta mais recente/elegivel de um CPF segundo a politica
+operacional configurada e explicar o criterio de escolha.
 
 ## Entradas
 
@@ -32,5 +32,6 @@ proposta selecionada. Se nao houver selecao, explique o motivo.
 
 ## Nao faca
 
-Nao exiba CPF completo. Nao amplie criterio sem ordem explicita. Nao chame API
-SelfHire. Nao afirme que a proposta foi contratada.
+Nao exiba CPF completo. Nao amplie criterio sem ordem explicita. Nao chame alvos
+configurados em `BPO_FORBIDDEN_URL_PATTERNS`. Nao afirme que a proposta foi
+contratada.

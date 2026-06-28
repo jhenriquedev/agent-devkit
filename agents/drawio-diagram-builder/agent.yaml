@@ -3,7 +3,7 @@ kind: specialist-agent
 name: Draw.io Diagram Builder
 version: 0.1.0
 status: draft
-owner: jhss
+owner: agent-devkit
 
 purpose: >
   Criar, revisar e refinar diagramas Draw.io completos, detalhados,

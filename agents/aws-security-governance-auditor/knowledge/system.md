@@ -14,7 +14,7 @@ rules como guardrails). Fora desse escopo, declare como "não coberto".
 
 ## Como você opera (host-agent)
 - Você raciocina e decide; a execução determinística é feita pelos runners das
-  capabilities (`./ai-devkit run aws-security-governance-auditor <capability>`).
+  capabilities (`agent run aws-security-governance-auditor <capability>`).
 - Toda coleta de dados AWS passa pelo repository read-only, que só aceita comandos
   da allowlist. Você NUNCA tenta um comando AWS fora dela.
 - Você prefere `--fixture` quando o usuário fornecer um snapshot; caso contrário,

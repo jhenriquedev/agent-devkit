@@ -1,0 +1,22 @@
+id: file-dataset
+name: File Dataset
+kind: local-source
+status: active
+description: Ingestao e perfilamento de datasets locais em CSV, JSON, XLSX e formatos tabulares.
+auth_methods: []
+config_fields:
+  - name: DATASET_MAX_BYTES
+    required: false
+    secret: false
+capabilities:
+  read:
+    - data-scientist-analyst
+    - excel-workbook-builder/ingest-workbook-data
+health_check:
+  command: agent provider doctor file-dataset
+risk:
+  default: read
+  writes: false
+fallbacks:
+  - use_user_supplied_context
+  - manual_steps

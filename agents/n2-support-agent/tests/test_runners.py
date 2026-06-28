@@ -87,7 +87,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                 fixture,
                 [
                     "--project",
-                    "Sustentacao",
+                    "SupportProject",
                     "--card",
                     "8801",
                     "--codebase-path",
@@ -165,7 +165,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
             result = run_capability(
                 "update-azure-workflow",
                 {"work_item": {"id": 8803, "title": "Teste", "state": "New"}},
-                ["--project", "Sustentacao", "--card", "8803", "--output", str(output), "--format", "json"],
+                ["--project", "SupportProject", "--card", "8803", "--output", str(output), "--format", "json"],
             )
 
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -200,7 +200,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                         fixture,
                         [
                             "--project",
-                            "Sustentacao",
+                            "SupportProject",
                             "--card",
                             "8803",
                             "--codebase-path",
@@ -262,7 +262,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                 fixture,
                 [
                     "--project",
-                    "Sustentacao",
+                    "SupportProject",
                     "--card",
                     "8806",
                     "--codebase-path",
@@ -306,7 +306,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                 fixture,
                 [
                     "--project",
-                    "Sustentacao",
+                    "SupportProject",
                     "--card",
                     "8807",
                     "--codebase-path",
@@ -351,7 +351,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                 fixture,
                 [
                     "--project",
-                    "Sustentacao",
+                    "SupportProject",
                     "--card",
                     "8808",
                     "--codebase-path",
@@ -393,7 +393,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                 fixture,
                 [
                     "--project",
-                    "Sustentacao",
+                    "SupportProject",
                     "--card",
                     "8809",
                     "--codebase-path",
@@ -433,7 +433,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
                 fixture,
                 [
                     "--project",
-                    "Sustentacao",
+                    "SupportProject",
                     "--card",
                     "8804",
                     "--codebase-path",
@@ -468,7 +468,7 @@ class N2SupportAgentRunnerTest(unittest.TestCase):
             fixture,
             [
                 "--project",
-                "Sustentacao",
+                "SupportProject",
                 "--card",
                 "8805",
                 "--target-state",

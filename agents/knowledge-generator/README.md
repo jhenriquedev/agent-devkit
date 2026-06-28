@@ -20,11 +20,11 @@ planilhas, apresentacoes e conjuntos mistos.
 ## Como usar
 
 ```bash
-./ai-devkit capabilities knowledge-generator
-./ai-devkit run knowledge-generator list-knowledge-profiles
-./ai-devkit run knowledge-generator inspect-source --source ./projeto
-./ai-devkit run knowledge-generator generate-knowledge --source ./projeto --output-dir ./knowledge --yes-create-dir
-./ai-devkit run knowledge-generator validate-knowledge --knowledge-dir ./knowledge
+agent capabilities knowledge-generator
+agent run knowledge-generator list-knowledge-profiles
+agent run knowledge-generator inspect-source --source ./projeto
+agent run knowledge-generator generate-knowledge --source ./projeto --output-dir ./knowledge --yes-create-dir
+agent run knowledge-generator validate-knowledge --knowledge-dir ./knowledge
 ```
 
 ## Politica de saida

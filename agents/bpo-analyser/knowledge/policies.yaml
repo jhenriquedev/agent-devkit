@@ -9,8 +9,7 @@ data_handling:
 
 integration_rules:
   direct_bpo_only: true
-  forbidden_targets:
-    - /api/v1/self-hire
+  forbidden_targets_env: BPO_FORBIDDEN_URL_PATTERNS
   default_timeout_seconds: 30
 
 write_policy:

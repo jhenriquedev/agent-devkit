@@ -1,0 +1,23 @@
+id: document-source
+name: Document Source
+kind: local-source
+status: active
+description: Leitura de documentos, URLs e texto inline para analise tecnica e geracao de artefatos.
+auth_methods: []
+config_fields:
+  - name: DOCUMENT_SOURCE_MAX_BYTES
+    required: false
+    secret: false
+capabilities:
+  read:
+    - technical-integration-analyst/ingest-technical-docs
+    - presentation-deck-builder/ingest-source-document
+    - excel-workbook-builder/ingest-source-document
+health_check:
+  command: agent provider doctor document-source
+risk:
+  default: read
+  writes: false
+fallbacks:
+  - use_user_supplied_context
+  - manual_steps

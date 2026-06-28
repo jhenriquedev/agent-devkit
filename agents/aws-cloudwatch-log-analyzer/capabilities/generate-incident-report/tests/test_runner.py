@@ -17,7 +17,7 @@ RUNNER = Path(__file__).resolve().parents[1] / "runner.py"
 class GenerateIncidentReportRunnerTest(unittest.TestCase):
     def test_renders_incident_report_from_fixture(self) -> None:
         fixture = {
-            "service": "mcc-api",
+            "service": "example-api",
             "environment": "prd",
             "incident_title": "Health warning",
             "events": [{"timestamp": 1, "log_stream_name": "s1", "message": "health WARNING"}],

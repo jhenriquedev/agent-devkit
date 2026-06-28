@@ -16,9 +16,9 @@ para gerar arquivos PowerPoint.
 ## Como usar
 
 ```bash
-./ai-devkit capabilities presentation-deck-builder
-./ai-devkit run presentation-deck-builder register-template --template status.pptx --template-id status-report --version 0.1.0 --yes-save
-./ai-devkit run presentation-deck-builder list-template-versions --template-id status-report
+agent capabilities presentation-deck-builder
+agent run presentation-deck-builder register-template --template status.pptx --template-id status-report --version 0.1.0 --yes-save
+agent run presentation-deck-builder list-template-versions --template-id status-report
 ```
 
 Templates ficam em:

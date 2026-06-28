@@ -1,6 +1,6 @@
 ---
 name: drawio-diagramming
-description: Create, inspect, validate, and refine editable Draw.io/diagrams.net `.drawio` files from source material, diagram specs, architecture notes, product journeys, ERDs, process flows, Azure card context, and other AI DevKit artifacts. Use when work involves Draw.io XML, mxfile structure, visual quality gates, diagram layout, or converting requirements/specs into editable diagrams.
+description: Create, inspect, validate, and refine editable Draw.io/diagrams.net `.drawio` files from source material, diagram specs, architecture notes, product journeys, ERDs, process flows, Azure card context, and other Agent DevKit artifacts. Use when work involves Draw.io XML, mxfile structure, visual quality gates, diagram layout, or converting requirements/specs into editable diagrams.
 ---
 
 # Draw.io Diagramming

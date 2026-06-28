@@ -27,7 +27,7 @@
 
 | Skill | Descrição | Caminho |
 |---|---|---|
-| `drawio-diagramming` | Create, inspect, validate, and refine editable Draw.io/diagrams.net `.drawio` files from source material, diagram specs, architecture notes, product journeys, ERDs, process flows, Azure card context, and other AI DevKit artifacts. | `vendor/skills/drawio-diagramming` |
+| `drawio-diagramming` | Create, inspect, validate, and refine editable Draw.io/diagrams.net `.drawio` files from source material, diagram specs, architecture notes, product journeys, ERDs, process flows, Azure card context, and other Agent DevKit artifacts. | `vendor/skills/drawio-diagramming` |
 
 ## ecc (37)
 

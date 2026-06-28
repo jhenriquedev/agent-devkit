@@ -38,63 +38,63 @@ relatorios tecnicos ou executivos.
 ## Exemplos
 
 ```bash
-./ai-devkit run data-scientist-analyst profile-dataset --source dados.csv
-./ai-devkit run data-scientist-analyst reconcile-spreadsheets \
+agent run data-scientist-analyst profile-dataset --source dados.csv
+agent run data-scientist-analyst reconcile-spreadsheets \
   --left erp.csv --right banco.csv --key id --compare-columns amount,status \
   --numeric-tolerance 0.02
-./ai-devkit run data-scientist-analyst generate-data-report \
+agent run data-scientist-analyst generate-data-report \
   --source dados.csv --output docs/data-report.md
-./ai-devkit run data-scientist-analyst run-data-pipeline \
+agent run data-scientist-analyst run-data-pipeline \
   --source dados.csv --target-column converted --segment-column channel \
   --output docs/pipeline
-./ai-devkit run data-scientist-analyst run-exploratory-analysis \
+agent run data-scientist-analyst run-exploratory-analysis \
   --source dados.csv --target-column converted --segment-column channel
-./ai-devkit run data-scientist-analyst profile-dataset \
+agent run data-scientist-analyst profile-dataset \
   --source dados.xlsx --sheet Base --max-rows 1000
-./ai-devkit run data-scientist-analyst profile-dataset \
+agent run data-scientist-analyst profile-dataset \
   --source nested.json --json-path payload.items --sample-rows 25
-./ai-devkit run data-scientist-analyst detect-outliers \
+agent run data-scientist-analyst detect-outliers \
   --source dados.csv --columns amount --method iqr
-./ai-devkit run data-scientist-analyst analyze-correlation \
+agent run data-scientist-analyst analyze-correlation \
   --source dados.csv --target-column score
-./ai-devkit run data-scientist-analyst segment-data \
+agent run data-scientist-analyst segment-data \
   --source dados.csv --segment-column status --metric-column amount
-./ai-devkit run data-scientist-analyst analyze-time-series \
+agent run data-scientist-analyst analyze-time-series \
   --source dados.csv --date-column created_at --metric-column amount --granularity day
-./ai-devkit run data-scientist-analyst compare-periods \
+agent run data-scientist-analyst compare-periods \
   --source dados.csv --date-column created_at --metric-column amount \
   --baseline-start 2026-01-01 --baseline-end 2026-01-15 \
   --comparison-start 2026-01-16 --comparison-end 2026-01-31
-./ai-devkit run data-scientist-analyst analyze-cohorts \
+agent run data-scientist-analyst analyze-cohorts \
   --source dados.csv --cohort-column signup_date --event-date-column event_date \
   --metric-column converted
-./ai-devkit run data-scientist-analyst detect-anomalies \
+agent run data-scientist-analyst detect-anomalies \
   --source dados.csv --date-column created_at --metric-column amount --threshold 2
-./ai-devkit run data-scientist-analyst forecast-series \
+agent run data-scientist-analyst forecast-series \
   --source dados.csv --date-column created_at --metric-column amount --periods 3 --window 3
-./ai-devkit run data-scientist-analyst test-hypothesis \
+agent run data-scientist-analyst test-hypothesis \
   --source experimento.csv --test-type mean-difference --group-column variant \
   --group-a control --group-b treatment --metric-column revenue
-./ai-devkit run data-scientist-analyst calculate-confidence-intervals \
+agent run data-scientist-analyst calculate-confidence-intervals \
   --source dados.csv --metric-column amount --confidence 0.95
-./ai-devkit run data-scientist-analyst calculate-sample-size \
+agent run data-scientist-analyst calculate-sample-size \
   --baseline-rate 0.5 --minimum-detectable-effect 0.1 --alpha 0.05 --power 0.8
-./ai-devkit run data-scientist-analyst measure-effect-size \
+agent run data-scientist-analyst measure-effect-size \
   --source experimento.csv --group-column variant --group-a control \
   --group-b treatment --metric-column revenue
-./ai-devkit run data-scientist-analyst explain-statistical-result \
+agent run data-scientist-analyst explain-statistical-result \
   --p-value 0.01 --alpha 0.05 --effect-size 0.8
-./ai-devkit run data-scientist-analyst prepare-modeling-dataset \
+agent run data-scientist-analyst prepare-modeling-dataset \
   --source base.csv --target-column converted --feature-columns score,income,channel
-./ai-devkit run data-scientist-analyst baseline-predictive-model \
+agent run data-scientist-analyst baseline-predictive-model \
   --source base.csv --target-column converted --feature-columns score,income
-./ai-devkit run data-scientist-analyst evaluate-model \
+agent run data-scientist-analyst evaluate-model \
   --source base.csv --target-column converted --feature-columns score,income
-./ai-devkit run data-scientist-analyst explain-model-results \
+agent run data-scientist-analyst explain-model-results \
   --source base.csv --target-column converted --feature-columns score,income
-./ai-devkit run data-scientist-analyst detect-data-leakage \
+agent run data-scientist-analyst detect-data-leakage \
   --source base.csv --target-column converted
-./ai-devkit run data-scientist-analyst monitor-model-drift \
+agent run data-scientist-analyst monitor-model-drift \
   --reference-source treino.csv --source producao.csv --columns score,income
 ```
 
