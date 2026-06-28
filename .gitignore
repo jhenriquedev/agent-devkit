@@ -52,6 +52,10 @@ env/
 bin/
 !tooling/agent-devkit/bin/
 !tooling/agent-devkit/bin/agent.mjs
+!agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/
+!agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge
+!agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge.cmd
+!agents/figma-ui-ux-product-designer/infra/integrations/figma/bin/figma-codex-bridge.py
 *.exe
 *.test
 *.out
