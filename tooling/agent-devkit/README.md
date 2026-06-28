@@ -26,7 +26,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.0.3
+agent 0.0.4
 ```
 
 ## Quick Start
@@ -59,6 +59,168 @@ agent "analise o problema relatado no card 9900"
 Natural-language mode requires an LLM backend. Deterministic commands such as
 `agent agents list`, `agent capabilities list`, `agent doctor`, `agent provider`
 and `agent run` do not require an LLM.
+
+## Complete Configuration Tutorial
+
+There are three practical ways to use agents from the CLI:
+
+1. Use an official authenticated host CLI, such as Codex CLI or Claude Code.
+2. Use API keys for OpenAI, Anthropic or OpenRouter.
+3. Use a local OpenAI-compatible backend, such as Ollama.
+
+Agent DevKit does not log in directly to ChatGPT web, Claude.ai or Claude
+Desktop. To reuse a user subscription/login, it delegates to the official host
+CLI already installed and authenticated on your machine. For CI, automation or
+non-interactive servers, prefer API-key backends.
+
+### Option A: GPT through Codex CLI
+
+Install the official Codex CLI:
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+Run Codex once and complete the browser login with your ChatGPT account or API
+key:
+
+```bash
+codex
+```
+
+Verify that the binary is available:
+
+```bash
+codex --version
+```
+
+Configure Agent DevKit to use Codex CLI as the default LLM backend:
+
+```bash
+agent llm configure codex-cli --set-default
+agent llm doctor codex-cli
+```
+
+Run a prompt:
+
+```bash
+agent "analyze this repository and identify stabilization risks"
+```
+
+### Option B: Claude through Claude Code
+
+Install the official Claude Code CLI:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+Run Claude Code once and complete the browser login:
+
+```bash
+claude
+```
+
+Verify that the binary is available:
+
+```bash
+claude --version
+```
+
+Configure Agent DevKit to use Claude Code as the default LLM backend:
+
+```bash
+agent llm configure claude-code --set-default
+agent llm doctor claude-code
+```
+
+Run a prompt:
+
+```bash
+agent "plan the investigation for this production incident"
+```
+
+To switch Claude accounts later, open `claude` and use `/login` inside the
+interactive session.
+
+### Option C: OpenAI API key
+
+Agent DevKit stores credential references, not secret values. Keep the API key
+in your shell environment:
+
+```bash
+export OPENAI_API_KEY="..."
+agent llm configure openai --api-key-env OPENAI_API_KEY --model gpt-5 --set-default
+agent llm doctor openai
+```
+
+### Option D: Anthropic API key
+
+```bash
+export ANTHROPIC_API_KEY="..."
+agent llm configure anthropic --api-key-env ANTHROPIC_API_KEY --model claude-sonnet-4-5 --set-default
+agent llm doctor anthropic
+```
+
+### Option E: OpenRouter API key
+
+```bash
+export OPENROUTER_API_KEY="..."
+agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --model openai/gpt-5 --set-default
+agent llm doctor openrouter
+```
+
+### Option F: Ollama local backend
+
+```bash
+ollama serve
+ollama pull qwen2.5-coder
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm doctor ollama
+```
+
+### Switch or override the backend
+
+```bash
+agent llm list
+agent llm set-default codex-cli
+agent llm set-default claude-code
+agent llm set-default openai
+agent llm doctor
+```
+
+Use one backend for a single run:
+
+```bash
+agent --llm claude-code "analyze this incident"
+agent --llm openai "create a regression test plan"
+```
+
+## Use Agents From The CLI
+
+Agent DevKit has two execution modes:
+
+- `agent "<prompt>"`: natural-language routing; requires an LLM backend.
+- `agent run <agent> <capability>`: deterministic execution; does not require
+  an LLM backend.
+
+Natural-language example:
+
+```bash
+agent "analise o problema relatado no card 9900"
+```
+
+Deterministic example:
+
+```bash
+agent run azure-devops-orchestrator read-card --project "Project" --id 9900 --include-comments
+```
+
+Inspect a capability contract before running it:
+
+```bash
+agent inspect azure-devops-orchestrator read-card
+```
 
 ## Configure LLM Backends
 
@@ -94,6 +256,13 @@ agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-
 agent llm configure codex-cli --set-default
 agent llm configure claude-code --set-default
 ```
+
+Official references:
+
+- Codex CLI: https://developers.openai.com/codex/cli
+- Codex authentication: https://developers.openai.com/codex/auth
+- Claude Code quickstart: https://code.claude.com/docs/en/quickstart
+- Claude Code setup: https://code.claude.com/docs/en/setup
 
 ## Configure Providers
 

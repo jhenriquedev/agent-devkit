@@ -174,6 +174,67 @@ instalada aparecem no bloco de diagnostico e podem ser resolvidos sob demanda.
 
 ## Backends LLM
 
+O modo `agent "<prompt>"` exige um backend LLM. O Agent DevKit suporta tres
+familias de backend:
+
+- CLIs oficiais autenticadas fora do Agent DevKit (`codex-cli` e
+  `claude-code`).
+- APIs configuradas por referencia a variavel de ambiente (`openai`,
+  `anthropic` e `openrouter`).
+- Endpoint local compativel com OpenAI (`ollama`).
+
+O Agent DevKit nao faz login direto no ChatGPT web, Claude.ai ou Claude
+Desktop. Para usar login/assinatura de usuario, autentique primeiro a CLI
+oficial e depois configure o Agent DevKit para chama-la.
+
+### Codex CLI
+
+Instale o Codex CLI oficial:
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+Execute `codex` uma vez e conclua o login:
+
+```bash
+codex
+codex --version
+agent llm configure codex-cli --set-default
+agent llm doctor codex-cli
+```
+
+Quando este backend e usado, o runtime chama:
+
+```bash
+codex exec --skip-git-repo-check --ephemeral "<prompt>"
+```
+
+### Claude Code
+
+Instale o Claude Code oficial:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+Execute `claude` uma vez e conclua o login:
+
+```bash
+claude
+claude --version
+agent llm configure claude-code --set-default
+agent llm doctor claude-code
+```
+
+Quando este backend e usado, o runtime chama:
+
+```bash
+claude --print --permission-mode plan "<prompt>"
+```
+
+### APIs por chave
+
 O Agent DevKit nao grava chaves em claro. Backends de API sao configurados por
 referencia a variaveis de ambiente:
 
@@ -181,6 +242,31 @@ referencia a variaveis de ambiente:
 export OPENAI_API_KEY="..."
 agent llm configure openai --api-key-env OPENAI_API_KEY --model gpt-5 --set-default
 agent llm doctor openai
+```
+
+Anthropic:
+
+```bash
+export ANTHROPIC_API_KEY="..."
+agent llm configure anthropic --api-key-env ANTHROPIC_API_KEY --model claude-sonnet-4-5 --set-default
+agent llm doctor anthropic
+```
+
+OpenRouter:
+
+```bash
+export OPENROUTER_API_KEY="..."
+agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --model openai/gpt-5 --set-default
+agent llm doctor openrouter
+```
+
+### Ollama local
+
+```bash
+ollama serve
+ollama pull qwen2.5-coder
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm doctor ollama
 ```
 
 Backends suportados no MVP:
@@ -205,6 +291,13 @@ agent llm configure claude-code --set-default
 agent llm set-default codex-cli
 agent llm doctor
 agent llm doctor openai
+```
+
+Tambem e possivel escolher um backend para uma unica execucao:
+
+```bash
+agent --llm claude-code "analise este incidente"
+agent --llm openai "crie um plano de testes"
 ```
 
 A configuracao padrao fica em `~/.ai-devkit/config.json`. Para automacao e

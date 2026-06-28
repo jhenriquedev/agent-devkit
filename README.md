@@ -32,17 +32,19 @@ O pacote instala o comando canonico `agent`. O nome do pacote npm e
 
 ## Primeiro uso
 
-Comandos deterministicos nao precisam de LLM configurada:
+Comandos deterministicos nao precisam de LLM configurada. Use estes comandos
+para validar se o runtime esta saudavel e quais agentes existem:
 
 ```bash
 agent agents list
 agent capabilities list
 agent providers list
 agent llm list
+agent commands list
 agent doctor
 ```
 
-Instale os artefatos locais do Agent DevKit no projeto atual:
+Instale os artefatos locais do Agent DevKit no projeto em que voce trabalha:
 
 ```bash
 cd /caminho/do/projeto
@@ -50,48 +52,221 @@ agent install project --target . --host all
 agent doctor --project .
 ```
 
-Use prompts livres pelo proprio comando `agent`:
+Esse comando cria apenas arquivos de descoberta para hosts como Codex e Claude.
+Ele nao grava `.env`, nao solicita credenciais e nao persiste segredos.
+
+Depois de configurar uma LLM, voce pode usar prompt livre direto no comando
+canonico:
 
 ```bash
 agent "analise o problema relatado no card 9900"
 ```
 
 Esse modo usa backend LLM. Se nenhum backend estiver configurado, a CLI informa
-como configurar ou como executar uma capability deterministica com `agent run`.
+como configurar uma LLM ou como executar uma capability deterministica com
+`agent run`.
 
-## Configurar LLM
+## Tutorial completo de configuracao
 
-O Agent DevKit nao grava chaves em claro. Ele salva referencias para variaveis
-de ambiente em `~/.ai-devkit/config.json`.
+Existem tres formas principais de usar agentes pelo CLI:
 
-OpenAI:
+1. Usar uma CLI oficial ja autenticada, como Codex CLI ou Claude Code.
+2. Usar API key de OpenAI, Anthropic ou OpenRouter.
+3. Usar um modelo local compativel, como Ollama.
+
+O Agent DevKit nao faz login direto no ChatGPT web, Claude.ai ou Claude
+Desktop. Para reaproveitar assinatura/login de usuario, ele chama as CLIs
+oficiais instaladas na maquina. Para automacao, CI ou ambientes sem login
+interativo, prefira API key.
+
+### Opcao A: usar GPT pelo Codex CLI
+
+Instale o Codex CLI oficial:
+
+```bash
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+```
+
+Abra o Codex CLI e conclua o login com sua conta ChatGPT ou API key:
+
+```bash
+codex
+```
+
+Valide se o binario esta no `PATH`:
+
+```bash
+codex --version
+```
+
+Configure o Agent DevKit para usar o Codex CLI como backend padrao:
+
+```bash
+agent llm configure codex-cli --set-default
+agent llm doctor codex-cli
+```
+
+Execute um prompt livre:
+
+```bash
+agent "analise este repositorio e indique riscos de estabilizacao"
+```
+
+Quando este backend e usado, o Agent DevKit chama:
+
+```bash
+codex exec --skip-git-repo-check --ephemeral "<prompt>"
+```
+
+### Opcao B: usar Claude pelo Claude Code
+
+Instale o Claude Code oficial:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+Abra o Claude Code e conclua o login com sua conta Claude:
+
+```bash
+claude
+```
+
+Valide se o binario esta no `PATH`:
+
+```bash
+claude --version
+```
+
+Configure o Agent DevKit para usar Claude Code como backend padrao:
+
+```bash
+agent llm configure claude-code --set-default
+agent llm doctor claude-code
+```
+
+Execute um prompt livre:
+
+```bash
+agent "planeje a investigacao do incidente informado pelo suporte"
+```
+
+Quando este backend e usado, o Agent DevKit chama:
+
+```bash
+claude --print --permission-mode plan "<prompt>"
+```
+
+### Opcao C: usar OpenAI por API key
+
+Defina a chave no ambiente. O Agent DevKit salva apenas a referencia para a
+variavel, nao o valor da chave:
 
 ```bash
 export OPENAI_API_KEY="..."
 agent llm configure openai --api-key-env OPENAI_API_KEY --model gpt-5 --set-default
-agent llm doctor
+agent llm doctor openai
 ```
 
-Anthropic:
+Uso:
+
+```bash
+agent "gere um plano de rollback para esta mudanca"
+```
+
+### Opcao D: usar Anthropic por API key
 
 ```bash
 export ANTHROPIC_API_KEY="..."
 agent llm configure anthropic --api-key-env ANTHROPIC_API_KEY --model claude-sonnet-4-5 --set-default
+agent llm doctor anthropic
 ```
 
-OpenRouter:
+Uso:
+
+```bash
+agent "revise este plano tecnico e aponte lacunas"
+```
+
+### Opcao E: usar OpenRouter por API key
 
 ```bash
 export OPENROUTER_API_KEY="..."
 agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --model openai/gpt-5 --set-default
+agent llm doctor openrouter
 ```
 
-LLMs locais ou CLIs autenticadas:
+Uso:
 
 ```bash
+agent "roteie este pedido para o agente especialista adequado"
+```
+
+### Opcao F: usar Ollama local
+
+Inicie o Ollama localmente e configure um endpoint compativel com OpenAI:
+
+```bash
+ollama serve
+ollama pull qwen2.5-coder
 agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
-agent llm configure codex-cli --set-default
-agent llm configure claude-code --set-default
+agent llm doctor ollama
+```
+
+Uso:
+
+```bash
+agent "explique quais capabilities podem ajudar nesta demanda"
+```
+
+### Alternar backend padrao
+
+```bash
+agent llm list
+agent llm set-default codex-cli
+agent llm set-default claude-code
+agent llm set-default openai
+agent llm doctor
+```
+
+Tambem e possivel escolher um backend apenas para uma execucao:
+
+```bash
+agent --llm claude-code "analise este incidente"
+agent --llm openai "crie um plano de testes"
+```
+
+Referencias oficiais:
+
+- Codex CLI: https://developers.openai.com/codex/cli
+- Codex authentication: https://developers.openai.com/codex/auth
+- Claude Code quickstart: https://code.claude.com/docs/en/quickstart
+- Claude Code setup: https://code.claude.com/docs/en/setup
+
+## Usar agentes por CLI
+
+Existem dois modos de execucao:
+
+- `agent "<prompt>"`: entrada em linguagem natural; exige backend LLM.
+- `agent run <agent> <capability>`: execucao deterministica; nao exige LLM.
+
+Exemplo em linguagem natural:
+
+```bash
+agent "analise o problema relatado no card 9900"
+```
+
+Exemplo deterministico:
+
+```bash
+agent run azure-devops-orchestrator read-card --project "Projeto" --id 9900 --include-comments
+```
+
+Antes de executar uma capability, voce pode inspecionar contrato, entradas e
+saidas:
+
+```bash
+agent inspect azure-devops-orchestrator read-card
 ```
 
 ## Configurar providers

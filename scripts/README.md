@@ -34,7 +34,7 @@ python3 scripts/validate-repo.py --json
 python3 scripts/validate-repo.py --strict
 python3 scripts/mvp-readiness.py
 python3 scripts/mvp-readiness.py --json
-npm run release:verify -- v0.0.3
+npm run release:verify -- v0.0.4
 ```
 
 ## Regras

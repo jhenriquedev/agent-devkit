@@ -1,3 +1,18 @@
+# v0.0.4
+
+Documentation-only patch release.
+
+## Highlights
+
+- Expanded the GitHub README with a complete first-run configuration tutorial.
+- Documented host-authenticated CLI usage through `codex-cli` and
+  `claude-code`.
+- Documented API-key setup for `openai`, `anthropic` and `openrouter`.
+- Documented local Ollama setup, backend switching and per-run backend
+  overrides.
+- Aligned the npm package README and CLI reference with the same authentication
+  and LLM backend guidance.
+
 # v0.0.3
 
 Patch release.
