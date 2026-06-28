@@ -45,6 +45,15 @@ tools:
       linux: Configure the official Figma MCP integration in your host app.
       windows: Configure the official Figma MCP integration in your host app.
     notes: Optional; usually installed through Codex/Claude host integrations.
+  ollama:
+    label: Ollama
+    command: ollama
+    required: false
+    install:
+      darwin: brew install ollama
+      linux: curl -fsSL https://ollama.com/install.sh | sh
+      windows: winget install Ollama.Ollama
+    notes: Local LLM runtime used for operational subagent work.
   node:
     label: Node.js
     command: node

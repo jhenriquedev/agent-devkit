@@ -16,6 +16,8 @@ from cli.aikit.aliases import add_alias, list_aliases, remove_alias, sync_aliase
 from cli.aikit import __version__
 from cli.aikit.audit import export_audit, list_audits, record_audit, show_audit
 from cli.aikit.calendar import calendar_list, calendar_summary, calendar_today, calendar_tomorrow, configure_calendar
+from cli.aikit.configuration_orchestrator import provider_wizard_from_requirement
+from cli.aikit.decision_store import list_decisions, reset_decisions, set_decision
 from cli.aikit.diagnostics import build_diagnostics
 from cli.aikit.fallback import evaluate_provider_requirements
 from cli.aikit.github_pr import pr_create_automation, pr_inspect, pr_list_review_requests, pr_review
@@ -31,8 +33,12 @@ from cli.aikit.llm import (
     set_llm_preference,
 )
 from cli.aikit.memory import memory_path_payload, napkin_context, record_usage, reset_memory, show_memory
+from cli.aikit.model_router import build_model_plan
+from cli.aikit.ollama import ollama_models, ollama_pull, ollama_status, ollama_update
 from cli.aikit.personality import load_personality, reset_personality, setup_personality, update_personality
 from cli.aikit.permissions import grant_permission, revoke_permission, show_permissions
+from cli.aikit.provider_wizard import missing_source_wizard
+from cli.aikit.review_gate import build_review_gate, mark_reviewed
 from cli.aikit.sessions import (
     build_contextual_prompt,
     get_or_create_session,
@@ -109,6 +115,12 @@ DETERMINISTIC_COMMANDS = (
     "pr",
     "permissions",
     "audit",
+    "config",
+    "tools",
+    "integrations",
+    "skills",
+    "decisions",
+    "ollama",
     "install",
 )
 LLM_COMMANDS = ("agent",)
@@ -306,13 +318,40 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     audit_parser.add_argument("--limit", type=int, default=20)
     audit_parser.add_argument("--format", default="md", choices=["md", "json"])
 
+    config_parser = subparsers.add_parser("config", help="inspect local Agent DevKit configuration")
+    config_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    config_parser.add_argument("action", nargs="?", default="show", choices=["show", "path"])
+
+    for command_name, help_text in (
+        ("tools", "manage enabled local tools"),
+        ("integrations", "manage provider integration decisions"),
+        ("skills", "manage local skill decisions"),
+    ):
+        control_parser = subparsers.add_parser(command_name, help=help_text)
+        control_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+        control_parser.add_argument("action", nargs="?", default="list", choices=["list", "enable", "disable"])
+        control_parser.add_argument("item_id", nargs="?")
+
+    decisions_parser = subparsers.add_parser("decisions", help="inspect or reset local opt-in and opt-out decisions")
+    decisions_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    decisions_parser.add_argument("action", nargs="?", default="list", choices=["list", "forget", "reset"])
+    decisions_parser.add_argument("item_id", nargs="?")
+    decisions_parser.add_argument("--category", choices=["tools", "integrations", "skills", "llms"])
+
+    ollama_parser = subparsers.add_parser("ollama", help="inspect and manage local Ollama models")
+    ollama_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    ollama_parser.add_argument("action", nargs="?", default="status", choices=["status", "models", "pull", "update"])
+    ollama_parser.add_argument("model", nargs="?")
+    ollama_parser.add_argument("--yes", action="store_true", help="confirm Ollama model or update operation")
+    ollama_parser.add_argument("--dry-run", action="store_true", help="show Ollama operation without executing it")
+
     llm_parser = subparsers.add_parser("llm", help="manage LLM backends")
     llm_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     llm_parser.add_argument(
         "action",
         nargs="?",
         default="list",
-        choices=["list", "doctor", "configure", "set-default", "preference"],
+        choices=["list", "doctor", "configure", "set-default", "default", "enable", "disable", "preference"],
     )
     llm_parser.add_argument("backend", nargs="?")
     llm_parser.add_argument("preference_value", nargs="?")
@@ -425,6 +464,14 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return dispatch_permissions(args)
     if command == "audit":
         return dispatch_audit(args)
+    if command == "config":
+        return dispatch_config(args)
+    if command in {"tools", "integrations", "skills"}:
+        return dispatch_control_category(command, args)
+    if command == "decisions":
+        return dispatch_decisions(args)
+    if command == "ollama":
+        return dispatch_ollama(args)
     if command == "llm":
         return dispatch_llm(args)
     if command == "install":
@@ -529,10 +576,15 @@ def dispatch_llm(args: argparse.Namespace) -> dict[str, Any]:
                 command=args.host_command,
                 set_default=args.set_default,
             )
-        if args.action == "set-default":
+        if args.action in {"set-default", "default"}:
             if not args.backend:
-                raise DevKitError("llm set-default requires a backend")
+                raise DevKitError(f"llm {args.action} requires a backend")
             return set_default_backend(args.backend)
+        if args.action in {"enable", "disable"}:
+            if not args.backend:
+                raise DevKitError(f"llm {args.action} requires a backend")
+            state = "enabled" if args.action == "enable" else "disabled_by_user"
+            return set_decision("llms", args.backend, state, reason=f"llm {args.action} command")
         if args.action == "preference":
             if args.backend in {None, "show"}:
                 return llm_preference()
@@ -549,6 +601,85 @@ def dispatch_llm(args: argparse.Namespace) -> dict[str, Any]:
     except ValueError as exc:
         raise DevKitError(str(exc)) from exc
     raise DevKitError(f"unsupported llm action: {args.action}")
+
+
+def dispatch_config(args: argparse.Namespace) -> dict[str, Any]:
+    from cli.aikit.llm import config_path
+
+    if args.action == "path":
+        return {"kind": "config", "status": "ok", "path": str(config_path())}
+    if args.action == "show":
+        return {
+            "kind": "config",
+            "status": "ok",
+            "path": str(config_path()),
+            "decisions": list_decisions(),
+            "llm": llm_preference(),
+            "ollama": ollama_status(),
+        }
+    raise DevKitError(f"unsupported config action: {args.action}")
+
+
+def dispatch_control_category(command: str, args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        category = command
+        if args.action == "list":
+            if args.item_id:
+                raise DevKitError(f"{command} list does not accept an item id")
+            payload = list_decisions(category)
+            payload["kind"] = command
+            return payload
+        if args.action in {"enable", "disable"}:
+            if not args.item_id:
+                raise DevKitError(f"{command} {args.action} requires an item id")
+            state = "enabled" if args.action == "enable" else "disabled_by_user"
+            payload = set_decision(category, args.item_id, state, reason=f"{command} {args.action} command")
+            payload["kind"] = command[:-1] if command.endswith("s") else command
+            return payload
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported {command} action: {args.action}")
+
+
+def dispatch_decisions(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.item_id:
+                raise DevKitError("decisions list does not accept an item id")
+            return list_decisions(args.category)
+        if args.action == "reset":
+            if args.item_id:
+                raise DevKitError("decisions reset does not accept an item id")
+            return reset_decisions(args.category)
+        if args.action == "forget":
+            if not args.item_id:
+                raise DevKitError("decisions forget requires an item id")
+            category = args.category or "tools"
+            return set_decision(category, args.item_id, "available", reason="decision forgotten")
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported decisions action: {args.action}")
+
+
+def dispatch_ollama(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "status":
+            if args.model:
+                raise DevKitError("ollama status does not accept a model")
+            return ollama_status()
+        if args.action == "models":
+            if args.model:
+                raise DevKitError("ollama models does not accept a model")
+            return ollama_models()
+        if args.action == "pull":
+            return ollama_pull(args.model, yes=args.yes, dry_run=effective_dry_run(args))
+        if args.action == "update":
+            if args.model:
+                raise DevKitError("ollama update does not accept a model")
+            return ollama_update(yes=args.yes, dry_run=effective_dry_run(args))
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported ollama action: {args.action}")
 
 
 def dispatch_install(args: argparse.Namespace) -> dict[str, Any]:
@@ -965,12 +1096,18 @@ def agent_requires_llm(args: argparse.Namespace) -> dict[str, Any]:
         result = invoke_deterministic_route(prompt, route)
         return finalize_agent_session(result, session, prompt, backend=args.llm)
     contextual_prompt = build_contextual_prompt(str(session["id"]), prompt)
+    model_plan = build_model_plan(prompt)
     result = invoke_agent_prompt(
         contextual_prompt,
         args.llm,
         public_name=name,
         allow_fallback=not args.no_llm_fallback,
     )
+    review_gate = build_review_gate(prompt, model_plan=model_plan)
+    if result.get("ok"):
+        review_gate = mark_reviewed(review_gate, reviewer=str(result.get("llm_backend") or "coordinator"))
+    result["model_plan"] = model_plan
+    result["review_gate"] = review_gate
     result["prompt_length"] = len(prompt)
     result["session_context_applied"] = contextual_prompt != prompt
     if result.get("response"):
@@ -981,6 +1118,11 @@ def agent_requires_llm(args: argparse.Namespace) -> dict[str, Any]:
 
 def dispatch_natural_operational_prompt(prompt: str) -> dict[str, Any] | None:
     normalized = " ".join(prompt.lower().split())
+    control_result = dispatch_natural_control_prompt(normalized)
+    if control_result:
+        control_result["prompt_received"] = True
+        control_result["prompt_length"] = len(prompt)
+        return control_result
     if "agenda" in normalized:
         if "amanha" in normalized or "amanhã" in normalized:
             payload = calendar_tomorrow()
@@ -1028,9 +1170,69 @@ def dispatch_natural_operational_prompt(prompt: str) -> dict[str, Any] | None:
     return None
 
 
+def dispatch_natural_control_prompt(normalized_prompt: str) -> dict[str, Any] | None:
+    if "decis" in normalized_prompt and any(marker in normalized_prompt for marker in ("mostre", "liste", "ver", "mostrar", "listar")):
+        return {
+            "kind": "agent",
+            "status": "ok",
+            "ok": True,
+            "mode": "control-center-route",
+            "requires_llm": False,
+            "response": "Estas sao as decisoes locais registradas.",
+            "result": list_decisions(),
+        }
+    control_targets = {
+        "ollama": ("tools", "ollama"),
+        "azure devops": ("tools", "azure-devops"),
+        "azure": ("tools", "azure-devops"),
+        "github": ("integrations", "github"),
+        "figma": ("tools", "figma"),
+    }
+    action: str | None = None
+    if any(marker in normalized_prompt for marker in ("desative", "desabilite", "disable", "bloqueie")):
+        action = "disable"
+    if any(marker in normalized_prompt for marker in ("reative", "ative", "habilite", "enable")):
+        action = "enable"
+    if not action:
+        return None
+    for marker, (category, item_id) in control_targets.items():
+        if marker in normalized_prompt:
+            state = "enabled" if action == "enable" else "disabled_by_user"
+            result = set_decision(category, item_id, state, reason=f"natural prompt: {action}")
+            return {
+                "kind": "agent",
+                "status": "ok",
+                "ok": True,
+                "mode": "control-center-route",
+                "requires_llm": False,
+                "response": f"{item_id} foi {'ativado' if state == 'enabled' else 'desativado'} para {category}.",
+                "result": {
+                    "category": category,
+                    "id": item_id,
+                    "state": state,
+                    "decision": result.get("item"),
+                },
+            }
+    if any(marker in normalized_prompt for marker in ("ferramentas", "tools")) and any(
+        marker in normalized_prompt for marker in ("mostre", "liste", "ver", "mostrar", "listar")
+    ):
+        return {
+            "kind": "agent",
+            "status": "ok",
+            "ok": True,
+            "mode": "control-center-route",
+            "requires_llm": False,
+            "response": "Estas sao as ferramentas com decisoes locais registradas.",
+            "result": list_decisions("tools"),
+        }
+    return None
+
+
 def build_agent_dry_run_plan(prompt: str, args: argparse.Namespace) -> dict[str, Any]:
     normalized = " ".join(prompt.lower().split())
     route = route_prompt(prompt)
+    model_plan = build_model_plan(prompt, route=route)
+    review_gate = build_review_gate(prompt, route=route, model_plan=model_plan)
     plan: dict[str, Any] = {
         "kind": "agent",
         "status": "planned",
@@ -1047,6 +1249,8 @@ def build_agent_dry_run_plan(prompt: str, args: argparse.Namespace) -> dict[str,
         "providers": {"used": [], "missing": [], "skipped": []},
         "commands": [],
         "permissions": [],
+        "model_plan": model_plan,
+        "review_gate": review_gate,
         "response": "Dry-run: nenhuma chamada LLM ou escrita externa foi executada.",
     }
     if "agenda" in normalized:
@@ -1131,21 +1335,25 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
         raise DevKitError(str(exc)) from exc
 
     if not source:
+        wizard = missing_source_wizard(prompt, route, root=ROOT)
         return {
             "kind": "agent",
             "status": "needs-input",
             "ok": False,
             "requires_source": True,
+            "provider": route.get("provider"),
             "source_provider": route.get("provider"),
             "prompt_received": True,
             "prompt_length": len(prompt),
             "route": route,
             "napkin": napkin_context(ROOT, agent_id=route.get("agent_id")),
-            "message": "agent identified the task, but no reusable source is configured for this provider.",
+            "setup_wizard": wizard,
+            "next_question": wizard.get("next_question"),
+            "message": wizard.get("message"),
             "next_steps": [
-                "Configure a source with `agent source add azure-sustentacao --provider azure-devops --config project=<project> --env AZURE_DEVOPS_PAT=AZURE_DEVOPS_PAT --default-for card`.",
-                "Use `--config fixture=<path>` for local fixture-based tests or demos.",
-                "Rerun the same prompt after configuring the source.",
+                "Responda a pergunta do wizard para autorizar ou negar a configuracao desta fonte.",
+                "Se preferir teste local, configure uma source com fixture sem armazenar segredos.",
+                "O prompt original sera retomado apos a fonte reutilizavel ser configurada.",
             ],
             "exit_code": 2,
         }
@@ -1155,6 +1363,10 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
     result = run_capability(agent, str(route["capability_id"]), capability_args, capture_output=True)
     response = result.get("stdout") or result.get("error") or ""
     record_usage(prompt, route=route, source_id=str(source["id"]))
+    model_plan = build_model_plan(prompt, route=route)
+    review_gate = build_review_gate(prompt, route=route, model_plan=model_plan)
+    if result.get("ok"):
+        review_gate = mark_reviewed(review_gate, reviewer="deterministic-coordinator")
     return {
         "kind": "agent",
         "status": result.get("status"),
@@ -1165,6 +1377,8 @@ def invoke_deterministic_route(prompt: str, route: dict[str, Any]) -> dict[str, 
         "route": route,
         "source": public_source(source),
         "napkin": napkin_context(ROOT, agent_id=route.get("agent_id"), source_id=str(source["id"])),
+        "model_plan": model_plan,
+        "review_gate": review_gate,
         "response": response,
         "result": result,
         "exit_code": result.get("exit_code", 0 if result.get("ok") else 1),
@@ -1361,9 +1575,9 @@ def run_capability(
             next_steps=guardrail["next_steps"],
             exit_code=2,
         )
-    readiness = evaluate_provider_requirements(ROOT, data)
+    readiness = evaluate_provider_requirements(ROOT, data, capability_args)
     if not readiness["ready"]:
-        return run_payload(
+        payload = run_payload(
             status=readiness["status"],
             agent=summarize_agent(agent),
             capability=data.get("id", capability_id),
@@ -1377,6 +1591,17 @@ def run_capability(
             artifacts=readiness["artifacts"],
             exit_code=readiness.get("exit_code"),
         )
+        wizard = setup_wizard_from_readiness(readiness, agent=summarize_agent(agent), capability_id=str(data.get("id", capability_id)))
+        if wizard:
+            payload["setup_wizard"] = wizard
+            payload["next_question"] = wizard.get("next_question")
+            payload["configuration_agent"] = wizard.get("owner_agent")
+            payload["next_steps"] = [
+                "Responda a pergunta do wizard para autorizar ou negar a configuracao deste provider.",
+                "Informe uma referencia segura de credencial por variavel de ambiente, arquivo ou cadeia nativa quando solicitado.",
+                "Reexecute ou retome a mesma capability depois que a configuracao estiver salva.",
+            ]
+        return payload
 
     runner_ref = (data.get("entrypoint", {}) or {}).get("runner")
     if not runner_ref:
@@ -1493,6 +1718,26 @@ def run_capability(
 
 def supports_runtime_source(agent_id: str, capability_id: str) -> bool:
     return agent_id == "azure-devops-orchestrator" and capability_id == "read-card"
+
+
+def setup_wizard_from_readiness(readiness: dict[str, Any], *, agent: dict[str, Any], capability_id: str) -> dict[str, Any] | None:
+    providers = readiness.get("providers") if isinstance(readiness.get("providers"), dict) else {}
+    missing = providers.get("missing") or []
+    if not missing:
+        return None
+    provider_id = str(missing[0])
+    details = providers.get("details") or []
+    detail = next((item for item in details if isinstance(item, dict) and item.get("id") == provider_id), {})
+    try:
+        return provider_wizard_from_requirement(
+            ROOT,
+            provider_id,
+            agent_id=str(agent.get("id") or ""),
+            capability_id=capability_id,
+            reason=str(detail.get("purpose") or "Provider is required but not configured."),
+        )
+    except Exception:
+        return None
 
 
 def doctor(project: str | None = None, home: str | None = None, scope: str = "auto") -> dict[str, Any]:
@@ -1748,6 +1993,12 @@ def print_human(result: dict[str, Any]) -> None:
         print_permissions(result)
     elif kind in {"audit", "audit-entry", "audit-export"}:
         print_audit(result)
+    elif kind == "config":
+        print_config(result)
+    elif kind in {"tools", "tool", "integrations", "integration", "skills", "skill", "decisions", "decision", "decisions-reset"}:
+        print_control(result)
+    elif kind in {"ollama-status", "ollama-models", "ollama-pull", "ollama-update"}:
+        print_ollama(result)
     elif kind == "install":
         print_install(result)
     else:
@@ -1875,6 +2126,11 @@ def print_agent_response(result: dict[str, Any]) -> None:
         print(result.get("response", ""))
         return
     print(result.get("message") or result.get("response") or "Agent execution did not complete.")
+    question = result.get("next_question") or ((result.get("setup_wizard") or {}).get("next_question") if isinstance(result.get("setup_wizard"), dict) else None)
+    if isinstance(question, dict) and question.get("text"):
+        print(f"\nPergunta: {question['text']}")
+        if question.get("type") == "confirm":
+            print("[s/N]")
     if result.get("llm_backend"):
         print(f"Requested backend: {result['llm_backend']}")
     if result.get("next_steps"):
@@ -2266,6 +2522,58 @@ def print_credential_backends(result: dict[str, Any]) -> None:
     print("Credential resolver backends:")
     for item in result["items"]:
         print(f"- {item}")
+
+
+def print_config(result: dict[str, Any]) -> None:
+    print(f"Config: {result.get('path')}")
+    if result.get("llm"):
+        print(f"Primary LLM: {(result['llm'] or {}).get('primary') or '-'}")
+    if result.get("ollama"):
+        print(f"Ollama: {(result['ollama'] or {}).get('status')}")
+
+
+def print_control(result: dict[str, Any]) -> None:
+    kind = result.get("kind")
+    if kind == "decisions-reset":
+        print(f"Decisions reset: {result.get('category') or 'all'}")
+        print(f"Path: {result.get('path')}")
+        return
+    if "items" in result:
+        print(f"{kind}:")
+        for item in result.get("items") or []:
+            print(f"- {item.get('category')}:{item.get('id')}  {item.get('state')}")
+        if not result.get("items"):
+            print("- none")
+        return
+    item = result.get("item") or result
+    print(f"{item.get('category') or result.get('category')}:{item.get('id') or result.get('id')}  {item.get('state') or result.get('state')}")
+
+
+def print_ollama(result: dict[str, Any]) -> None:
+    kind = result.get("kind")
+    if kind == "ollama-status":
+        print(f"Ollama: {result.get('status')}")
+        print(f"Binary: {result.get('binary') or '-'}")
+        print(f"Version: {result.get('version') or '-'}")
+        daemon = result.get("daemon") or {}
+        print(f"Daemon: {daemon.get('status') or '-'}")
+        print(f"Models: {result.get('model_count', 0)}")
+        if result.get("install_plan"):
+            print(f"Install: {(result['install_plan'] or {}).get('command')}")
+        return
+    if kind == "ollama-models":
+        print(f"Ollama models: {result.get('status')}")
+        for item in result.get("items") or []:
+            print(f"- {item.get('name')}  {item.get('size') or '-'}")
+        if not result.get("items"):
+            print("- none")
+        return
+    print(f"{kind}: {result.get('status')}")
+    if result.get("command"):
+        command = result["command"]
+        print("Command: " + (" ".join(command) if isinstance(command, list) else str(command)))
+    if result.get("message"):
+        print(result["message"])
 
 
 def print_install(result: dict[str, Any]) -> None:

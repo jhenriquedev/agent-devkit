@@ -1,3 +1,29 @@
+# v0.1.5
+
+Runtime agentic hardening release.
+
+## Highlights
+
+- Replaces missing-provider/source dead ends with a global agentic setup wizard
+  owned by `provider-configurator`, covering prompt-routed sources and
+  capability provider requirements.
+- Adds persistent local decisions for tools, integrations, skills and LLMs,
+  including enable/disable commands and prompt-routed control actions.
+- Adds Ollama status, model listing, model pull and update planning commands,
+  and includes Ollama in the plan-first toolchain registry.
+- Adds model routing metadata so local LLMs are treated as operational workers
+  while Claude/Codex remain preferred coordinators and reviewers.
+- Adds review-gate metadata for routed work, documents, code, automations and
+  local-LLM delegated work.
+- Strengthens identity enforcement so backend responses that claim to be
+  Claude, Codex or ChatGPT are rewritten to the configured local agent
+  identity.
+
+## Validation
+
+- v0.1.5 contract tests pass locally.
+- Full repository validation and release verification must pass before tag.
+
 # v0.1.0
 
 Runtime agentic release.

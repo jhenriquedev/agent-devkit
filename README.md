@@ -204,11 +204,17 @@ agent "roteie este pedido para o agente especialista adequado"
 
 ### Opcao F: usar Ollama local
 
-Inicie o Ollama localmente e configure um endpoint compativel com OpenAI:
+O Agent DevKit consegue diagnosticar Ollama, listar modelos, planejar pull e
+usar o backend local como trabalhador operacional. Claude/Codex continuam sendo
+os coordenadores e revisores preferenciais para decisao, especificacao e entrega
+final.
 
 ```bash
+agent ollama status
+agent ollama models
+agent ollama pull qwen2.5-coder --dry-run
+agent ollama pull qwen2.5-coder --yes
 ollama serve
-ollama pull qwen2.5-coder
 agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
 agent llm doctor ollama
 ```
@@ -226,6 +232,8 @@ agent llm list
 agent llm set-default codex-cli
 agent llm set-default claude-code
 agent llm set-default openai
+agent llm disable ollama
+agent llm enable ollama
 agent llm doctor
 ```
 
@@ -308,6 +316,43 @@ Exemplo de uso deterministico com uma capability:
 ```bash
 agent run azure-devops-orchestrator read-card --project "Projeto" --id 9900 --include-comments
 ```
+
+## Configuracao agentica e decisoes locais
+
+Quando um prompt ou capability exige uma fonte ou provider ainda nao
+configurado, o `agent` nao deve mais parar apenas sugerindo um comando manual.
+Ele aciona o configurador global `provider-configurator`, retorna um wizard
+agentico com opt-in, perguntas progressivas e retomada do prompt original:
+
+```bash
+agent --json "analise o card 7914 do projeto sustentacao no azure"
+agent --json run topdesk-orchestrator read-incident --number "I 2606 001"
+```
+
+O usuario tambem pode controlar ferramentas, integracoes, skills e LLMs sem
+editar arquivos diretamente:
+
+```bash
+agent decisions list
+agent tools list
+agent tools disable azure-devops
+agent tools enable azure-devops
+agent integrations list
+agent skills list
+agent llm list
+```
+
+As mesmas operacoes podem ser feitas por prompt:
+
+```bash
+agent "mostre minhas decisoes"
+agent "desative o azure devops por enquanto"
+agent "reative o ollama"
+```
+
+Se o usuario negar ou desativar uma ferramenta, a decisao fica persistida em
+`~/.ai-devkit/config/decisions.json` e o agente segue sem usar essa ferramenta
+nas proximas sessoes ate reativacao explicita.
 
 Comandos uteis:
 

@@ -159,6 +159,8 @@ def list_backends() -> dict[str, Any]:
     default_backend = config.get("llm", {}).get("default")
     configured = set(config.get("llm", {}).get("backends", {}))
     preference = llm_preference(config)
+    from cli.aikit.decision_store import get_decision
+
     return {
         "kind": "llm-backends",
         "config_path": str(config_path()),
@@ -179,6 +181,8 @@ def list_backends() -> dict[str, Any]:
                 "default_model": backend.default_model,
                 "command": backend.command,
                 "notes": backend.notes,
+                "decision": get_decision("llms", backend.id),
+                "enabled": not bool((get_decision("llms", backend.id) or {}).get("state") in {"disabled_by_user", "denied_by_user"}),
             }
             for backend in BACKENDS.values()
         ],
@@ -445,6 +449,11 @@ def candidate_backend_ids(
     llm = config.get("llm") if isinstance(config.get("llm"), dict) else {}
     configured = llm.get("backends") if isinstance(llm.get("backends"), dict) else {}
     configured_ids = [backend_id for backend_id in configured if backend_id in BACKENDS]
+    if not configured_ids:
+        return []
+    from cli.aikit.decision_store import is_disabled
+
+    configured_ids = [backend_id for backend_id in configured_ids if not is_disabled("llms", backend_id)]
     if not configured_ids:
         return []
     preference = llm_preference(config)

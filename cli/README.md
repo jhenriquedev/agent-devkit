@@ -263,11 +263,18 @@ agent llm doctor openrouter
 ### Ollama local
 
 ```bash
+agent ollama status
+agent ollama models
+agent ollama pull qwen2.5-coder --dry-run
+agent ollama pull qwen2.5-coder --yes
 ollama serve
-ollama pull qwen2.5-coder
 agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
 agent llm doctor ollama
 ```
+
+Ollama e tratado como executor operacional local. Codex e Claude continuam como
+coordenadores/revisores preferenciais para decisao, especificacao, codigo,
+documentos, automacoes e fechamento de entrega.
 
 Backends suportados no MVP:
 
@@ -289,6 +296,8 @@ agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-
 agent llm configure codex-cli --set-default
 agent llm configure claude-code --set-default
 agent llm set-default codex-cli
+agent llm disable ollama
+agent llm enable ollama
 agent llm doctor
 agent llm doctor openai
 ```
@@ -330,6 +339,33 @@ agent provider unset topdesk
 Use `--session-only` para validar uma configuracao sem escrever em
 `~/.ai-devkit/config.json`. Arquivos passados com `--env-file` precisam conter
 ao menos um campo reconhecido pelo provider selecionado.
+
+Quando um prompt ou capability exige uma source/provider ausente, o runtime
+aciona o configurador global `provider-configurator` e retorna um wizard
+agentico com opt-in e perguntas progressivas em vez de sugerir um comando
+hardcoded:
+
+```bash
+agent --json "analise o card 7914 do projeto sustentacao no azure"
+agent --json run topdesk-orchestrator read-incident --number "I 2606 001"
+```
+
+## Decisoes, ferramentas e integracoes
+
+Opt-ins e opt-outs ficam em `~/.ai-devkit/config/decisions.json` e podem ser
+gerenciados por comando ou prompt:
+
+```bash
+agent decisions list
+agent tools list
+agent tools disable azure-devops
+agent tools enable azure-devops
+agent integrations list
+agent skills list
+agent "mostre minhas decisoes"
+agent "desative o azure devops por enquanto"
+agent "reative o ollama"
+```
 
 ## Credential Resolver
 

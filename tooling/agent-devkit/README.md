@@ -26,7 +26,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.1.0
+agent 0.1.5
 ```
 
 ## Quick Start
@@ -173,11 +173,18 @@ agent llm doctor openrouter
 ### Option F: Ollama local backend
 
 ```bash
+agent ollama status
+agent ollama models
+agent ollama pull qwen2.5-coder --dry-run
+agent ollama pull qwen2.5-coder --yes
 ollama serve
-ollama pull qwen2.5-coder
 agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
 agent llm doctor ollama
 ```
+
+Ollama is treated as an operational worker for repetitive local tasks. Codex and
+Claude remain the preferred coordinators and reviewers for high-level planning,
+software changes, documents, automation decisions and final review.
 
 ### Switch or override the backend
 
@@ -186,6 +193,8 @@ agent llm list
 agent llm set-default codex-cli
 agent llm set-default claude-code
 agent llm set-default openai
+agent llm disable ollama
+agent llm enable ollama
 agent llm doctor
 ```
 
@@ -210,6 +219,17 @@ Natural-language example:
 agent "analise o problema relatado no card 9900"
 ```
 
+If a required source or provider is not configured yet, prompt routing and
+capability execution return the global `provider-configurator` setup wizard
+instead of a hardcoded manual command:
+
+```bash
+agent --json "analise o card 7914 do projeto sustentacao no azure"
+agent --json run topdesk-orchestrator read-incident --number "I 2606 001"
+```
+
+The wizard asks for opt-in and collects one configuration item at a time.
+
 Deterministic example:
 
 ```bash
@@ -221,6 +241,26 @@ Inspect a capability contract before running it:
 ```bash
 agent inspect azure-devops-orchestrator read-card
 ```
+
+## Local Decisions And Tool Control
+
+Agent DevKit persists opt-in and opt-out decisions locally. You can inspect and
+change tools, integrations, skills and LLM availability from commands or natural
+language prompts:
+
+```bash
+agent decisions list
+agent tools disable azure-devops
+agent tools enable azure-devops
+agent integrations list
+agent skills list
+agent "mostre minhas decisoes"
+agent "desative o azure devops por enquanto"
+agent "reative o ollama"
+```
+
+Decisions are stored under `~/.ai-devkit/config/decisions.json`; secret values
+are not stored there.
 
 ## Configure LLM Backends
 

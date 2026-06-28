@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from cli.aikit.credentials import CredentialResolverError
-from cli.aikit.providers import ProviderRegistryError, provider_status_with_credentials
+from cli.aikit.providers import ProviderRegistryError, load_providers, provider_status_with_credentials
 
 
 READY_PROVIDER_STATUSES = {"ok", "unknown"}
@@ -20,9 +20,11 @@ FALLBACKS = {
 }
 
 
-def evaluate_provider_requirements(root: Path, capability: dict[str, Any]) -> dict[str, Any]:
+def evaluate_provider_requirements(root: Path, capability: dict[str, Any], args: list[str] | None = None) -> dict[str, Any]:
     """Evaluate `requires.providers` without returning credential values."""
     requirements = provider_requirements(capability)
+    if not requirements and not has_fixture_arg(args or []):
+        requirements = infer_provider_requirements(root, capability)
     providers = {
         "used": [],
         "missing": [],
@@ -73,6 +75,50 @@ def provider_requirements(capability: dict[str, Any]) -> list[dict[str, Any]]:
         return []
     providers = requires.get("providers", []) or []
     return [item for item in providers if isinstance(item, dict)]
+
+
+def infer_provider_requirements(root: Path, capability: dict[str, Any]) -> list[dict[str, Any]]:
+    capability_id = str(capability.get("id") or "")
+    if "." not in capability_id:
+        return []
+    agent_id, short_capability = capability_id.rsplit(".", 1)
+    candidates = {f"{agent_id}/{short_capability}", capability_id}
+    requirements: list[dict[str, Any]] = []
+    try:
+        providers = load_providers(root)
+    except ProviderRegistryError:
+        return []
+    for provider in providers:
+        capabilities = provider.get("capabilities") if isinstance(provider.get("capabilities"), dict) else {}
+        matched_mode = None
+        for mode in ("read", "write"):
+            declared = capabilities.get(mode) if isinstance(capabilities, dict) else []
+            if any(str(item) in candidates for item in (declared or [])):
+                matched_mode = mode
+                break
+        if not matched_mode:
+            continue
+        fallbacks = list(provider.get("fallbacks", []) or [])
+        requirements.append(
+            {
+                "id": provider.get("id"),
+                "mode": "required",
+                "fallback": fallbacks[0] if fallbacks else "blocked",
+                "purpose": f"inferred from provider registry for {agent_id}/{short_capability}",
+                "access": matched_mode,
+                "inferred": True,
+            }
+        )
+    return requirements
+
+
+def has_fixture_arg(args: list[str]) -> bool:
+    for index, item in enumerate(args):
+        if item == "--fixture" and index + 1 < len(args):
+            return True
+        if item.startswith("--fixture="):
+            return True
+    return False
 
 
 def provider_detail(requirement: dict[str, Any], status_item: dict[str, Any]) -> dict[str, Any]:
