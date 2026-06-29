@@ -30,6 +30,35 @@ depends_on_agents:
   - aws-cloudwatch-log-analyzer
   - elasticsearch-log-analyzer
 
+agent_mode:
+  type: workflow
+  max_steps: 13
+  max_specialists: 13
+  max_llm_calls: 1
+  timeout_seconds: 600
+  can_call_capabilities: true
+  can_call_llm: optional
+  can_request_user_input: true
+  external_writes: false
+  allowed_capabilities:
+    - azure-devops-orchestrator/read-card
+    - azure-devops-orchestrator/update-card-tags
+    - azure-devops-orchestrator/move-card
+    - sqlserver-data-analyzer/run-readonly-query
+    - sqlserver-data-analyzer/trace-record
+    - bpo-analyser/analyze-proposal
+    - bpo-analyser/analyze-cpf-proposals
+    - bpo-analyser/find-latest-proposal-by-cpf
+    - bpo-analyser/consult-attached-documents
+    - n1-support-agent/route-customer-symptom
+    - topdesk-orchestrator/read-incident
+    - aws-cloudwatch-log-analyzer/search-log-events
+    - elasticsearch-log-analyzer/search-log-events
+  stop_conditions:
+    - needs-input
+    - blocked
+    - max-steps
+
 capabilities:
   - execute-n1-card-runbook
   - extract-card-entities
@@ -65,7 +94,17 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
+  read_operations: read_only
   azure_tag_operations: confirm
   azure_move_operations: confirm
   external_mutations: confirm
+
+routing:
+  anchors:
+    - n1
+    - primeiro nivel
+    - suporte
+    - triagem
+  intents:
+    - support.n1
+  priority: 80

@@ -50,5 +50,17 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
-  write_operations: unsupported
+  read_operations: read_only
+  write_operations: blocked_by_default
+
+routing:
+  anchors:
+    - elastic
+    - elasticsearch
+    - index
+    - indice
+    - log
+    - logs
+  intents:
+    - logs.elasticsearch.analysis
+  priority: 55

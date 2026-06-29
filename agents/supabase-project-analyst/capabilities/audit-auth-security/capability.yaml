@@ -1,0 +1,18 @@
+id: supabase-project-analyst.audit-auth-security
+kind: capability
+name: Audit Auth Security
+version: 0.1.0
+status: draft
+purpose: Auditar Auth, claims, metadados e exposicao de secrets em projeto Supabase local.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/supabase-audit.md
+inputs:
+  required: []
+  optional:
+    - project-path
+outputs:
+  artifacts:
+    - supabase-auth-audit.json
+write_policy: read_only

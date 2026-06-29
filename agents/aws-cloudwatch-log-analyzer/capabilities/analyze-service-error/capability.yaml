@@ -39,4 +39,20 @@ integration:
   methods:
     - ../../infra/integrations/aws-cloudwatch/methods/filter-log-events.yaml
 
+runtime:
+  provider: aws
+
 write_policy: read_only
+
+routing:
+  anchors:
+    - cloudwatch
+    - erro
+    - error
+    - service
+    - servico
+  intents:
+    - logs.error-analysis
+  examples:
+    - analise logs do cloudwatch para erro no servico
+  priority: 80

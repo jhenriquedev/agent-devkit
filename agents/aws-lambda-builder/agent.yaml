@@ -1,0 +1,46 @@
+id: aws-lambda-builder
+kind: specialist-agent
+name: AWS Lambda Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar, revisar, empacotar localmente e criar planos de deploy para
+  projetos AWS Lambda seguros e revisaveis, sem executar deploy real.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - plan-lambda
+  - generate-lambda-project
+  - review-lambda-security
+  - package-lambda
+  - deploy-lambda-plan
+agent_surface:
+  repositories:
+    - infra/integrations/aws-lambda/aws_lambda_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  project_generation: local_write
+  security_review: read_only
+  package_local: local_write
+  deploy_plan: dry_run
+  deploy_real: blocked_by_default
+routing:
+  anchors:
+    - aws-lambda-builder
+    - lambda-builder
+    - aws-lambda
+    - serverless
+    - sam
+  intents:
+    - aws.lambda.plan
+    - aws.lambda.generate
+    - aws.lambda.review
+  priority: 50

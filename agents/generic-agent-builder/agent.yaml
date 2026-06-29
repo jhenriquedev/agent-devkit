@@ -1,0 +1,43 @@
+id: generic-agent-builder
+kind: specialist-agent
+name: Generic Agent Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar e revisar agentes genericos portaveis para projetos e hosts
+  externos, sem acoplar esses agentes ao runtime interno do Agent DevKit.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - plan-generic-agent
+  - generate-agent-instructions
+  - generate-skill
+  - generate-project-agent-files
+  - review-generic-agent
+agent_surface:
+  repositories:
+    - infra/integrations/generic-agent/generic_agent_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  generation: output_only
+  project_files: local_write
+  review: read_only
+  external_side_effects: blocked_by_default
+routing:
+  anchors:
+    - generic-agent-builder
+    - generic-agent
+    - agent-generator
+    - agents
+  intents:
+    - generic-agent.generate
+    - generic-agent.review
+  priority: 50

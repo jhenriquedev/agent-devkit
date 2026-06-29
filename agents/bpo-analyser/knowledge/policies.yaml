@@ -13,8 +13,8 @@ integration_rules:
   default_timeout_seconds: 30
 
 write_policy:
-  read_operations: auto
-  mutation_operations: unsupported
+  read_operations: read_only
+  mutation_operations: blocked_by_default
 
 decision_policy:
   prefer_proposal_number: >

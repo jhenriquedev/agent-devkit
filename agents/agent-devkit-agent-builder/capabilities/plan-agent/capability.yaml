@@ -1,0 +1,29 @@
+id: agent-devkit-agent-builder.plan-agent
+kind: capability
+name: Plan Agent
+version: 0.1.0
+status: draft
+purpose: >
+  Ler uma spec estruturada de novo agente interno do Agent DevKit e retornar um
+  plano de arquivos, capabilities, policies e perguntas pendentes sem escrever
+  arquivos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/system.md
+  output_template: ../../templates/agent-plan-output.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - agent-plan.json
+write_policy: read_only
+routing:
+  anchors:
+    - plan-agent
+    - criar agente
+  intents:
+    - agent-devkit.agent-builder.plan
+  priority: 70

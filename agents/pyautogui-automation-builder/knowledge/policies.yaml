@@ -1,0 +1,24 @@
+write_policy:
+  planning: read_only
+  generation: output_only
+  project_files: local_write
+  review: read_only
+  capability_wrapper: local_write
+  real_desktop_actions: confirm
+  destructive_actions: blocked_by_default
+safer_alternatives:
+  - api
+  - cli
+  - mcp
+  - playwright
+  - selenium
+  - applescript
+  - windows-ui-automation
+guardrails:
+  require_visual_risk_acceptance: true
+  require_dry_run: true
+  require_execute_confirm: true
+  require_failsafe: true
+  require_screenshots: true
+  require_abort_file: true
+  block_plaintext_secrets: true

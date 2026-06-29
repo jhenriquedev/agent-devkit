@@ -1,0 +1,21 @@
+id: docker-container-builder.review-docker-security
+kind: capability
+name: Review Docker Security
+version: 0.1.0
+status: draft
+purpose: Revisar Dockerfile e compose contra guardrails de seguranca.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/container-review.md
+inputs:
+  required: []
+  optional:
+    - dockerfile
+    - compose
+    - dockerfile-text
+    - compose-text
+outputs:
+  artifacts:
+    - docker-security-review.json
+write_policy: read_only

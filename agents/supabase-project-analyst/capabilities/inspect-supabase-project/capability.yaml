@@ -1,0 +1,19 @@
+id: supabase-project-analyst.inspect-supabase-project
+kind: capability
+name: Inspect Supabase Project
+version: 0.1.0
+status: draft
+purpose: Coletar contexto local e readiness de um projeto Supabase sem expor segredos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/supabase-inspection.md
+inputs:
+  required: []
+  optional:
+    - project-path
+    - include-cli-status
+outputs:
+  artifacts:
+    - supabase-inspection.json
+write_policy: read_only

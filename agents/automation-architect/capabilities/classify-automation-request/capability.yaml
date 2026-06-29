@@ -1,0 +1,35 @@
+id: automation-architect.classify-automation-request
+kind: capability
+name: Classify Automation Request
+version: 0.1.0
+status: draft
+purpose: Classificar pedido de automacao e recomendar tecnologia, agente e riscos sem escrever arquivos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/automation-classification.md
+inputs:
+  required: []
+  optional:
+    - request
+    - spec
+outputs:
+  artifacts:
+    - automation-classification.json
+write_policy: read_only
+routing:
+  anchors:
+    - classificar-automacao
+    - classify-automation
+    - automation-request
+  keywords:
+    - automatize
+    - automatizar
+    - automacao
+    - automation
+  intents:
+    - automation.classify
+  examples:
+    - escolha o tipo correto de automacao
+    - classifique esta automacao
+  priority: 80

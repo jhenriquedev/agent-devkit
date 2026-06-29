@@ -1,0 +1,13 @@
+policies:
+  supported_scope: docker-local-artifacts
+  default_write_mode: dry_run
+  docker_cli_execution: blocked_by_default
+  build_real: blocked_by_default
+  push_real: blocked_by_default
+  deploy_real: blocked_by_default
+  secrets: never_persist
+  dockerignore_required: true
+  non_root_user: prefer
+  target_project_boundary: required_for_writes
+  overwrite: blocked_without_explicit_permission
+  compose_scope: development_local_by_default

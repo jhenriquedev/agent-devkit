@@ -4,7 +4,7 @@ name: List review requests
 status: draft
 version: 0.1.0
 purpose: Listar PRs aguardando revisao do usuario autenticado no GitHub CLI.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
   output_template: ../../templates/pr-list-output.md

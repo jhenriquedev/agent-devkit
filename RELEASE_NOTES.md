@@ -1,3 +1,33 @@
+# v0.1.7
+
+Runtime foundation and integration expansion release.
+
+## Highlights
+
+- Reframes Agent DevKit as the executable agent runtime, with specialist
+  agents and capabilities acting as parts of the whole instead of isolated
+  folders.
+- Splits CLI parsing, dispatch and human rendering from reusable core runtime
+  services used by CLI, future hosts and MCP.
+- Adds canonical capability execution contracts, normalized write policies,
+  safer source handling, observable audit results and stricter quality gates.
+- Expands the specialist catalog with agent builders, automation builders,
+  Supabase analysis, Docker/Lambda builders, loop engineering, notifications
+  and Playwright/Selenium/PyAutoGUI support.
+- Adds desktop notifications for macOS, Linux and Windows-compatible local
+  channels while keeping remote chat integrations out of this cut.
+- Adds the Qwen3-0.6B-oriented mini-brain path for setup, wizard assistance and
+  low-risk conversational classification.
+- Adds the generic Agent DevKit MCP stdio server surface for hosts such as
+  Hermes Agent, OpenClaw and OpenCode without making the base installation
+  depend on those hosts.
+
+## Validation
+
+- Full Python unittest suite passes locally.
+- Repository validation, release gate and release alignment must pass before
+  tag.
+
 # v0.1.6
 
 Runtime agentic stabilization patch.

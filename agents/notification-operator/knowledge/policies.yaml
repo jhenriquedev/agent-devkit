@@ -1,0 +1,9 @@
+policies:
+  - id: notification.payload.canonical
+    rule: Sempre usar o contrato canonico de notificacao do runtime.
+  - id: notification.secrets.redaction
+    rule: Redigir segredos antes de renderizar, enviar ou registrar historico.
+  - id: notification.remote.blocked
+    rule: Nao enviar para canais remotos ate existir provider dedicado e permissao explicita.
+  - id: notification.local.best-effort
+    rule: Falha de notificacao local nao deve falhar a tarefa original.

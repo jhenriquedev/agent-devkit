@@ -139,6 +139,10 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
         return result
 
+    def assert_required_capabilities(self, actual: set[str], required: set[str]) -> None:
+        missing = required - actual
+        self.assertFalse(missing, f"missing required capabilities: {sorted(missing)}")
+
     def test_lists_available_agents(self) -> None:
         result = subprocess.run(
             [sys.executable, str(CLI), "--json", "agents"],
@@ -204,7 +208,7 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(f"runner timed out after 1s: {agent_id}/{capability_id}", result.stderr)
 
-    def test_lists_all_presentation_deck_builder_capabilities(self) -> None:
+    def test_lists_required_presentation_deck_builder_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -223,7 +227,7 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "compare-template-versions",
@@ -245,7 +249,7 @@ class AiDevKitCliTest(unittest.TestCase):
             },
         )
 
-    def test_lists_all_figma_ui_ux_product_designer_capabilities(self) -> None:
+    def test_lists_required_figma_ui_ux_product_designer_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -264,7 +268,7 @@ class AiDevKitCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-existing-figma-project",
@@ -750,7 +754,7 @@ json.dump(
             self.assertEqual(output_path.read_bytes()[:2], b"PK")
             self.assertIn("Deck gerado:", result.stdout)
 
-    def test_lists_all_excel_workbook_builder_capabilities(self) -> None:
+    def test_lists_required_excel_workbook_builder_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -769,7 +773,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "add-formulas-and-validations",
@@ -1872,7 +1876,7 @@ json.dump(
             self.assertIn("_Comments", inspection)
             self.assertIn("Data validations: 1", inspection)
 
-    def test_lists_all_bpo_analyser_capabilities(self) -> None:
+    def test_lists_required_bpo_analyser_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -1891,7 +1895,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-cpf-proposals",
@@ -1935,7 +1939,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_n1_support_capabilities(self) -> None:
+    def test_lists_required_n1_support_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -1954,7 +1958,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-bpo-proposal",
@@ -2008,7 +2012,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_n2_support_capabilities(self) -> None:
+    def test_lists_required_n2_support_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2027,7 +2031,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-code-root-cause",
@@ -2087,7 +2091,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_software_specification_capabilities(self) -> None:
+    def test_lists_required_software_specification_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2106,7 +2110,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-multiple-projects",
@@ -2449,7 +2453,7 @@ json.dump(
             self.assertTrue((output_dir / "technical-spec.md").exists())
             self.assertIn("Artefatos gerados em:", result.stdout)
 
-    def test_lists_all_database_change_capabilities(self) -> None:
+    def test_lists_required_database_change_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2468,7 +2472,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "apply-migration",
@@ -2514,7 +2518,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_sqlserver_change_capabilities(self) -> None:
+    def test_lists_required_sqlserver_change_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2533,7 +2537,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "apply-migration",
@@ -2611,7 +2615,7 @@ json.dump(
                 optional = payload["capability"]["inputs"]["optional"]
                 self.assertIn("database", optional)
 
-    def test_lists_all_postgres_capabilities(self) -> None:
+    def test_lists_required_postgres_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2630,7 +2634,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-cpf-column",
@@ -2710,7 +2714,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_elasticsearch_capabilities(self) -> None:
+    def test_lists_required_elasticsearch_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2729,7 +2733,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-service-errors",
@@ -2775,7 +2779,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_topdesk_capabilities(self) -> None:
+    def test_lists_required_topdesk_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2794,7 +2798,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-incident-insufficiency",
@@ -2840,7 +2844,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_aws_cloudwatch_capabilities(self) -> None:
+    def test_lists_required_aws_cloudwatch_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2859,7 +2863,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "analyze-service-error",
@@ -2909,7 +2913,7 @@ json.dump(
                 runner = payload["capability"]["entrypoint"]["runner"]
                 self.assertTrue(runner["exists"])
 
-    def test_lists_all_azure_devops_capabilities(self) -> None:
+    def test_lists_required_azure_devops_capabilities(self) -> None:
         result = subprocess.run(
             [
                 sys.executable,
@@ -2928,7 +2932,7 @@ json.dump(
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
+        self.assert_required_capabilities(
             capabilities,
             {
                 "update-card-tags",

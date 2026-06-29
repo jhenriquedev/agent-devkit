@@ -205,14 +205,17 @@ def claude_source(root: Path) -> dict[str, Any]:
     skill = plugin / "skills" / "ai-devkit-router" / "SKILL.md"
     commands = plugin / "commands"
     scripts = plugin / "scripts"
+    agents = plugin / "agents"
     return {
         "id": "claude-code",
         "path": str(plugin),
         "manifest_exists": manifest.exists(),
         "skill_exists": skill.exists(),
         "commands_exists": commands.is_dir(),
+        "agents_exists": agents.is_dir(),
+        "subagents": sorted(path.stem for path in agents.glob("*.md") if path.name != "README.md") if agents.is_dir() else [],
         "scripts_exists": scripts.is_dir(),
-        "status": "ok" if manifest.exists() and skill.exists() and commands.is_dir() and scripts.is_dir() else "error",
+        "status": "ok" if manifest.exists() and skill.exists() and commands.is_dir() and agents.is_dir() and scripts.is_dir() else "error",
     }
 
 
@@ -247,11 +250,14 @@ def installed_plugins(base: Path, lock: dict[str, Any]) -> dict[str, Any]:
         claude_plugin = base / ".claude" / "plugins" / "ai-devkit" / "plugin.json"
         claude_skill = base / ".claude" / "skills" / "ai-devkit-router" / "SKILL.md"
         claude_commands = base / ".claude" / "commands"
+        claude_agents = base / ".claude" / "plugins" / "ai-devkit" / "agents"
         status["claude-code"] = {
             "plugin_exists": claude_plugin.exists(),
             "skill_exists": claude_skill.exists(),
             "commands_exists": claude_commands.is_dir(),
-            "status": "ok" if claude_plugin.exists() and claude_skill.exists() and claude_commands.is_dir() else "missing",
+            "agents_exists": claude_agents.is_dir(),
+            "subagents": sorted(path.stem for path in claude_agents.glob("*.md") if path.name != "README.md") if claude_agents.is_dir() else [],
+            "status": "ok" if claude_plugin.exists() and claude_skill.exists() and claude_commands.is_dir() and claude_agents.is_dir() else "missing",
         }
     if "claude-desktop" in hosts:
         claude_desktop_plugin = base / ".claude" / "plugins" / "ai-devkit-skill" / "plugin.json"

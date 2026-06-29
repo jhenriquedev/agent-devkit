@@ -17,4 +17,4 @@ outputs:
 integration:
   repository: null
   methods: []
-write_policy: delegated_read_only
+write_policy: read_only

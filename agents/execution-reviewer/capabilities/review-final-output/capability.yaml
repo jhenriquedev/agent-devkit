@@ -4,7 +4,7 @@ name: Review Final Output
 version: 0.1.6
 status: draft
 purpose: Revisar saida final antes de concluir uma tarefa multiagente.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: [execution_plan, review_gate]
 outputs:
   artifacts: [review-report]
-

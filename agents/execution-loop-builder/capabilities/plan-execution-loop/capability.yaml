@@ -1,0 +1,18 @@
+id: execution-loop-builder.plan-execution-loop
+kind: capability
+name: Plan Execution Loop
+version: 0.1.0
+status: draft
+purpose: Validar e planejar loop de execucao sem escrever arquivos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/loop-plan.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - execution-loop-plan.json
+write_policy: read_only

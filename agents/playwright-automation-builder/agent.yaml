@@ -1,0 +1,48 @@
+id: playwright-automation-builder
+kind: specialist-agent
+name: Playwright Automation Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar, revisar, executar checks controlados e empacotar automacoes
+  Playwright para web moderna com screenshots, traces e guardrails.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - plan-playwright-automation
+  - generate-playwright-script
+  - generate-playwright-project-files
+  - run-playwright-check
+  - review-playwright-artifacts
+  - wrap-playwright-as-capability
+agent_surface:
+  repositories:
+    - infra/integrations/playwright-automation/playwright_automation_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  generation: output_only
+  project_files: local_write
+  run_check: confirm
+  artifact_review: read_only
+  capability_wrapper: local_write
+  external_side_effects: blocked_by_default
+routing:
+  anchors:
+    - playwright-automation-builder
+    - playwright
+    - browser-automation
+    - web-automation
+  intents:
+    - playwright-automation.plan
+    - playwright-automation.generate
+    - playwright-automation.check
+    - playwright-automation.review
+  priority: 55

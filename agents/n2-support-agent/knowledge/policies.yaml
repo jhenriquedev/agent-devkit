@@ -39,5 +39,5 @@ privacy:
   avoid_raw_personal_data_dumps: true
 
 write_policy:
-  azure_requires_execute: true
-  local_file_write_allowed_when_output_present: true
+  azure_requires_execute: confirm
+  local_file_write_allowed_when_output_present: confirm

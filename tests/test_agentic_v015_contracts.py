@@ -72,6 +72,7 @@ class AgenticV015ContractsTest(unittest.TestCase):
                     "    print('ollama version 0.9.0')",
                     "elif args == ['list']:",
                     "    print('NAME ID SIZE MODIFIED')",
+                    "    print('qwen3:0.6b qwen3id 522MB 1 hour ago')",
                     "    print('qwen2.5-coder:latest abc 4.7GB 1 day ago')",
                     "elif args[:1] == ['pull']:",
                     "    print('pulled ' + (args[1] if len(args) > 1 else ''))",
@@ -277,8 +278,47 @@ class AgenticV015ContractsTest(unittest.TestCase):
         self.assertEqual(models.returncode, 0, models.stderr)
         self.assertEqual(pull.returncode, 0, pull.stderr)
         self.assertEqual(json.loads(status.stdout)["status"], "ok")
-        self.assertEqual(json.loads(models.stdout)["items"][0]["name"], "qwen2.5-coder:latest")
+        self.assertEqual(json.loads(models.stdout)["items"][0]["name"], "qwen3:0.6b")
+        recommended = {item["name"]: item for item in json.loads(models.stdout)["recommended"]}
+        self.assertTrue(recommended["qwen3:0.6b"]["installed"])
         self.assertEqual(json.loads(pull.stdout)["status"], "ok")
+
+    def test_setup_mini_brain_dry_run_plans_qwen3_without_side_effect(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self.run_agent("setup", "mini-brain", "--dry-run", "--json", env={"AI_DEVKIT_CONFIG_HOME": tmpdir})
+
+            config_path = Path(tmpdir) / "config.json"
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "mini-brain-setup")
+        self.assertEqual(payload["status"], "planned")
+        self.assertEqual(payload["mini_brain"]["hf_model"], "Qwen/Qwen3-0.6B")
+        self.assertEqual(payload["mini_brain"]["ollama_model"], "qwen3:0.6b")
+        self.assertFalse(payload["mini_brain"]["enabled"])
+        self.assertFalse(payload["stored_secret"])
+        self.assertFalse(config_path.exists())
+
+    def test_setup_mini_brain_yes_pulls_qwen3_and_configures_ollama(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as bindir:
+            bin_path = Path(bindir)
+            self.write_fake_ollama(bin_path)
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": f"{bin_path}{os.pathsep}{os.environ.get('PATH', '')}"}
+            result = self.run_agent("setup", "mini-brain", "--yes", "--json", env=env)
+
+            config = json.loads((Path(tmpdir) / "config.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "mini-brain-setup")
+        self.assertEqual(payload["status"], "configured")
+        self.assertTrue(payload["mini_brain"]["enabled"])
+        self.assertEqual(payload["mini_brain"]["ollama_model"], "qwen3:0.6b")
+        self.assertEqual(payload["pull"]["status"], "ok")
+        self.assertFalse(payload["stored_secret"])
+        self.assertEqual(config["mini_brain"]["ollama_model"], "qwen3:0.6b")
+        self.assertEqual(config["llm"]["backends"]["ollama"]["model"], "qwen3:0.6b")
+        self.assertNotIn("test-secret", json.dumps(config).lower())
 
     def test_toolchain_includes_ollama(self) -> None:
         result = self.run_agent("toolchain", "list", "--json")
@@ -338,7 +378,16 @@ class AgenticV015ContractsTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["status"], "planned")
         self.assertEqual(payload["model_plan"]["local_llm_role"], "operational-worker")
+        self.assertEqual(payload["model_plan"]["strategy"], "human")
+        self.assertEqual(payload["model_plan"]["risk"], "medium")
+        self.assertIn("fallback", payload["model_plan"])
+        self.assertIn("mini_brain", payload["model_plan"])
+        self.assertIn("decision_matrix", payload["model_plan"])
+        self.assertEqual(payload["execution_plan"]["execution_model"]["model_strategy"], "human")
+        self.assertEqual(payload["execution_plan"]["execution_model"]["limits"]["max_llm_calls"], 0)
         self.assertTrue(payload["review_gate"]["required"])
+        self.assertIn("human-strategy", payload["review_gate"]["triggers"])
+        self.assertIn("local-llm", payload["review_gate"]["triggers"])
         self.assertIn("claude-code", payload["review_gate"]["preferred_reviewers"])
 
 

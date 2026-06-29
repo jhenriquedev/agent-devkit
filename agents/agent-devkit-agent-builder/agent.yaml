@@ -1,0 +1,46 @@
+id: agent-devkit-agent-builder
+kind: specialist-agent
+name: Agent DevKit Agent Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Planejar, criar scaffold e validar novos agentes internos do Agent DevKit,
+  seguindo contratos, guardrails, estrutura de ownership e gates do projeto.
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+
+env:
+  required: []
+  optional: []
+
+capabilities:
+  - plan-agent
+  - scaffold-agent
+  - validate-agent-contract
+
+agent_surface:
+  repositories:
+    - infra/integrations/agent-devkit/agent_builder_repository.py
+  policies:
+    - knowledge/policies.yaml
+
+write_policy:
+  planning: read_only
+  local_scaffold: confirm
+  validation: read_only
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - agent-devkit
+    - agent-builder
+    - scaffold
+    - agente
+  intents:
+    - agent-devkit.agent-builder
+  priority: 55

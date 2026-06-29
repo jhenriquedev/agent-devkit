@@ -143,6 +143,7 @@ def parse_ollama_list(output: str) -> list[dict[str, Any]]:
 
 def recommended_models(*, installed: set[str]) -> list[dict[str, Any]]:
     catalog = [
+        ("qwen3:0.6b", "mini-brain", "setup help, short summaries and lightweight intent classification"),
         ("qwen2.5-coder", "coding", "operational code reading and generation"),
         ("deepseek-coder", "coding", "code analysis and mechanical refactors"),
         ("deepseek-r1", "reasoning", "local reasoning drafts with mandatory review"),

@@ -130,6 +130,7 @@ def provider_detail(requirement: dict[str, Any], status_item: dict[str, Any]) ->
         "status": status_item.get("status") or "missing",
         "configured": bool(status_item.get("configured")),
         "purpose": requirement.get("purpose"),
+        "inferred": bool(requirement.get("inferred")),
     }
 
 

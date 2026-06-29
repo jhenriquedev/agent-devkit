@@ -1,0 +1,18 @@
+id: playwright-automation-builder.plan-playwright-automation
+kind: capability
+name: Plan Playwright Automation
+version: 0.1.0
+status: draft
+purpose: Planejar automacao Playwright sem escrever arquivos nem abrir browser.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/playwright-readme.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - playwright-automation-plan.json
+write_policy: read_only

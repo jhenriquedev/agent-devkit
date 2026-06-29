@@ -1,0 +1,18 @@
+id: supabase-project-analyst.audit-rls-policies
+kind: capability
+name: Audit RLS Policies
+version: 0.1.0
+status: draft
+purpose: Auditar RLS e policies Supabase em SQL local.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/supabase-audit.md
+inputs:
+  required: []
+  optional:
+    - project-path
+outputs:
+  artifacts:
+    - supabase-rls-audit.json
+write_policy: read_only

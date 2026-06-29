@@ -1,0 +1,18 @@
+id: execution-loop-builder.generate-loop-runner
+kind: capability
+name: Generate Loop Runner
+version: 0.1.0
+status: draft
+purpose: Gerar runner Python de loop em modo output-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/loop-runner.py
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - loop_runner.py
+write_policy: output_only

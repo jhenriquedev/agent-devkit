@@ -1,0 +1,18 @@
+id: aws-lambda-builder.plan-lambda
+kind: capability
+name: Plan Lambda
+version: 0.1.0
+status: draft
+purpose: Planejar projeto AWS Lambda sem escrever arquivos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/lambda-plan.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - lambda-plan.json
+write_policy: read_only

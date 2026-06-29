@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from cli.aikit.app_home import app_path, ensure_app_home, sessions_home
+from cli.aikit.autonomy import summarize_autonomy_contract
 from cli.aikit.memory import redact_secrets
+from cli.aikit.mini_brain import summarize_mini_brain
 
 
 SESSION_ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
@@ -168,6 +170,7 @@ def record_exchange(
         "ok": result.get("ok"),
         "backend": result.get("llm_backend") or backend,
         "requires_llm": result.get("requires_llm"),
+        "autonomy_contract": summarize_autonomy_contract(result.get("autonomy_contract")),
         "execution_plan": summarize_execution_plan(result.get("execution_plan")),
         "orchestration_trace": result.get("orchestration_trace") or [],
         "token_estimate": token_delta,
@@ -201,8 +204,11 @@ def summarize_execution_plan(plan: Any) -> dict[str, Any] | None:
         "domain_agent": (plan.get("domain_agent") or {}).get("id") if isinstance(plan.get("domain_agent"), dict) else None,
         "specialist_tasks": [
             {
+                "task_id": task.get("task_id") or task.get("id"),
                 "agent_id": task.get("agent_id"),
                 "capability_id": task.get("capability_id"),
+                "role": task.get("role"),
+                "depends_on": list(task.get("depends_on") or []),
                 "status": task.get("status"),
             }
             for task in plan.get("specialist_tasks") or []
@@ -210,26 +216,106 @@ def summarize_execution_plan(plan: Any) -> dict[str, Any] | None:
         ],
         "configuration_tasks": [
             {
+                "task_id": task.get("task_id") or task.get("id"),
                 "agent_id": task.get("agent_id"),
                 "provider": task.get("provider"),
+                "role": task.get("role"),
+                "depends_on": list(task.get("depends_on") or []),
                 "status": task.get("status"),
             }
             for task in plan.get("configuration_tasks") or []
             if isinstance(task, dict)
         ],
         "review_task": {
+            "task_id": (plan.get("review_task") or {}).get("task_id") or (plan.get("review_task") or {}).get("id"),
             "agent_id": (plan.get("review_task") or {}).get("agent_id"),
+            "role": (plan.get("review_task") or {}).get("role"),
+            "depends_on": list((plan.get("review_task") or {}).get("depends_on") or []),
             "status": (plan.get("review_task") or {}).get("status"),
         }
         if isinstance(plan.get("review_task"), dict)
         else None,
+        "collaboration_enabled": plan.get("collaboration_enabled") is True,
+        "collaboration_graph": summarize_collaboration_graph(plan.get("collaboration_graph")),
+        "model_plan": summarize_model_plan(plan.get("model_plan")),
+        "execution_model": summarize_execution_model(plan.get("execution_model")),
+        "autonomy_contract": summarize_autonomy_contract(plan.get("autonomy_contract")),
+        "human_escalations": len(plan.get("human_escalations") or []),
+        "shared_context": summarize_shared_context(plan.get("shared_context")),
+    }
+
+
+def summarize_collaboration_graph(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "schema_version": value.get("schema_version"),
+        "nodes": len(value.get("nodes") or []),
+        "edges": len(value.get("edges") or []),
+        "parallel_groups": len(value.get("parallel_groups") or []),
+    }
+
+
+def summarize_shared_context(value: Any) -> dict[str, int] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        key: len(value.get(key) or [])
+        for key in (
+            "facts",
+            "inferences",
+            "artifacts",
+            "blockers",
+            "decisions",
+            "risks",
+            "questions",
+            "handoffs",
+            "conflicts",
+            "human_escalations",
+        )
+    }
+
+
+def summarize_execution_model(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "schema_version": value.get("schema_version"),
+        "decision_owner": value.get("decision_owner"),
+        "review_required": value.get("review_required"),
+        "model_strategy": value.get("model_strategy"),
+        "model_risk": value.get("model_risk"),
+        "model_confidence": value.get("model_confidence"),
+        "autonomy_level": value.get("autonomy_level"),
+        "autonomy_level_id": value.get("autonomy_level_id"),
+        "autonomy_status": value.get("autonomy_status"),
+        "execution_allowed": value.get("execution_allowed"),
+        "requires_human": value.get("requires_human"),
+        "limits": value.get("limits") if isinstance(value.get("limits"), dict) else {},
+        "stop_conditions": list(value.get("stop_conditions") or []),
+    }
+
+
+def summarize_model_plan(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "strategy": value.get("strategy"),
+        "risk": value.get("risk"),
+        "confidence": value.get("confidence"),
+        "fallback": value.get("fallback"),
+        "local_llm_selected": value.get("local_llm_selected") is True,
+        "local_llm_recommended": value.get("local_llm_recommended") is True,
+        "mini_brain": summarize_mini_brain(value.get("mini_brain")),
+        "max_llm_calls": value.get("max_llm_calls"),
     }
 
 
 def build_contextual_prompt(session_id: str, prompt: str) -> str:
     exchanges = recent_exchanges(session_id, limit=RECENT_CONTEXT_EXCHANGES)
+    safe_prompt = redact_secrets(prompt)
     if not exchanges:
-        return prompt
+        return safe_prompt
     lines = [
         "Contexto recente da sessao atual do Agent DevKit:",
     ]
@@ -240,7 +326,7 @@ def build_contextual_prompt(session_id: str, prompt: str) -> str:
             lines.append(f"- Usuario: {previous_prompt}")
         if previous_response:
             lines.append(f"  Assistente: {previous_response}")
-    lines.extend(["", "Pedido atual do usuario:", prompt])
+    lines.extend(["", "Pedido atual do usuario:", safe_prompt])
     return "\n".join(lines)
 
 

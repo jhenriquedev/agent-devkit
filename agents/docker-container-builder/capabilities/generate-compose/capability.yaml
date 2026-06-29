@@ -1,0 +1,18 @@
+id: docker-container-builder.generate-compose
+kind: capability
+name: Generate Compose
+version: 0.1.0
+status: draft
+purpose: Gerar docker-compose.yml para desenvolvimento local em modo output-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/docker-compose.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - docker-compose.yml
+write_policy: output_only

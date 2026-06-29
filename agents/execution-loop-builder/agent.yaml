@@ -1,0 +1,49 @@
+id: execution-loop-builder
+kind: specialist-agent
+name: Execution Loop Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar, revisar e registrar loops de execucao controlados, com
+  budgets, criterios de parada, estado minimo, auditoria por iteracao e
+  guardrails para side effects.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional:
+    - AI_DEVKIT_CONFIG_HOME
+capabilities:
+  - plan-execution-loop
+  - generate-loop-runner
+  - generate-loop-project-files
+  - review-loop-safety
+  - register-loop-task
+agent_surface:
+  repositories:
+    - infra/integrations/execution-loop/execution_loop_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  runner_generation: output_only
+  project_files: local_write
+  review: read_only
+  scheduler_registration: local_write
+  real_loop_execution: blocked_by_default
+  external_writes: blocked_by_default
+routing:
+  anchors:
+    - execution-loop-builder
+    - execution-loop
+    - loop-engineering
+    - retry-loop
+    - scheduler-loop
+  intents:
+    - execution-loop.plan
+    - execution-loop.generate
+    - execution-loop.review
+  priority: 50

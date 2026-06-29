@@ -4,7 +4,7 @@ name: Configure Provider Source
 version: 0.1.6
 status: draft
 purpose: Conduzir wizard para configurar uma source reutilizavel de provider.
-write_policy: local-config-write
+write_policy: local_config_write
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: [prompt, route, agent_id, capability_id, reason]
 outputs:
   artifacts: [source-config]
-

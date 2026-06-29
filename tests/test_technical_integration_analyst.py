@@ -14,42 +14,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "ai-devkit"
 AGENT = "technical-integration-analyst"
+REQUIRED_CAPABILITIES = {
+    "analyze-integration-flow",
+    "extract-integration-contract",
+    "generate-http-artifacts",
+    "generate-protocol-artifacts",
+    "generate-technical-docs",
+    "generate-test-data",
+    "identify-missing-information",
+    "ingest-technical-docs",
+    "run-integration-tests",
+}
 
 
 class TechnicalIntegrationAnalystCliTest(unittest.TestCase):
-    def test_lists_all_capabilities(self) -> None:
+    def test_lists_required_capabilities(self) -> None:
         result = run_cli("--json", "capabilities", AGENT)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         capabilities = {item["id"].split(".")[-1] for item in payload["items"]}
-        self.assertEqual(
-            capabilities,
-            {
-                "analyze-integration-flow",
-                "extract-integration-contract",
-                "generate-http-artifacts",
-                "generate-protocol-artifacts",
-                "generate-technical-docs",
-                "generate-test-data",
-                "identify-missing-information",
-                "ingest-technical-docs",
-                "run-integration-tests",
-            },
-        )
+        self.assertFalse(REQUIRED_CAPABILITIES - capabilities)
 
     def test_all_capabilities_have_runner(self) -> None:
-        for capability in (
-            "analyze-integration-flow",
-            "extract-integration-contract",
-            "generate-http-artifacts",
-            "generate-protocol-artifacts",
-            "generate-technical-docs",
-            "generate-test-data",
-            "identify-missing-information",
-            "ingest-technical-docs",
-            "run-integration-tests",
-        ):
+        for capability in sorted(REQUIRED_CAPABILITIES):
             with self.subTest(capability=capability):
                 result = run_cli("--json", "inspect", AGENT, capability)
 

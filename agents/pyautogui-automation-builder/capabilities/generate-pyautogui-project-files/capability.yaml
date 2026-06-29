@@ -1,0 +1,20 @@
+id: pyautogui-automation-builder.generate-pyautogui-project-files
+kind: capability
+name: Generate PyAutoGUI Project Files
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever pacote local de automacao PyAutoGUI.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/pyautogui-readme.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - pyautogui-project-files.json
+write_policy: local_write

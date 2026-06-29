@@ -1,0 +1,20 @@
+id: playwright-automation-builder.generate-playwright-project-files
+kind: capability
+name: Generate Playwright Project Files
+version: 0.1.0
+status: draft
+purpose: Planejar ou gravar pacote local de automacao Playwright dentro do projeto alvo.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/playwright-readme.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - playwright-project-files.json
+write_policy: local_write

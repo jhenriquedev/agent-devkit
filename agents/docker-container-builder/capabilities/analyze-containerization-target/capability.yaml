@@ -1,0 +1,18 @@
+id: docker-container-builder.analyze-containerization-target
+kind: capability
+name: Analyze Containerization Target
+version: 0.1.0
+status: draft
+purpose: Analisar projeto local para planejar containerizacao Docker sem escrever arquivos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/container-plan.md
+inputs:
+  required:
+    - project-path
+  optional: []
+outputs:
+  artifacts:
+    - containerization-analysis.json
+write_policy: read_only

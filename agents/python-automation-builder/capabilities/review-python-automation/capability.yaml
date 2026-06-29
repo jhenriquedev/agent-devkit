@@ -1,0 +1,20 @@
+id: python-automation-builder.review-python-automation
+kind: capability
+name: Review Python Automation
+version: 0.1.0
+status: draft
+purpose: Revisar automacao Python contra guardrails operacionais.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/automation-review-report.md
+inputs:
+  required: []
+  optional:
+    - input
+    - text
+    - side-effects
+outputs:
+  artifacts:
+    - python-automation-review.json
+write_policy: read_only

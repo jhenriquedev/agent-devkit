@@ -66,3 +66,13 @@ capabilities:
 capabilities_dir: capabilities
 templates_dir: templates
 infra_dir: infra
+
+routing:
+  anchors:
+    - excel
+    - planilha
+    - spreadsheet
+    - workbook
+  intents:
+    - spreadsheet.workbook
+  priority: 50

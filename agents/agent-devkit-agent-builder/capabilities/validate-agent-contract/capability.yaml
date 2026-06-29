@@ -1,0 +1,28 @@
+id: agent-devkit-agent-builder.validate-agent-contract
+kind: capability
+name: Validate Agent Contract
+version: 0.1.0
+status: draft
+purpose: >
+  Validar a estrutura local de um agente interno do Agent DevKit gerado pelo
+  builder, conferindo manifests, docs, diretórios e decision rules.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/system.md
+  output_template: ../../templates/validation-report-output.md
+inputs:
+  required:
+    - agent_id
+  optional: []
+outputs:
+  artifacts:
+    - validation-report.json
+write_policy: read_only
+routing:
+  anchors:
+    - validate-agent
+    - validar agente
+  intents:
+    - agent-devkit.agent-builder.validate
+  priority: 70

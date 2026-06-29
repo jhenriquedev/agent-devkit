@@ -4,7 +4,7 @@ name: Review Plan
 version: 0.1.6
 status: draft
 purpose: Revisar plano multiagente antes de execucao sensivel.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: []
 outputs:
   artifacts: [plan-review]
-

@@ -19,7 +19,7 @@ de uma versao de template a partir do `slide-map.yaml`.
 
 ## RUBRICA / REGRAS DE DECISAO
 - Versao inexistente: erro imediato.
-- Regerar e idempotente (sobrescreve sem perguntar: write_policy template_version_write).
+- Regerar e idempotente (sobrescreve sem perguntar: write_policy local_write).
 
 ## SAIDA
 - "Input schema gerado: <path>/input-schema.xlsx"

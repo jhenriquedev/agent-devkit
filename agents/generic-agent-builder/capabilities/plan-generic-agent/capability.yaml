@@ -1,0 +1,18 @@
+id: generic-agent-builder.plan-generic-agent
+kind: capability
+name: Plan Generic Agent
+version: 0.1.0
+status: draft
+purpose: Planejar um agente generico portavel sem escrever arquivos.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/generic-agent-instructions.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - generic-agent-plan.json
+write_policy: read_only

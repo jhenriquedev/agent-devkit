@@ -4,10 +4,10 @@
 # da spec agentic.
 
 write_policy:
-  read_operations: auto
-  generated_artifacts: explicit_output_path
-  source_mutation: unsupported
-  external_side_effects: unsupported
+  read_operations: read_only
+  generated_artifacts: output_only
+  source_mutation: blocked_by_default
+  external_side_effects: blocked_by_default
 
 pii_masking:
   mask_if_sensitive:

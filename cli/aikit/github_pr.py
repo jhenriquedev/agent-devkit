@@ -188,6 +188,29 @@ def pr_create_automation(*, task_id: str | None = None, title: str | None = None
     return task
 
 
+def summarize_pr_list(payload: dict[str, Any]) -> str:
+    if payload.get("status") != "ok":
+        return str(payload.get("message") or "Nao foi possivel listar PRs.")
+    items = payload.get("items") or []
+    if not items:
+        return "Nenhuma PR aguardando sua revisao foi encontrada."
+    lines = []
+    for item in items:
+        number = item.get("number")
+        title = item.get("title") or "-"
+        url = item.get("url") or ""
+        lines.append(f"- #{number} {title} {url}".strip())
+    return "\n".join(lines)
+
+
+def planned_pr_commands(action: str, *, pr_ref: str | None = None) -> list[list[str]]:
+    if action == "list-review-requests":
+        return [["gh", "pr", "list", "--review-requested", "@me", "--json", "number,title,url,author,headRefName,baseRefName,isDraft"]]
+    if action == "inspect":
+        return [["gh", "pr", "view", str(pr_ref), "--json", "number,title,url,author,body,headRefName,baseRefName,state,isDraft,reviewDecision,mergeable"]]
+    return []
+
+
 def gh_check() -> dict[str, Any]:
     binary = shutil.which("gh")
     if not binary:

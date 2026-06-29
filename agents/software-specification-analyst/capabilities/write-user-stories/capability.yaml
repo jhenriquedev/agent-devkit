@@ -19,3 +19,15 @@ integration:
   repository: null
   methods: []
 write_policy: read_only
+
+routing:
+  anchors:
+    - criterios de aceite
+    - historia
+    - user stories
+    - user story
+  intents:
+    - spec.user-stories
+  examples:
+    - escreva historias de usuario
+  priority: 80

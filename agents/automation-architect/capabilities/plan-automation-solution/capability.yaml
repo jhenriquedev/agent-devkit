@@ -1,0 +1,35 @@
+id: automation-architect.plan-automation-solution
+kind: capability
+name: Plan Automation Solution
+version: 0.1.0
+status: draft
+purpose: Gerar plano de arquitetura de automacao com contrato, guardrails, alternativas e delegacao sugerida.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/automation-plan.md
+inputs:
+  required: []
+  optional:
+    - request
+    - spec
+outputs:
+  artifacts:
+    - automation-plan.json
+write_policy: read_only
+routing:
+  anchors:
+    - planejar-automacao
+    - automation-plan
+    - plan-automation
+  keywords:
+    - plano
+    - planeje
+    - arquitetura
+    - automacao
+  intents:
+    - automation.plan
+  examples:
+    - planeje a melhor automacao
+    - crie um plano para automatizar
+  priority: 80

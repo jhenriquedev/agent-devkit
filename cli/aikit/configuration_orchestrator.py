@@ -44,7 +44,7 @@ def provider_setup_wizard(
         "reason": reason,
         "resume_prompt": prompt,
         "suggested_source_id": suggested_source_id if source_context else None,
-        "suggested_config": suggested_config(provider_id, suggested_project),
+        "suggested_config": suggested_config(provider, suggested_project),
         "next_question": next_question,
         "questions": questions,
         "credential_options": credential_options(provider),
@@ -107,19 +107,33 @@ def build_questions(
         if not name:
             continue
         suggested_value = suggested_value_for_field(provider, name, suggested_project)
-        questions.append(
-            {
-                "id": field_question_id(provider["id"], name),
-                "type": "text",
-                "text": question_text(provider, name, suggested_value=suggested_value),
-                "config_key": name,
-                "env": name,
-                "required": bool(field.get("required")),
-                "secret": bool(field.get("secret")),
-                "default": field.get("default"),
-                "suggested_value": suggested_value,
-            }
-        )
+        if field.get("secret") is True:
+            questions.append(
+                {
+                    "id": f"{field_question_id(provider['id'], name)}_env_ref",
+                    "type": "text",
+                    "text": f"Qual variavel de ambiente contem {name}?",
+                    "env_ref_key": name,
+                    "required": bool(field.get("required")),
+                    "secret": True,
+                    "stores_secret": False,
+                    "suggested_value": name,
+                }
+            )
+        else:
+            questions.append(
+                {
+                    "id": field_question_id(provider["id"], name),
+                    "type": "text",
+                    "text": question_text(provider, name, suggested_value=suggested_value),
+                    "config_key": name,
+                    "env": name,
+                    "required": bool(field.get("required")),
+                    "secret": False,
+                    "default": field.get("default"),
+                    "suggested_value": suggested_value,
+                }
+            )
     auth_methods = public_auth_methods(provider)
     if auth_methods:
         questions.append(
@@ -241,29 +255,41 @@ def credential_options(provider: dict[str, Any]) -> list[dict[str, Any]]:
     return unique
 
 
-def suggested_config(provider_id: str, suggested_project: str | None) -> dict[str, Any]:
+def suggested_config(provider: dict[str, Any], suggested_project: str | None) -> dict[str, Any]:
     config: dict[str, Any] = {}
-    if provider_id == "azure-devops" and suggested_project:
-        config["project"] = suggested_project
-        config["AZURE_DEVOPS_PROJECT"] = suggested_project
+    wizard = provider.get("wizard") if isinstance(provider.get("wizard"), dict) else {}
+    declared = wizard.get("suggested_config") if isinstance(wizard.get("suggested_config"), dict) else {}
+    for key, value in declared.items():
+        resolved = resolve_wizard_template(value, suggested_project=suggested_project)
+        if resolved is not None:
+            config[str(key)] = resolved
     return config
 
 
 def suggested_value_for_field(provider: dict[str, Any], name: str, suggested_project: str | None) -> str | None:
-    if provider.get("id") == "azure-devops" and name == "AZURE_DEVOPS_PROJECT" and suggested_project:
-        return suggested_project
-    return None
+    wizard = provider.get("wizard") if isinstance(provider.get("wizard"), dict) else {}
+    suggestions = wizard.get("field_suggestions") if isinstance(wizard.get("field_suggestions"), dict) else {}
+    return resolve_wizard_template(suggestions.get(name), suggested_project=suggested_project)
 
 
 def question_text(provider: dict[str, Any], name: str, *, suggested_value: str | None) -> str:
-    if provider.get("id") == "azure-devops" and name == "AZURE_DEVOPS_ORG":
-        return "Qual e a organizacao do Azure DevOps?"
-    if provider.get("id") == "azure-devops" and name == "AZURE_DEVOPS_PROJECT":
+    wizard = provider.get("wizard") if isinstance(provider.get("wizard"), dict) else {}
+    questions = wizard.get("questions") if isinstance(wizard.get("questions"), dict) else {}
+    if name in questions:
+        text = str(questions[name])
         if suggested_value:
-            return f'O projeto e "{suggested_value}"? Se nao, informe o nome correto.'
-        return "Qual e o nome do projeto no Azure DevOps?"
+            return f'{text} Valor sugerido: "{suggested_value}".'
+        return text
     label = name.replace("_", " ").lower()
     return f"Informe {label} para {provider.get('name') or provider.get('id')}."
+
+
+def resolve_wizard_template(value: Any, *, suggested_project: str | None) -> str | None:
+    if value == "prompt.project":
+        return suggested_project
+    if isinstance(value, str) and value:
+        return value
+    return None
 
 
 def field_question_id(provider_id: str, name: str) -> str:

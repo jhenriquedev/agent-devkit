@@ -1,0 +1,31 @@
+id: agent-devkit-agent-builder.scaffold-agent
+kind: capability
+name: Scaffold Agent
+version: 0.1.0
+status: draft
+purpose: >
+  Criar scaffold local de um novo agente interno do Agent DevKit em dry-run por
+  padrao, escrevendo arquivos apenas quando a execucao for explicitamente
+  confirmada.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  prompt: ../../knowledge/system.md
+  output_template: ../../templates/scaffold-plan-output.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow_overwrite
+outputs:
+  artifacts:
+    - scaffold-plan.json
+write_policy: confirm
+routing:
+  anchors:
+    - scaffold-agent
+    - gerar agente
+  intents:
+    - agent-devkit.agent-builder.scaffold
+  priority: 70

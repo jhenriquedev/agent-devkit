@@ -1,0 +1,11 @@
+policies:
+  default_mode: dry_run
+  allow_external_writes: false
+  allowed_root: agents
+  overwrite_requires_explicit_permission: true
+  forbidden_content_markers:
+    - SECRET
+    - TOKEN
+    - PASSWORD
+    - API_KEY
+    - PRIVATE_KEY

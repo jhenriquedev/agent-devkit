@@ -53,8 +53,17 @@ agent_surface:
 
 write_policy:
   source_reading: read_only
-  azure_card_reading: delegated_read_only
+  azure_card_reading: read_only
   diagram_generation: output_only
   refinement: output_only
   overwrite_operations: confirm
-  external_side_effects: unsupported
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - diagram
+    - diagrama
+    - drawio
+  intents:
+    - diagram.build
+  priority: 50

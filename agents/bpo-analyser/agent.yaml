@@ -60,5 +60,15 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
-  mutation_operations: unsupported
+  read_operations: read_only
+  mutation_operations: blocked_by_default
+
+routing:
+  anchors:
+    - bpo
+    - cpf
+    - proposal
+    - proposta
+  intents:
+    - bpo.proposal.analysis
+  priority: 50

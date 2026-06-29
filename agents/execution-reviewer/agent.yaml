@@ -9,6 +9,9 @@ purpose: >
   Revisar planos e resultados antes da conclusao, garantindo aderencia a
   contrato, evidencias, ausencia de segredo e qualidade operacional.
 
+runtime_role:
+  kind: reviewer
+
 default_context:
   - knowledge/system.md
   - knowledge/context.md
@@ -19,7 +22,6 @@ capabilities:
   - review-agent-result
 
 write_policy:
-  external_writes: never
-  default_mode: review-only
-  blocks_on_high_risk: true
-
+  external_writes: blocked_by_default
+  default_mode: read_only
+  blocks_on_high_risk: confirm

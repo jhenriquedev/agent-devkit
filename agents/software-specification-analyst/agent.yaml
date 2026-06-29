@@ -48,8 +48,21 @@ agent_surface:
     - ../../vendor/skills/CATALOG.md
 
 write_policy:
-  read_operations: auto
-  project_analysis: ask_before_creating_output_directory
-  specification_generation: ask_before_creating_output_directory
+  read_operations: read_only
+  project_analysis: output_only
+  specification_generation: output_only
   overwrite_operations: confirm
-  external_side_effects: unsupported
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - demanda
+    - especificacao
+    - historia
+    - requirements
+    - requisitos
+    - specification
+    - stories
+  intents:
+    - specification.analysis
+  priority: 60

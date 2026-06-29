@@ -11,5 +11,4 @@ inputs:
   optional: [template_version, templates_root]
 outputs:
   artifacts: [input-schema.xlsx, input-schema.md]
-write_policy: template_version_write
-
+write_policy: local_write

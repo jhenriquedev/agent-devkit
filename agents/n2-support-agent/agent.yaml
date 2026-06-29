@@ -29,6 +29,34 @@ depends_on_agents:
   - aws-cloudwatch-log-analyzer
   - elasticsearch-log-analyzer
 
+agent_mode:
+  type: workflow
+  max_steps: 15
+  max_specialists: 12
+  max_llm_calls: 1
+  timeout_seconds: 900
+  can_call_capabilities: true
+  can_call_llm: optional
+  can_request_user_input: true
+  external_writes: false
+  allowed_capabilities:
+    - n1-support-agent/execute-n1-card-runbook
+    - azure-devops-orchestrator/read-card
+    - azure-devops-orchestrator/comment-card
+    - azure-devops-orchestrator/update-card-tags
+    - azure-devops-orchestrator/move-card
+    - azure-devops-orchestrator/assign-card
+    - azure-devops-orchestrator/attach-file
+    - bpo-analyser/analyze-proposal
+    - postgres-data-analyzer/run-readonly-query
+    - sqlserver-data-analyzer/run-readonly-query
+    - aws-cloudwatch-log-analyzer/search-log-events
+    - elasticsearch-log-analyzer/search-log-events
+  stop_conditions:
+    - needs-input
+    - blocked
+    - max-steps
+
 capabilities:
   - execute-n2-investigation
   - load-support-context
@@ -66,10 +94,21 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
-  local_patch_plan: auto
+  read_operations: read_only
+  local_patch_plan: read_only
   azure_comment_operations: confirm
   azure_tag_operations: confirm
   azure_move_operations: confirm
   azure_attachment_operations: confirm
   external_mutations: confirm
+
+routing:
+  anchors:
+    - causa raiz
+    - n2
+    - patch
+    - root cause
+    - segundo nivel
+  intents:
+    - support.n2
+  priority: 80

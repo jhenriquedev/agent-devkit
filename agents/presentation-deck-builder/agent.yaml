@@ -49,7 +49,18 @@ agent_surface:
     - ../../vendor/skills/CATALOG.md
 
 write_policy:
-  template_registration: ask_before_write
-  template_overwrite: prohibited_for_validated_versions
+  template_registration: confirm
+  template_overwrite: blocked_by_default
   deck_generation: output_only
-  external_side_effects: unsupported
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - apresentacao
+    - deck
+    - powerpoint
+    - presentation
+    - slides
+  intents:
+    - presentation.deck
+  priority: 50

@@ -1,0 +1,17 @@
+policies:
+  supported_scope: selenium-webdriver-automation
+  selenium_reasons:
+    - existing-selenium
+    - selenium-grid
+    - remote-browser
+    - webdriver-required
+    - legacy-project
+    - browser-extension
+    - team-standard
+    - playwright-not-allowed
+  playwright_preference: problem 27
+  default_write_mode: dry_run
+  external_side_effects: blocked_by_default
+  secrets: never_persist
+  waits: explicit_webdriverwait_required
+  sleep: forbidden_as_primary_wait

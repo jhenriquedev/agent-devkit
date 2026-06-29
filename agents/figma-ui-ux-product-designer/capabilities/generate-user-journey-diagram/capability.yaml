@@ -14,4 +14,4 @@ outputs:
 integration:
   provider: figma
   tool: generate_diagram
-write_policy: ask_before_creating_output_directory
+write_policy: output_only

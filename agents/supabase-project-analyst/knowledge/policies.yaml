@@ -1,0 +1,24 @@
+write_policy:
+  inspect: read_only
+  audit: read_only
+  report: output_only
+  fix_plan: dry_run
+  execute_sql: blocked_by_default
+  apply_migration: blocked_by_default
+  remote_config: blocked_by_default
+security:
+  redact_secret_markers:
+    - SUPABASE_ACCESS_TOKEN
+    - SUPABASE_DB_URL
+    - SUPABASE_SERVICE_ROLE_KEY
+    - service_role
+    - jwt_secret
+  exposed_schemas:
+    - public
+  disallow_authorization_sources:
+    - raw_user_meta_data
+    - user_metadata
+provider:
+  supabase_mcp_optional: true
+  cli_help_only_in_readiness: true
+  fallback: use_user_supplied_context

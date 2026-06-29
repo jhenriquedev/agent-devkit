@@ -1,0 +1,20 @@
+id: selenium-automation-builder.generate-selenium-project-files
+kind: capability
+name: Generate Selenium Project Files
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever pacote local de automacao Selenium.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/selenium-readme.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - selenium-project-files.json
+write_policy: local_write

@@ -6,6 +6,7 @@ from typing import Any
 
 from cli.aikit.llm import invoke_agent_prompt
 from cli.aikit.memory import redact_secrets
+from cli.aikit.mini_brain import summarize_mini_brain
 
 
 FORBIDDEN_DELEGATION_MARKERS = (
@@ -25,6 +26,24 @@ FORBIDDEN_DELEGATION_MARKERS = (
 def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[str, Any]:
     """Execute a bounded operational task with Ollama when the model plan selected it."""
     delegation = model_plan.get("delegation") if isinstance(model_plan.get("delegation"), dict) else {}
+    if model_plan.get("strategy") != "mini-brain":
+        return skipped(
+            "strategy-not-mini-brain",
+            "Local LLM delegation was not selected by the model strategy.",
+            model_plan=model_plan,
+        )
+    if model_plan.get("risk") == "high":
+        return skipped(
+            "high-risk",
+            "High-risk tasks cannot be delegated to local LLM workers.",
+            model_plan=model_plan,
+        )
+    if int(model_plan.get("max_llm_calls") or 0) <= 0:
+        return skipped(
+            "llm-budget-not-available",
+            "Model plan does not allow local LLM calls.",
+            model_plan=model_plan,
+        )
     if not model_plan.get("local_llm_selected") or not delegation.get("selected"):
         return skipped("not-selected", "Local LLM delegation was not selected for this prompt.", model_plan=model_plan)
     lowered = prompt.lower()
@@ -46,6 +65,10 @@ def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[st
         "ok": bool(result.get("ok")),
         "llm_backend": result.get("llm_backend"),
         "model_provider": "ollama",
+        "mini_brain": summarize_mini_brain(model_plan.get("mini_brain")),
+        "strategy": model_plan.get("strategy"),
+        "risk": model_plan.get("risk"),
+        "confidence": model_plan.get("confidence"),
         "delegated_prompt": redact_secrets(delegated_prompt),
         "response": result.get("response"),
         "result": sanitize_llm_result(result),
@@ -58,12 +81,19 @@ def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[st
 
 def build_delegated_prompt(prompt: str, model_plan: dict[str, Any]) -> str:
     forbidden = ", ".join((model_plan.get("delegation") or {}).get("forbidden_actions") or [])
+    mini_brain = model_plan.get("mini_brain") if isinstance(model_plan.get("mini_brain"), dict) else {}
+    allowed_tasks = ", ".join(mini_brain.get("allowed_tasks") or [])
+    forbidden_tasks = ", ".join(mini_brain.get("forbidden_tasks") or [])
+    limits = mini_brain.get("limits") if isinstance(mini_brain.get("limits"), dict) else {}
+    response_limit = limits.get("max_response_chars") or 2000
     return "\n".join(
         [
             "Execute apenas a parte operacional da tarefa abaixo.",
             "Nao tome decisao final, nao aprove, nao escreva externamente e nao revise a entrega final.",
+            f"Escopo permitido do mini-brain: {allowed_tasks}.",
+            f"Tarefas proibidas do mini-brain: {forbidden_tasks}.",
             f"Acoes proibidas: {forbidden}.",
-            "Retorne um resumo estruturado, evidencias extraidas, lacunas e confianca.",
+            f"Retorne no maximo {response_limit} caracteres com resumo estruturado, evidencias extraidas, lacunas e confianca.",
             "",
             "Tarefa original:",
             redact_secrets(prompt),
@@ -97,6 +127,10 @@ def skipped(reason: str, message: str, *, model_plan: dict[str, Any]) -> dict[st
         "reason": reason,
         "message": message,
         "model_provider": model_plan.get("local_llm_provider") or "ollama",
+        "mini_brain": summarize_mini_brain(model_plan.get("mini_brain")),
+        "strategy": model_plan.get("strategy"),
+        "risk": model_plan.get("risk"),
+        "confidence": model_plan.get("confidence"),
         "requires_review": bool(model_plan.get("local_llm_recommended") or model_plan.get("local_llm_selected")),
     }
 

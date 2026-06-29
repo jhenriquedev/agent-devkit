@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from cli.aikit.write_policy import (
+    is_autonomous_safe_write_policy,
+    normalize_write_policy,
+    write_policy_public_fields,
+)
+
 
 RunCapability = Callable[[dict[str, Any], str, list[str]], dict[str, Any]]
 LoadAgent = Callable[[str], dict[str, Any]]
@@ -23,7 +29,7 @@ def execute_plan_tasks(
         if not task.get("executable"):
             blocked.append(blocked_task(task, "Capability has no executable runner."))
             continue
-        if str(task.get("write_policy") or "") not in {"read_only", "dry_run"}:
+        if not is_autonomous_safe_write_policy(task.get("write_policy")):
             blocked.append(blocked_task(task, "Capability requires explicit confirmation for external write effects."))
             continue
         try:
@@ -43,12 +49,17 @@ def execute_plan_tasks(
 def public_task_result(task: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": task.get("id"),
+        "task_id": task.get("task_id") or task.get("id"),
         "agent_id": task.get("agent_id"),
         "capability_id": task.get("capability_id"),
+        "role": task.get("role"),
+        "depends_on": list(task.get("depends_on") or []),
+        "handoff": task.get("handoff") if isinstance(task.get("handoff"), dict) else {},
         "status": result.get("status"),
         "ok": bool(result.get("ok")),
         "provider": task.get("provider"),
-        "write_policy": task.get("write_policy"),
+        "write_policy": normalize_write_policy(task.get("write_policy")),
+        "write_policy_metadata": task_write_policy_metadata(task),
         "result": result,
     }
 
@@ -56,11 +67,23 @@ def public_task_result(task: dict[str, Any], result: dict[str, Any]) -> dict[str
 def blocked_task(task: dict[str, Any], reason: str) -> dict[str, Any]:
     return {
         "id": task.get("id"),
+        "task_id": task.get("task_id") or task.get("id"),
         "agent_id": task.get("agent_id"),
         "capability_id": task.get("capability_id"),
+        "role": task.get("role"),
+        "depends_on": list(task.get("depends_on") or []),
+        "handoff": task.get("handoff") if isinstance(task.get("handoff"), dict) else {},
         "status": "blocked",
         "ok": False,
         "provider": task.get("provider"),
-        "write_policy": task.get("write_policy"),
+        "write_policy": normalize_write_policy(task.get("write_policy")),
+        "write_policy_metadata": task_write_policy_metadata(task),
         "reason": reason,
     }
+
+
+def task_write_policy_metadata(task: dict[str, Any]) -> dict[str, Any]:
+    metadata = task.get("write_policy_metadata")
+    if isinstance(metadata, dict):
+        return metadata
+    return write_policy_public_fields(task.get("write_policy"))["write_policy_metadata"]

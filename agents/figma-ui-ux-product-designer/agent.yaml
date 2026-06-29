@@ -84,13 +84,13 @@ agent_surface:
     - ../../vendor/plugins/CATALOG.md
 
 write_policy:
-  read_operations: auto
-  local_artifacts: ask_before_creating_output_directory
-  figma_create_file: confirm_with_yes_figma_write
-  figma_update_existing_file: confirm_with_yes_figma_write
+  read_operations: read_only
+  local_artifacts: output_only
+  figma_create_file: confirm
+  figma_update_existing_file: confirm
   figma_comments: confirm
   azure_card_comment: confirm
-  destructive_design_changes: forbidden_by_default
+  destructive_design_changes: blocked_by_default
 
 execution_quality_gates:
   direct_mode_requires:
@@ -104,3 +104,15 @@ execution_quality_gates:
     - inspected_node_ids
   forbidden_claims:
     - claim_created_or_updated_figma_without_bridge_result
+
+routing:
+  anchors:
+    - design
+    - figma
+    - tela
+    - ui
+    - ux
+    - wireframe
+  intents:
+    - design.ui-ux
+  priority: 50

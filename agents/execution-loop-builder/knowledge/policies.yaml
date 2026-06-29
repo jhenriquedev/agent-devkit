@@ -1,0 +1,13 @@
+policies:
+  supported_scope: local-execution-loop-design
+  default_write_mode: dry_run
+  real_loop_execution: blocked_by_default
+  external_writes: blocked_by_default
+  destructive_steps: blocked_by_default
+  max_iterations_required: true
+  max_runtime_seconds_required: true
+  stop_when_required: true
+  state_persistence_required: true
+  audit_per_iteration_required: true
+  scheduler_registration_requires_execute: true
+  notification_spam_guard: required

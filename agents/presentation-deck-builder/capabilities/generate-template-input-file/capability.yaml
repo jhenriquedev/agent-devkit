@@ -20,4 +20,4 @@ outputs:
 integration:
   repository: null
   methods: []
-write_policy: template_version_write
+write_policy: local_write

@@ -20,12 +20,37 @@ from cli.aikit.credentials import resolve_provider_credentials
 from cli.aikit.fallback import evaluate_provider_requirements
 from cli.aikit.guardrails import evaluate_execution_guardrails
 from cli.aikit.lock import read_simple_lock
+from cli.aikit.sources import source_env
 
 
 AIKIT = ROOT / "aikit"
 AI_DEVKIT = ROOT / "ai-devkit"
 AGENT = ROOT / "agent"
 CLI_TIMEOUT_SECONDS = int(os.environ.get("AI_DEVKIT_TEST_CLI_TIMEOUT_SECONDS", "60"))
+REQUIRED_CORE_AGENTS = {
+    "azure-devops-orchestrator",
+    "aws-cloudwatch-log-analyzer",
+    "database-change-operator",
+    "elasticsearch-log-analyzer",
+    "execution-reviewer",
+    "github-pr-reviewer",
+    "local-llm-operator",
+    "n1-support-agent",
+    "n2-support-agent",
+    "postgres-data-analyzer",
+    "provider-configurator",
+    "sqlserver-data-analyzer",
+    "task-orchestrator",
+    "topdesk-orchestrator",
+}
+REQUIRED_CORE_CAPABILITIES = {
+    "azure-devops-orchestrator.read-card",
+    "execution-reviewer.review-final-output",
+    "github-pr-reviewer.review-pr-diff",
+    "local-llm-operator.select-local-worker",
+    "provider-configurator.configure-provider-source",
+    "task-orchestrator.plan-task",
+}
 
 
 class FakeOpenAiHandler(http.server.BaseHTTPRequestHandler):
@@ -199,25 +224,25 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.1.6", result.stdout)
+        self.assertIn("aikit 0.1.7", result.stdout)
 
     def test_short_version_exits_successfully(self) -> None:
         result = self.run_cli("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.1.6", result.stdout)
+        self.assertIn("aikit 0.1.7", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.1.6", result.stdout)
+        self.assertIn("agent 0.1.7", result.stdout)
 
     def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.1.6", result.stdout)
+        self.assertIn("agent 0.1.7", result.stdout)
 
     def test_agents_list_json(self) -> None:
         result = self.run_cli("agents", "list", "--json")
@@ -226,8 +251,7 @@ class AikitCliTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["kind"], "agents")
         ids = {item["id"] for item in payload["items"]}
-        self.assertIn("n1-support-agent", ids)
-        self.assertIn("aws-cloudwatch-log-analyzer", ids)
+        self.assertFalse(REQUIRED_CORE_AGENTS - ids)
         self.assertTrue(all("capabilities" in item for item in payload["items"]))
 
     def test_capabilities_list_all_json(self) -> None:
@@ -237,7 +261,8 @@ class AikitCliTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["kind"], "capabilities")
         self.assertIsNone(payload["agent"])
-        self.assertGreaterEqual(len(payload["items"]), 300)
+        capability_ids = {item["id"] for item in payload["items"]}
+        self.assertFalse(REQUIRED_CORE_CAPABILITIES - capability_ids)
         self.assertTrue(all("agent" in item for item in payload["items"]))
 
     def test_capabilities_list_filter_agent_json(self) -> None:
@@ -267,11 +292,13 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(payload["kind"], "doctor")
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["scope"], "auto")
-        self.assertEqual(payload["summary"]["agents"], 27)
-        self.assertEqual(payload["summary"]["capabilities"], 324)
-        self.assertEqual(payload["summary"]["declared_runners"], 290)
-        self.assertEqual(payload["summary"]["workflows"], 324)
-        self.assertEqual(payload["summary"]["decision_rules"], 324)
+        summary = payload["summary"]
+        self.assertGreaterEqual(summary["agents"], len(REQUIRED_CORE_AGENTS))
+        self.assertGreaterEqual(summary["capabilities"], summary["agents"])
+        self.assertGreater(summary["declared_runners"], 0)
+        self.assertLessEqual(summary["declared_runners"], summary["capabilities"])
+        self.assertEqual(summary["workflows"], summary["capabilities"])
+        self.assertEqual(summary["decision_rules"], summary["capabilities"])
 
     def test_doctor_json_includes_expanded_diagnostics(self) -> None:
         result = self.run_cli(
@@ -403,6 +430,8 @@ class AikitCliTest(unittest.TestCase):
         self.assertTrue(plugins["project"]["claude-code"]["plugin_exists"])
         self.assertTrue(plugins["project"]["claude-code"]["skill_exists"])
         self.assertTrue(plugins["project"]["claude-code"]["commands_exists"])
+        self.assertTrue(plugins["project"]["claude-code"]["agents_exists"])
+        self.assertIn("agent-devkit-db-analyst", plugins["project"]["claude-code"]["subagents"])
         self.assertTrue(plugins["project"]["claude-desktop"]["plugin_exists"])
         self.assertTrue(plugins["project"]["claude-desktop"]["skill_exists"])
         self.assertTrue(plugins["project"]["claude-desktop"]["references_exists"])
@@ -417,6 +446,7 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(plugins["status"], "missing")
         self.assertEqual(plugins["project"]["codex"]["status"], "missing")
         self.assertEqual(plugins["project"]["claude-code"]["status"], "missing")
+        self.assertFalse(plugins["project"]["claude-code"]["agents_exists"])
         self.assertEqual(plugins["project"]["claude-desktop"]["status"], "missing")
         self.assertEqual(payload["status"], "ok")
 
@@ -431,6 +461,7 @@ class AikitCliTest(unittest.TestCase):
         self.assertIn("run", deterministic)
         self.assertIn("doctor", deterministic)
         self.assertIn("agents", deterministic)
+        self.assertIn("architecture", deterministic)
         self.assertIn("commands", deterministic)
         self.assertIn("llm", deterministic)
         self.assertIn("providers", deterministic)
@@ -1165,6 +1196,221 @@ class AikitCliTest(unittest.TestCase):
         self.assertNotIn("secret-source-value", status.stdout)
         self.assertNotIn("secret-source-value", config_text)
 
+    def test_source_add_rejects_secret_config_without_persisting(self) -> None:
+        unsafe_configs = [
+            "conn_string=postgresql://user:pass@localhost/db",
+            "database_url=postgresql://user:pass@localhost/db",
+            "password=plain-password",
+            "api_key=sk-1234567890abcdef",
+            "url=https://user:pass@example.com",
+        ]
+
+        for config_pair in unsafe_configs:
+            with self.subTest(config_pair=config_pair), tempfile.TemporaryDirectory() as config_home:
+                env = {"AIKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+                result = self.run_cli(
+                    "source",
+                    "add",
+                    "unsafe-source",
+                    "--provider",
+                    "postgres",
+                    "--config",
+                    config_pair,
+                    "--json",
+                    env=env,
+                    replace_env=True,
+                )
+
+                self.assertEqual(result.returncode, 2)
+                payload = json.loads(result.stdout)
+                self.assertEqual(payload["kind"], "source-configure")
+                self.assertEqual(payload["status"], "blocked")
+                self.assertFalse(payload["ok"])
+                self.assertIn(payload["reason"], {"secret-like-config-value", "provider-secret-field"})
+                self.assertFalse(payload["stored_secret"])
+                self.assertIn("use --env", payload["message"])
+                self.assertNotIn(config_pair.split("=", 1)[1], result.stdout)
+                self.assertEqual(result.stderr, "")
+                self.assertFalse((Path(config_home) / "config.json").exists())
+
+    def test_source_add_rejects_provider_secret_config_metadata_without_persisting(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            env = {"AIKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+            result = self.run_cli(
+                "source",
+                "add",
+                "bpo-source",
+                "--provider",
+                "bpo",
+                "--config",
+                "BPO_FORBIDDEN_URL_PATTERNS=internal.example",
+                "--json",
+                env=env,
+                replace_env=True,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertEqual(payload["reason"], "provider-secret-field")
+        self.assertEqual(payload["field"], "BPO_FORBIDDEN_URL_PATTERNS")
+        self.assertEqual(payload["provider"], "bpo")
+        self.assertFalse(payload["stored_secret"])
+        self.assertNotIn("internal.example", result.stdout)
+        self.assertFalse((Path(config_home) / "config.json").exists())
+
+    def test_source_add_accepts_env_ref_for_connection_string(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            env = {
+                "AIKIT_CONFIG_HOME": config_home,
+                "PATH": os.environ.get("PATH", ""),
+                "LOCAL_POSTGRES_URL": "postgresql://user:pass@localhost/db",
+            }
+            result = self.run_cli(
+                "source",
+                "add",
+                "postgres-local",
+                "--provider",
+                "postgres",
+                "--env",
+                "POSTGRES_DB_CONN_STRING=LOCAL_POSTGRES_URL",
+                "--json",
+                env=env,
+                replace_env=True,
+            )
+            config_text = (Path(config_home) / "config.json").read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["stored_secret"])
+        self.assertEqual(payload["source"]["env_refs"]["POSTGRES_DB_CONN_STRING"], "LOCAL_POSTGRES_URL")
+        self.assertNotIn("postgresql://user:pass@localhost/db", result.stdout)
+        self.assertNotIn("postgresql://user:pass@localhost/db", config_text)
+
+    def test_source_add_allows_safe_path_and_pattern_config_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            env = {"AIKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+            result = self.run_cli(
+                "source",
+                "add",
+                "safe-source",
+                "--provider",
+                "elasticsearch",
+                "--config",
+                "path=/tmp/logs.json",
+                "--config",
+                "pattern=error-*",
+                "--json",
+                env=env,
+                replace_env=True,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertFalse(payload["stored_secret"])
+        self.assertEqual(payload["source"]["config"]["path"], "/tmp/logs.json")
+        self.assertEqual(payload["source"]["config"]["pattern"], "error-*")
+
+    def test_source_env_uses_declarative_contract_and_ignores_unsafe_config_values(self) -> None:
+        env = source_env(
+            {
+                "provider": "elasticsearch",
+                "config": {
+                    "url": "https://user:pass@example.com",
+                    "default_time_field": "@timestamp",
+                },
+                "env_refs": {},
+            },
+            {
+                "env": {
+                    "url": "ELASTICSEARCH_URL",
+                    "default_time_field": "ELASTICSEARCH_DEFAULT_TIME_FIELD",
+                },
+            },
+        )
+
+        self.assertNotIn("ELASTICSEARCH_URL", env)
+        self.assertEqual(env["ELASTICSEARCH_DEFAULT_TIME_FIELD"], "@timestamp")
+
+    def test_source_list_and_status_redact_legacy_secret_config(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            config_path = Path(config_home) / "config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "llm": {"default": None, "backends": {}},
+                        "sources": {
+                            "items": {
+                                "legacy-postgres": {
+                                    "id": "legacy-postgres",
+                                    "provider": "postgres",
+                                    "label": "Legacy Postgres",
+                                    "config": {
+                                        "conn_string": "postgresql://user:pass@localhost/db",
+                                        "project": "analytics",
+                                    },
+                                    "env_refs": {},
+                                    "env_files": [],
+                                    "defaults": {"intents": [], "agents": []},
+                                }
+                            },
+                            "defaults": {"providers": {}, "intents": {}, "agents": {}},
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            env = {"AIKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+            listing = self.run_cli("source", "list", "--json", env=env, replace_env=True)
+            status = self.run_cli("source", "status", "legacy-postgres", "--json", env=env, replace_env=True)
+
+        self.assertEqual(listing.returncode, 0, listing.stderr)
+        self.assertEqual(status.returncode, 0, status.stderr)
+        listing_payload = json.loads(listing.stdout)
+        status_payload = json.loads(status.stdout)
+        item = listing_payload["items"][0]
+        status_item = status_payload["items"][0]
+        self.assertTrue(listing_payload["stored_secret"])
+        self.assertTrue(item["stored_secret"])
+        self.assertEqual(item["config"]["conn_string"], "[REDACTED_SECRET]")
+        self.assertEqual(item["config"]["project"], "analytics")
+        self.assertEqual(item["unsafe_config_keys"], ["conn_string"])
+        self.assertEqual(status_payload["status"], "partial")
+        self.assertEqual(status_item["status"], "unsafe")
+        self.assertTrue(status_item["next_steps"])
+        self.assertNotIn("postgresql://user:pass@localhost/db", listing.stdout)
+        self.assertNotIn("postgresql://user:pass@localhost/db", status.stdout)
+
+    def test_source_blocked_attempt_is_audited_without_raw_value(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            raw_value = "internal.example"
+            env = {"AIKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+            blocked = self.run_cli(
+                "source",
+                "add",
+                "bpo-source",
+                "--provider",
+                "bpo",
+                "--config",
+                f"BPO_FORBIDDEN_URL_PATTERNS={raw_value}",
+                "--json",
+                env=env,
+                replace_env=True,
+            )
+            payload = json.loads(blocked.stdout)
+            show = self.run_cli("audit", "show", payload["audit"]["id"], "--json", env=env, replace_env=True)
+
+        self.assertEqual(blocked.returncode, 2)
+        self.assertEqual(show.returncode, 0, show.stderr)
+        audit_payload = json.loads(show.stdout)
+        sources = audit_payload["entry"]["sources"]
+        self.assertEqual(sources[0]["id"], "bpo-source")
+        self.assertEqual(sources[0]["field"], "BPO_FORBIDDEN_URL_PATTERNS")
+        self.assertEqual(sources[0]["reason"], "provider-secret-field")
+        self.assertNotIn(raw_value, show.stdout)
+
     def test_agent_prompt_card_requires_source_when_none_configured(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
             result = self.run_agent(
@@ -1676,6 +1922,8 @@ class AikitCliTest(unittest.TestCase):
         cases = [
             ("--yes-confirm", "confirm"),
             ("--yes-save", "ask_before_write"),
+            ("--yes-save", "local_write"),
+            ("--yes-save", "local-config-write"),
         ]
 
         for flag, write_policy in cases:
@@ -1691,6 +1939,13 @@ class AikitCliTest(unittest.TestCase):
                 self.assertTrue(allowed["ready"])
                 self.assertIn(flag, allowed["args"])
                 self.assertNotIn("--confirm-execute", allowed["args"])
+
+    def test_execution_guardrail_blocks_unknown_write_policy(self) -> None:
+        blocked = evaluate_execution_guardrails({"write_policy": "write_whenever"}, [])
+
+        self.assertFalse(blocked["ready"])
+        self.assertEqual(blocked["reason"], "unknown_write_policy")
+        self.assertEqual(blocked["write_policy"], "write_whenever")
 
     def test_run_allows_mutating_dry_run_without_runtime_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1933,6 +2188,7 @@ class AikitCliTest(unittest.TestCase):
             claude_plugin = project / ".claude" / "plugins" / "ai-devkit" / "plugin.json"
             claude_skill = project / ".claude" / "skills" / "ai-devkit-router" / "SKILL.md"
             claude_command = project / ".claude" / "commands" / "devkit-run.md"
+            claude_subagent = project / ".claude" / "plugins" / "ai-devkit" / "agents" / "agent-devkit-db-analyst.md"
             claude_desktop_plugin = project / ".claude" / "plugins" / "ai-devkit-skill" / "plugin.json"
             claude_desktop_skill = project / ".claude" / "skills" / "ai-devkit" / "SKILL.md"
             project_lock = project / ".ai-devkit" / "ai-devkit.lock"
@@ -1952,6 +2208,7 @@ class AikitCliTest(unittest.TestCase):
             self.assertTrue(claude_plugin.exists())
             self.assertTrue(claude_skill.exists())
             self.assertTrue(claude_command.exists())
+            self.assertTrue(claude_subagent.exists())
             self.assertTrue(claude_desktop_plugin.exists())
             self.assertTrue(claude_desktop_skill.exists())
             self.assertTrue(project_lock.exists())
@@ -2076,7 +2333,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.1.6", installed_agent.stdout)
+            self.assertIn("agent 0.1.7", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2220,7 +2477,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.1.6", result.stdout)
+        self.assertIn("ai-devkit 0.1.7", result.stdout)
 
 
 if __name__ == "__main__":

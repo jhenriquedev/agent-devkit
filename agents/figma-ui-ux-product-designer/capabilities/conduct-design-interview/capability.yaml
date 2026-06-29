@@ -11,4 +11,4 @@ inputs:
   optional: [brief, source, platform, scope, target_audience, design_style, output_dir]
 outputs:
   artifacts: [design-brief.md, open-design-questions.md, source-traceability.md]
-write_policy: ask_before_creating_output_directory
+write_policy: output_only

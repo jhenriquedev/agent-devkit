@@ -26,3 +26,4 @@ queries, runbooks, and manual steps without pretending local execution happened.
 - For support workflows, read `references/sustentacao.md`.
 - For infrastructure workflows, read `references/infra.md`.
 - For development/specification workflows, read `references/desenvolvimento.md`.
+- For Claude Code subagent patterns, read `references/subagents.md`.

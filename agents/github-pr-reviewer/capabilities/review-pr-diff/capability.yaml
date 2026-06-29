@@ -4,7 +4,7 @@ name: Review PR diff
 status: draft
 version: 0.1.0
 purpose: Carregar diff e gerar revisao report-only.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
   output_template: ../../templates/pr-review-output.md

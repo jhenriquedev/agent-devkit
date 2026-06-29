@@ -1,0 +1,36 @@
+id: automation-architect.review-automation-solution
+kind: capability
+name: Review Automation Solution
+version: 0.1.0
+status: draft
+purpose: Revisar plano ou solucao de automacao contra escolha tecnologica, riscos, secrets e policies.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional:
+    - request
+    - spec
+    - solution
+outputs:
+  artifacts:
+    - automation-review.json
+write_policy: read_only
+routing:
+  anchors:
+    - revisar-automacao
+    - automation-review
+    - review-automation
+  keywords:
+    - revisar
+    - review
+    - risco
+    - guardrails
+    - automacao
+  intents:
+    - automation.review
+  examples:
+    - revise esta solucao de automacao
+    - avalie riscos da automacao
+  priority: 70

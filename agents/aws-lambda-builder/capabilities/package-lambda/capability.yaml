@@ -1,0 +1,22 @@
+id: aws-lambda-builder.package-lambda
+kind: capability
+name: Package Lambda
+version: 0.1.0
+status: draft
+purpose: Empacotar projeto Lambda localmente em zip, sem deploy.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/lambda-package.md
+inputs:
+  required:
+    - project-path
+  optional:
+    - output-dir
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - lambda-package.json
+    - lambda.zip
+write_policy: local_write

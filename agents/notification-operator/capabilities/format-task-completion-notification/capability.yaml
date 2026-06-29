@@ -1,0 +1,25 @@
+id: notification-operator.format-task-completion-notification
+kind: capability
+name: Format Task Completion Notification
+version: 0.1.0
+status: draft
+purpose: Normalizar payload canonico de notificacao sem executar envio.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required:
+    - summary
+  optional:
+    - event
+    - status
+    - task_id
+    - title
+    - artifact
+    - next_step
+    - severity
+    - sensitive
+outputs:
+  artifacts:
+    - notification-event.json
+write_policy: read_only

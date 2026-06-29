@@ -1439,7 +1439,7 @@ class DataScientistAnalystRunnersTest(unittest.TestCase):
         self.assertIn("write_policy", policies)
         self.assertIn("pii_masking", policies)
         self.assertIn("decision_rules", policies)
-        self.assertEqual(policies["write_policy"]["source_mutation"], "unsupported")
+        self.assertEqual(policies["write_policy"]["source_mutation"], "blocked_by_default")
         masked = policies["pii_masking"]["mask_if_sensitive"]
         for field in ["cpf", "cnpj", "email", "telefone", "nome"]:
             self.assertIn(field, masked, f"pii_masking must cover '{field}'")

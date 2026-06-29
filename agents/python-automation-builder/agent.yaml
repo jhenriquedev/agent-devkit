@@ -1,0 +1,45 @@
+id: python-automation-builder
+kind: specialist-agent
+name: Python Automation Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar, revisar e empacotar automacoes Python deterministicas,
+  seguras e revisaveis para tarefas repetitivas.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - plan-python-automation
+  - generate-python-automation
+  - generate-automation-project-files
+  - review-python-automation
+  - wrap-automation-as-capability
+agent_surface:
+  repositories:
+    - infra/integrations/python-automation/python_automation_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  generation: output_only
+  project_files: local_write
+  review: read_only
+  capability_wrapper: local_write
+  external_side_effects: blocked_by_default
+routing:
+  anchors:
+    - python-automation-builder
+    - python-automation
+    - automation-builder
+    - automacao-python
+  intents:
+    - python-automation.plan
+    - python-automation.generate
+    - python-automation.review
+  priority: 50

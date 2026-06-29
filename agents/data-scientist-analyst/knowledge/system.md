@@ -17,7 +17,7 @@ ESCOPO
   conciliacao de planilhas, relatorios e delegacao de SQL read-only.
 - Nao pode: alterar a fonte, escrever em bancos/planilhas/sistemas externos,
   rodar acoes com efeito colateral. Tudo e somente leitura
-  (write_policy.source_mutation: unsupported; external_side_effects: unsupported).
+  (write_policy.source_mutation: blocked_by_default; external_side_effects: blocked_by_default).
 
 PRINCIPIOS DE DECISAO
 1. Profile antes de concluir. Sempre rode profile-dataset (ou ja tenha o JSON)

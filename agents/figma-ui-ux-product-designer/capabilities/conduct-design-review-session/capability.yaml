@@ -11,4 +11,4 @@ inputs:
   optional: [brief, feedback, figma_file_url, source, output_dir]
 outputs:
   artifacts: [feedback-triage.md, open-design-questions.md, design-quality-report.md]
-write_policy: ask_before_creating_output_directory
+write_policy: output_only

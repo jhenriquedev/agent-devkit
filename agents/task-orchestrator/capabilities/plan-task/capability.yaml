@@ -4,7 +4,7 @@ name: Plan Task
 version: 0.1.6
 status: draft
 purpose: Criar um plano multiagente a partir de um prompt livre.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: [dry_run, project]
 outputs:
   artifacts: [execution-plan]
-

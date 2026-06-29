@@ -37,6 +37,23 @@ agents/<agent-id>/
 
 ## Agentes atuais
 
+- `agent-devkit-agent-builder`: especialista interno para planejar, criar
+  scaffold e validar novos agentes do proprio Agent DevKit.
+- `automation-architect`: especialista em classificar pedidos de automacao,
+  escolher tecnologia adequada e delegar por contrato para builders
+  especializados.
+- `generic-agent-builder`: especialista em planejar, gerar e revisar agentes
+  genericos portaveis para projetos e hosts externos.
+- `python-automation-builder`: especialista em planejar, gerar, revisar e
+  empacotar automacoes Python seguras para tarefas repetitivas.
+- `selenium-automation-builder`: especialista em planejar, gerar e revisar
+  automacoes Selenium/WebDriver quando houver requisito tecnico para Selenium.
+- `pyautogui-automation-builder`: especialista em planejar, gerar e revisar
+  automacoes desktop visuais com PyAutoGUI como ultimo recurso.
+- `playwright-automation-builder`: especialista em planejar, gerar, revisar e
+  executar checks controlados de automacoes web modernas com Playwright.
+- `aws-lambda-builder`: especialista em planejar, gerar, revisar e empacotar
+  projetos AWS Lambda locais sem executar deploy real.
 - `aws-architecture-analyst`: especialista em analise arquitetural AWS
   read-only.
 - `aws-cloudwatch-log-analyzer`: especialista em AWS CloudWatch Logs.
@@ -50,6 +67,10 @@ agents/<agent-id>/
 - `data-scientist-analyst`: especialista em analise de dados tabulares,
   profiling, conciliacao e relatorios tecnicos.
 - `database-change-operator`: especialista em mudancas controladas em Postgres.
+- `docker-container-builder`: especialista em planejar, gerar e revisar
+  artefatos Docker locais sem executar build, push ou deploy real.
+- `execution-loop-builder`: especialista em planejar, gerar, revisar e
+  registrar loops de execucao controlados com budgets e criterios de parada.
 - `drawio-diagram-builder`: especialista em diagramas Draw.io editaveis a
   partir de fontes reais, entrevista, geracao, revisao e refinamento.
 - `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
@@ -74,6 +95,11 @@ agents/<agent-id>/
   de apresentacoes PowerPoint.
 - `postgres-data-analyzer`: especialista em analise read-only forte de dados
   Postgres.
+- `supabase-project-analyst`: especialista em inspecao local e auditoria
+  report-only de projetos Supabase, RLS, Auth, Storage, migrations e planos de
+  correcao sem aplicar mudancas reais.
+- `notification-operator`: agente runtime para formatar, enviar e configurar
+  notificacoes locais de tarefas com payload canonico.
 - `provider-configurator`: agente runtime para conduzir wizard de configuracao
   de providers, sources e referencias seguras de credenciais.
 - `sqlserver-data-analyzer`: especialista em analise read-only de dados SQL

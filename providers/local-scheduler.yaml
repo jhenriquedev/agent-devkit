@@ -8,7 +8,7 @@ config_fields: []
 health_check:
   command: agent scheduler run-once --dry-run
 risk:
-  default: local-write
+  default: local_write
   writes: true
 fallbacks:
   - dry_run

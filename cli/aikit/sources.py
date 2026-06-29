@@ -4,49 +4,61 @@ from __future__ import annotations
 
 import os
 import re
+import urllib.parse
 from pathlib import Path
 from typing import Any
 
 from cli.aikit.llm import config_path, load_config, save_config
+from cli.aikit.memory import redact_secrets
+from cli.aikit.providers import ProviderRegistryError, load_providers, provider_or_error
+from cli.aikit.runtime_paths import ROOT
 
 
 SOURCE_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 ENV_VAR_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-
-PROVIDER_CONFIG_ENV: dict[str, dict[str, str]] = {
-    "azure-devops": {
-        "AZURE_DEVOPS_ORG": "AZURE_DEVOPS_ORG",
-        "AZURE_DEVOPS_PROJECT": "AZURE_DEVOPS_PROJECT",
-        "AZURE_DEVOPS_API_VERSION": "AZURE_DEVOPS_API_VERSION",
-        "org": "AZURE_DEVOPS_ORG",
-        "organization": "AZURE_DEVOPS_ORG",
-        "project": "AZURE_DEVOPS_PROJECT",
-        "api_version": "AZURE_DEVOPS_API_VERSION",
-    },
-    "aws": {
-        "profile": "AWS_PROFILE",
-        "region": "AWS_REGION",
-    },
-    "elasticsearch": {
-        "url": "ELASTICSEARCH_URL",
-        "default_time_field": "ELASTICSEARCH_DEFAULT_TIME_FIELD",
-    },
-    "postgres": {
-        "conn_string": "POSTGRES_DB_CONN_STRING",
-        "database_url": "POSTGRES_DB_CONN_STRING",
-    },
-    "sqlserver": {
-        "conn_string": "SQLSERVER_DB_CONN_STRING",
-    },
-    "topdesk": {
-        "base_url": "TOPDESK_BASE_URL",
-        "username": "TOPDESK_USERNAME",
-    },
+URL_USERINFO_PATTERN = re.compile(r"(?i)://[^/\s:@]+(?::[^@\s/]*)?@")
+SECRET_KEY_MARKERS = (
+    "api_key",
+    "apikey",
+    "chave",
+    "conn_string",
+    "connection_string",
+    "database_url",
+    "dsn",
+    "passwd",
+    "password",
+    "pat",
+    "privatekey",
+    "private_key",
+    "pwd",
+    "secret",
+    "senha",
+    "token",
+)
+SECRET_EXACT_KEYS = {
+    "api_key",
+    "apikey",
+    "pat",
+    "privatekey",
 }
-
+SECRET_CONFIG_KEYS = {
+    "conn_string",
+    "connection_string",
+    "database_url",
+    "db_url",
+    "dsn",
+}
 
 class SourceRegistryError(ValueError):
     """Raised for user-facing source registry errors."""
+
+
+class SourceConfigBlockedError(SourceRegistryError):
+    """Raised when source config would persist a secret-like value."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self.payload = payload
+        super().__init__(str(payload.get("message") or "source config blocked"))
 
 
 def list_sources() -> dict[str, Any]:
@@ -58,7 +70,7 @@ def list_sources() -> dict[str, Any]:
         "config_path": str(config_path()),
         "items": items,
         "defaults": registry["defaults"],
-        "stored_secret": False,
+        "stored_secret": any(item.get("stored_secret") for item in items),
     }
 
 
@@ -84,12 +96,23 @@ def add_source(
     existing = registry["items"].get(source_id, {})
     if not isinstance(existing, dict):
         existing = {}
+    provider_metadata = source_provider_metadata(provider)
 
+    try:
+        parsed_config = parse_config_pairs(
+            config_pairs or [],
+            existing.get("config") or {},
+            provider=provider,
+            source_id=source_id,
+            provider_metadata=provider_metadata,
+        )
+    except SourceConfigBlockedError:
+        raise
     entry = {
         "id": source_id,
         "provider": provider,
         "label": label or existing.get("label") or source_id,
-        "config": parse_config_pairs(config_pairs or [], existing.get("config") or {}),
+        "config": parsed_config,
         "env_refs": parse_env_refs(env_refs or [], existing.get("env_refs") or {}),
         "env_files": normalize_env_files(env_files or existing.get("env_files") or []),
         "defaults": {
@@ -135,7 +158,7 @@ def source_status(source_id: str | None = None) -> dict[str, Any]:
         "status": status,
         "config_path": str(config_path()),
         "items": items,
-        "stored_secret": False,
+        "stored_secret": any(item.get("stored_secret") for item in items),
     }
 
 
@@ -220,48 +243,81 @@ def extract_source_arg(args: list[str]) -> tuple[str | None, list[str]]:
     return source_id, cleaned
 
 
-def apply_source_to_args(source: dict[str, Any] | None, agent_id: str, capability_id: str, args: list[str]) -> list[str]:
+def apply_source_to_args(
+    source: dict[str, Any] | None,
+    source_contract: dict[str, Any] | None,
+    args: list[str],
+) -> list[str]:
     if not source:
         return args
     config = source.get("config") or {}
     result = list(args)
-    if agent_id == "azure-devops-orchestrator" and capability_id == "read-card":
-        project = config.get("project") or config.get("AZURE_DEVOPS_PROJECT")
-        if project and not has_arg(result, "--project"):
-            result.extend(["--project", str(project)])
-        if config.get("fixture") and not has_arg(result, "--fixture"):
-            result.extend(["--fixture", str(config["fixture"])])
+    for config_key, flag in source_arg_map(source_contract).items():
+        value = config.get(config_key)
+        if value is not None and str(value).strip() and not has_arg(result, flag):
+            result.extend([flag, str(value)])
     return result
 
 
-def source_env(source: dict[str, Any] | None) -> dict[str, str]:
+def source_env(source: dict[str, Any] | None, source_contract: dict[str, Any] | None = None) -> dict[str, str]:
     if not source:
         return {}
-    provider = str(source.get("provider") or "")
+    provider_metadata = source_provider_metadata(str(source.get("provider") or ""))
+    unsafe_keys = set(unsafe_source_config_keys(dict(source.get("config") or {}), provider_metadata=provider_metadata))
+    env_map = source_env_map(source_contract)
     env: dict[str, str] = {}
     for key, value in (source.get("config") or {}).items():
-        env_name = PROVIDER_CONFIG_ENV.get(provider, {}).get(key)
+        if str(key) in unsafe_keys:
+            continue
+        env_name = env_map.get(str(key))
         if env_name and value is not None:
             env[env_name] = str(value)
     for key, env_ref in (source.get("env_refs") or {}).items():
         if env_ref in os.environ:
-            env[key] = os.environ[env_ref]
+            env_name = env_map.get(str(key)) or str(key)
+            env[env_name] = os.environ[env_ref]
     return env
 
 
+def source_arg_map(source_contract: dict[str, Any] | None) -> dict[str, str]:
+    if not isinstance(source_contract, dict):
+        return {}
+    mapping = source_contract.get("args") if isinstance(source_contract.get("args"), dict) else {}
+    return {
+        str(key): str(value)
+        for key, value in mapping.items()
+        if str(key).strip() and str(value).startswith("--")
+    }
+
+
+def source_env_map(source_contract: dict[str, Any] | None) -> dict[str, str]:
+    if not isinstance(source_contract, dict):
+        return {}
+    mapping = source_contract.get("env") if isinstance(source_contract.get("env"), dict) else {}
+    return {
+        str(key): str(value)
+        for key, value in mapping.items()
+        if str(key).strip() and ENV_VAR_NAME_PATTERN.match(str(value))
+    }
+
+
 def public_source(source: dict[str, Any]) -> dict[str, Any]:
+    config = dict(source.get("config") or {})
+    provider_metadata = source_provider_metadata(str(source.get("provider") or ""))
+    unsafe_config_keys = unsafe_source_config_keys(config, provider_metadata=provider_metadata)
     return {
         "id": source.get("id"),
         "provider": source.get("provider"),
         "label": source.get("label"),
-        "config": dict(source.get("config") or {}),
+        "config": redacted_source_config(config, unsafe_config_keys),
         "env_refs": dict(source.get("env_refs") or {}),
         "env_files": list(source.get("env_files") or []),
         "defaults": {
             "intents": list((source.get("defaults") or {}).get("intents") or []),
             "agents": list((source.get("defaults") or {}).get("agents") or []),
         },
-        "stored_secret": False,
+        "unsafe_config_keys": unsafe_config_keys,
+        "stored_secret": bool(unsafe_config_keys),
     }
 
 
@@ -284,11 +340,31 @@ def source_registry(config: dict[str, Any]) -> dict[str, Any]:
     return {"items": items, "defaults": defaults}
 
 
-def parse_config_pairs(pairs: list[str], existing: dict[str, Any]) -> dict[str, Any]:
+def parse_config_pairs(
+    pairs: list[str],
+    existing: dict[str, Any],
+    *,
+    provider: str | None = None,
+    source_id: str | None = None,
+    provider_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     result = dict(existing)
     for pair in pairs:
         key, value = split_pair(pair, "--config")
+        validate_non_secret_source_config(
+            key,
+            value,
+            provider=provider,
+            source_id=source_id,
+            provider_metadata=provider_metadata,
+        )
         result[key] = value
+    unsafe_keys = unsafe_source_config_keys(result, provider_metadata=provider_metadata)
+    if unsafe_keys:
+        formatted = ", ".join(unsafe_keys)
+        raise SourceRegistryError(
+            f"source config contains unsafe key(s): {formatted}. Remove this source and recreate it using --env for credentials."
+        )
     return result
 
 
@@ -321,13 +397,16 @@ def source_status_item(source: dict[str, Any]) -> dict[str, Any]:
     env_refs = source.get("env_refs") or {}
     present = sorted(key for key, env_name in env_refs.items() if os.environ.get(env_name))
     missing = sorted(key for key, env_name in env_refs.items() if not os.environ.get(env_name))
-    status = "ok" if not missing else "missing"
     item = public_source(source)
+    status = "ok" if not missing else "missing"
+    if item.get("stored_secret"):
+        status = "unsafe"
     item.update(
         {
             "status": status,
             "detected_env_refs": present,
             "missing_env_refs": missing,
+            "next_steps": unsafe_source_next_steps(item.get("unsafe_config_keys") or []),
         }
     )
     return item
@@ -336,3 +415,172 @@ def source_status_item(source: dict[str, Any]) -> dict[str, Any]:
 def has_arg(args: list[str], flag: str) -> bool:
     prefix = f"{flag}="
     return any(item == flag or item.startswith(prefix) for item in args)
+
+
+def validate_non_secret_source_config(
+    key: str,
+    value: str,
+    *,
+    provider: str | None = None,
+    source_id: str | None = None,
+    provider_metadata: dict[str, Any] | None = None,
+) -> None:
+    assessment = unsafe_source_config_assessment(key, value, provider_metadata=provider_metadata)
+    if not assessment:
+        return
+    raise SourceConfigBlockedError(
+        blocked_source_config_payload(
+            source_id=source_id,
+            provider=provider,
+            field=key,
+            reason=str(assessment["reason"]),
+            detail=str(assessment["detail"]),
+        )
+    )
+
+
+def unsafe_source_config_keys(config: dict[str, Any], *, provider_metadata: dict[str, Any] | None = None) -> list[str]:
+    return sorted(
+        str(key)
+        for key, value in config.items()
+        if unsafe_source_config_reason(str(key), str(value), provider_metadata=provider_metadata)
+    )
+
+
+def unsafe_source_config_reason(key: str, value: str, *, provider_metadata: dict[str, Any] | None = None) -> str | None:
+    assessment = unsafe_source_config_assessment(key, value, provider_metadata=provider_metadata)
+    return str(assessment["detail"]) if assessment else None
+
+
+def unsafe_source_config_assessment(
+    key: str,
+    value: str,
+    *,
+    provider_metadata: dict[str, Any] | None = None,
+) -> dict[str, str] | None:
+    if provider_secret_field(key, provider_metadata):
+        return {"reason": "provider-secret-field", "detail": "is declared as secret by provider metadata"}
+    if is_sensitive_config_key(key):
+        return {"reason": "secret-like-config-value", "detail": "may contain secrets"}
+    if value_contains_embedded_secret(value):
+        return {"reason": "secret-like-config-value", "detail": "contains a secret-like value"}
+    if url_contains_userinfo(value):
+        return {"reason": "secret-like-config-value", "detail": "contains credentials embedded in a URL"}
+    return None
+
+
+def blocked_source_config_payload(
+    *,
+    source_id: str | None,
+    provider: str | None,
+    field: str,
+    reason: str,
+    detail: str,
+) -> dict[str, Any]:
+    env_key = suggested_env_key(field)
+    message = f"--config {field}=... {detail}; use --env {env_key}=LOCAL_ENV_NAME instead."
+    return {
+        "kind": "source-configure",
+        "status": "blocked",
+        "ok": False,
+        "reason": reason,
+        "field": field,
+        "provider": provider,
+        "source_id": source_id,
+        "message": message,
+        "next_steps": [f"Use `--env {env_key}=LOCAL_ENV_NAME` instead of storing raw values."],
+        "stored_secret": False,
+        "exit_code": 2,
+    }
+
+
+def source_provider_metadata(provider_id: str | None) -> dict[str, Any]:
+    if not provider_id:
+        return {}
+    try:
+        return provider_or_error(load_providers(ROOT), provider_id)
+    except ProviderRegistryError:
+        return {}
+
+
+def provider_secret_field(key: str, provider_metadata: dict[str, Any] | None) -> bool:
+    if not isinstance(provider_metadata, dict):
+        return False
+    exact = str(key)
+    normalized = normalize_secret_key(key)
+    for field in provider_metadata.get("config_fields", []) or []:
+        if not isinstance(field, dict) or field.get("secret") is not True:
+            continue
+        name = str(field.get("name") or "")
+        if exact == name or normalized == normalize_secret_key(name):
+            return True
+    for method in provider_metadata.get("auth_methods", []) or []:
+        if not isinstance(method, dict):
+            continue
+        for secret_field in method.get("secret_fields", []) or []:
+            name = str(secret_field or "")
+            if exact == name or normalized == normalize_secret_key(name):
+                return True
+    return False
+
+
+def is_sensitive_config_key(key: str) -> bool:
+    normalized = normalize_secret_key(key)
+    if normalized in SECRET_CONFIG_KEYS:
+        return True
+    if normalized in SECRET_EXACT_KEYS:
+        return True
+    return any(secret_key_marker_matches(normalized, marker) for marker in SECRET_KEY_MARKERS)
+
+
+def secret_key_marker_matches(normalized_key: str, marker: str) -> bool:
+    if marker in SECRET_EXACT_KEYS:
+        return normalized_key == marker
+    return (
+        normalized_key == marker
+        or normalized_key.startswith(f"{marker}_")
+        or normalized_key.endswith(f"_{marker}")
+        or f"_{marker}_" in normalized_key
+    )
+
+
+def value_contains_embedded_secret(value: str) -> bool:
+    return redact_secrets(value) != value
+
+
+def url_contains_userinfo(value: str) -> bool:
+    if URL_USERINFO_PATTERN.search(value):
+        return True
+    try:
+        parsed = urllib.parse.urlsplit(value)
+    except ValueError:
+        return False
+    return bool(parsed.username or parsed.password)
+
+
+def redacted_source_config(config: dict[str, Any], unsafe_keys: list[str]) -> dict[str, Any]:
+    unsafe = set(unsafe_keys)
+    return {
+        key: "[REDACTED_SECRET]" if str(key) in unsafe else value
+        for key, value in config.items()
+    }
+
+
+def unsafe_source_next_steps(unsafe_keys: list[str]) -> list[str]:
+    if not unsafe_keys:
+        return []
+    return [
+        "Remove this source with `agent source remove <source-id>`.",
+        "Recreate it using `--config` only for non-secret values and `--env PROVIDER_FIELD=LOCAL_ENV_NAME` for credentials.",
+    ]
+
+
+def suggested_env_key(key: str) -> str:
+    normalized = normalize_secret_key(key)
+    if normalized in {"conn_string", "connection_string", "database_url", "db_url", "dsn"}:
+        return "PROVIDER_CONNECTION_STRING"
+    return normalize_secret_key(key).upper()
+
+
+def normalize_secret_key(key: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_")

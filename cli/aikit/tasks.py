@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import uuid
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from cli.aikit.app_home import ensure_app_home, tasks_home
+from cli.aikit.audit import try_record_audit
+from cli.aikit.autonomy import build_task_autonomy_contract
 from cli.aikit.memory import redact_secrets
+from cli.aikit.notifications import maybe_notify_task
 from cli.aikit.permissions import permission_check, provider_for_agent
 
 
@@ -34,6 +38,10 @@ def tasks_path() -> Path:
 
 def history_path(task_id: str) -> Path:
     return ensure_tasks_home() / "history" / f"{safe_task_id(task_id)}.md"
+
+
+def scheduler_events_path() -> Path:
+    return ensure_tasks_home() / "scheduled-runs.jsonl"
 
 
 def load_tasks() -> dict[str, Any]:
@@ -78,6 +86,7 @@ def create_task(
     action: dict[str, Any] | None = None,
     permissions: dict[str, Any] | None = None,
     notifications: list[dict[str, Any]] | None = None,
+    notify: dict[str, Any] | None = None,
     enabled: bool = True,
 ) -> dict[str, Any]:
     data = load_tasks()
@@ -96,6 +105,8 @@ def create_task(
         "notifications": notifications or [{"type": "terminal"}],
         "run_count": 0,
     }
+    if notify is not None:
+        task["notify"] = notify
     data["tasks"].append(task)
     save_tasks(data)
     append_history(task_id, f"Created task `{task_id}`.")
@@ -119,42 +130,193 @@ def task_history(task_id: str) -> dict[str, Any]:
     }
 
 
-def run_task(task_id: str, *, dry_run: bool = False) -> dict[str, Any]:
+def run_task(
+    task_id: str,
+    *,
+    dry_run: bool = False,
+    origin: str = "cli",
+    run_id: str | None = None,
+    scheduled_for: str | None = None,
+) -> dict[str, Any]:
     data = load_tasks()
     task = find_task_in_data(data, task_id)
+    scheduler_origin = origin == "scheduler"
+    run_id = run_id or (new_run_id() if scheduler_origin else None)
+    scheduled_for = scheduled_for or (now_iso() if scheduler_origin else None)
+    started_at = now_iso() if scheduler_origin else None
     if task.get("status") in {"paused", "disabled"}:
-        return {"kind": "task-run", "status": "skipped", "ok": False, "task": public_task(task), "message": "Task is not enabled.", "exit_code": 2}
-    preview = task_run_preview(task)
+        autonomy_contract = build_task_autonomy_contract(task, origin=origin, dry_run=dry_run)
+        payload = {
+            "kind": "task-run",
+            "status": "skipped",
+            "ok": False,
+            "task": public_task(task),
+            "autonomy_contract": autonomy_contract,
+            "message": "Task is not enabled.",
+            "exit_code": 2,
+        }
+        if scheduler_origin:
+            attach_scheduler_metadata(
+                payload,
+                task,
+                event="scheduled_task.skipped",
+                run_id=run_id,
+                scheduled_for=scheduled_for,
+                started_at=started_at,
+                finished_at=now_iso(),
+                summary="Scheduled task was skipped because it is not enabled.",
+            )
+            attach_scheduler_audit(payload, task)
+            attach_task_notification(payload, task, "scheduled_task.skipped", origin=origin)
+            record_scheduler_event(payload)
+        return payload
+    preview = task_run_preview(task, origin=origin, dry_run=dry_run)
     if dry_run:
-        return {"kind": "task-run", "status": "planned", "ok": True, "dry_run": True, "task": public_task(task), "preview": preview}
-    permission = task_external_write_permission(task)
-    if not permission["ok"]:
-        append_history(str(task["id"]), f"Blocked task `{task['id']}` because it requires external write permission.")
         return {
             "kind": "task-run",
-            "status": "blocked",
+            "status": "planned",
+            "ok": True,
+            "dry_run": True,
+            "task": public_task(task),
+            "preview": preview,
+            "autonomy_contract": preview["autonomy_contract"],
+        }
+    scheduler_events: list[dict[str, Any]] = []
+    if scheduler_origin:
+        started_event = scheduler_event_payload(
+            task,
+            event="scheduled_task.started",
+            status="running",
+            run_id=run_id,
+            scheduled_for=scheduled_for,
+            started_at=started_at,
+            summary=f"Scheduled task {task['id']} started.",
+        )
+        attach_task_notification(started_event, task, "scheduled_task.started", origin=origin)
+        record_scheduler_event(started_event)
+        scheduler_events.append(started_event)
+    try:
+        permission = task_external_write_permission(task)
+        preview = task_run_preview(task, origin=origin, dry_run=dry_run, permission=permission)
+        if not permission["ok"]:
+            append_history(str(task["id"]), f"Blocked task `{task['id']}` because it requires external write permission.")
+            payload = {
+                "kind": "task-run",
+                "status": "blocked",
+                "ok": False,
+                "dry_run": False,
+                "task": public_task(task),
+                "preview": preview,
+                "autonomy_contract": preview["autonomy_contract"],
+                "permission": permission,
+                "requires_permission": True,
+                "message": "Task declares external_writes=true and does not have explicit external write permission.",
+                "exit_code": 2,
+            }
+            if scheduler_origin:
+                attach_scheduler_metadata(
+                    payload,
+                    task,
+                    event="scheduled_task.blocked",
+                    run_id=run_id,
+                    scheduled_for=scheduled_for,
+                    started_at=started_at,
+                    finished_at=now_iso(),
+                    summary="Scheduled task was blocked by permission policy.",
+                )
+                attach_scheduler_audit(payload, task)
+            attach_task_notification(payload, task, event_name(origin, "blocked"), origin=origin)
+            if scheduler_origin:
+                record_scheduler_event(payload)
+                payload["events"] = scheduler_events + [scheduler_event_summary(payload)]
+                payload["events_path"] = str(scheduler_events_path())
+            return payload
+        task["run_count"] = int(task.get("run_count") or 0) + 1
+        task["last_run_at"] = now_iso()
+        task["updated_at"] = task["last_run_at"]
+        save_tasks(data)
+        append_history(str(task["id"]), f"Executed task `{task['id']}` in local scheduler.")
+        payload = {
+            "kind": "task-run",
+            "status": "ok",
+            "ok": True,
+            "dry_run": False,
+            "task": public_task(task),
+            "preview": preview,
+            "autonomy_contract": preview["autonomy_contract"],
+        }
+        if scheduler_origin:
+            finished_at = now_iso()
+            attach_scheduler_metadata(
+                payload,
+                task,
+                event="scheduled_task.completed",
+                run_id=run_id,
+                scheduled_for=scheduled_for,
+                started_at=started_at,
+                finished_at=finished_at,
+                summary="Scheduled task completed.",
+            )
+            payload["next_run"] = next_run_for_task(task, finished_at)
+            attach_scheduler_audit(payload, task)
+        attach_task_notification(payload, task, event_name(origin, "completed"), origin=origin)
+        if scheduler_origin:
+            record_scheduler_event(payload)
+            payload["events"] = scheduler_events + [scheduler_event_summary(payload)]
+            payload["events_path"] = str(scheduler_events_path())
+        return payload
+    except Exception as exc:  # noqa: BLE001 - scheduler runs must isolate task failures.
+        if not scheduler_origin:
+            raise
+        finished_at = now_iso()
+        payload = {
+            "kind": "task-run",
+            "status": "failed",
             "ok": False,
             "dry_run": False,
             "task": public_task(task),
             "preview": preview,
-            "permission": permission,
-            "requires_permission": True,
-            "message": "Task declares external_writes=true and does not have explicit external write permission.",
-            "exit_code": 2,
+            "autonomy_contract": preview["autonomy_contract"],
+            "message": "Scheduled task failed.",
+            "reason": "scheduled-task-failed",
+            "error": redact_secrets(str(exc)),
+            "exit_code": 1,
         }
-    task["run_count"] = int(task.get("run_count") or 0) + 1
-    task["last_run_at"] = now_iso()
-    task["updated_at"] = task["last_run_at"]
-    save_tasks(data)
-    append_history(str(task["id"]), f"Executed task `{task['id']}` in local scheduler.")
-    return {"kind": "task-run", "status": "ok", "ok": True, "dry_run": False, "task": public_task(task), "preview": preview}
+        attach_scheduler_metadata(
+            payload,
+            task,
+            event="scheduled_task.failed",
+            run_id=run_id,
+            scheduled_for=scheduled_for,
+            started_at=started_at,
+            finished_at=finished_at,
+            summary="Scheduled task failed.",
+        )
+        append_history(str(task["id"]), f"Scheduled task `{task['id']}` failed: {exc}")
+        attach_scheduler_audit(payload, task)
+        attach_task_notification(payload, task, "scheduled_task.failed", origin=origin)
+        record_scheduler_event(payload)
+        failed_event = scheduler_event_summary(payload)
+        retry_event = maybe_schedule_retry_event(task, payload, finished_at, origin=origin)
+        payload["events"] = scheduler_events + [failed_event] + ([retry_event] if retry_event else [])
+        payload["events_path"] = str(scheduler_events_path())
+        return payload
 
 
 def scheduler_run_once(*, dry_run: bool = False) -> dict[str, Any]:
     data = load_tasks()
+    scheduled_for = now_iso()
     due = [item for item in data["tasks"] if isinstance(item, dict) and item.get("status") == "enabled" and task_is_due(item)]
-    runs = [run_task(str(item["id"]), dry_run=dry_run) for item in due]
-    return {"kind": "scheduler", "status": "ok", "dry_run": dry_run, "due_count": len(due), "runs": runs}
+    runs = [run_task(str(item["id"]), dry_run=dry_run, origin="scheduler", run_id=new_run_id(), scheduled_for=scheduled_for) for item in due]
+    return {
+        "kind": "scheduler",
+        "status": "ok",
+        "dry_run": dry_run,
+        "scheduled_for": scheduled_for,
+        "due_count": len(due),
+        "runs": runs,
+        "events_path": str(scheduler_events_path()),
+    }
 
 
 def update_task_status(task_id: str, status: str) -> dict[str, Any]:
@@ -201,6 +363,240 @@ def reset_tasks() -> list[str]:
     return removed
 
 
+def event_name(origin: str, outcome: str) -> str:
+    namespace = "scheduled_task" if origin == "scheduler" else "task"
+    return f"{namespace}.{outcome}"
+
+
+def new_run_id() -> str:
+    return f"run_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}"
+
+
+def scheduler_event_payload(
+    task: dict[str, Any],
+    *,
+    event: str,
+    status: str,
+    run_id: str | None,
+    scheduled_for: str | None,
+    started_at: str | None,
+    finished_at: str | None = None,
+    summary: str | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "kind": "scheduled-task-event",
+        "event": event,
+        "status": status,
+        "ok": status in {"ok", "running", "retry_scheduled", "skipped"},
+        "task_id": str(task.get("id") or ""),
+        "task": public_task(task),
+        "run_id": run_id,
+        "scheduled_for": scheduled_for,
+        "started_at": started_at,
+        "summary": summary or f"{event}: {task.get('id') or 'task'}",
+        "origin": "scheduler",
+        "autonomy_contract": build_task_autonomy_contract(task, origin="scheduler"),
+    }
+    if finished_at:
+        payload["finished_at"] = finished_at
+        payload["duration_seconds"] = run_duration_seconds(started_at, finished_at)
+    return payload
+
+
+def attach_scheduler_metadata(
+    payload: dict[str, Any],
+    task: dict[str, Any],
+    *,
+    event: str,
+    run_id: str | None,
+    scheduled_for: str | None,
+    started_at: str | None,
+    finished_at: str | None,
+    summary: str,
+) -> None:
+    payload["event"] = event
+    payload["run_id"] = run_id
+    payload["scheduled_for"] = scheduled_for
+    payload["started_at"] = started_at
+    payload["finished_at"] = finished_at
+    payload["summary"] = summary
+    payload["origin"] = "scheduler"
+    payload["duration_seconds"] = run_duration_seconds(started_at, finished_at)
+    payload.setdefault("task_id", str(task.get("id") or ""))
+
+
+def attach_scheduler_audit(payload: dict[str, Any], task: dict[str, Any]) -> None:
+    audit_result = try_record_audit(
+        command="scheduler run-task",
+        args={
+            "task_id": str(task.get("id") or ""),
+            "run_id": payload.get("run_id"),
+            "event": payload.get("event"),
+        },
+        result=payload,
+        error=payload.get("error") if payload.get("ok") is False else None,
+        origin="scheduler",
+        required=False,
+    )
+    audit = audit_result.get("audit")
+    if isinstance(audit, dict):
+        payload["audit"] = audit
+        payload["audit_id"] = audit.get("id")
+    warning = audit_result.get("audit_warning")
+    if isinstance(warning, dict):
+        add_payload_warning(payload, warning)
+
+
+def record_scheduler_event(payload: dict[str, Any]) -> None:
+    event = scheduler_event_summary(payload)
+    try:
+        with scheduler_events_path().open("a", encoding="utf-8") as file:
+            file.write(json.dumps(redact_event_value(event), ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        return
+
+
+def scheduler_event_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    notification = payload.get("notification") if isinstance(payload.get("notification"), dict) else {}
+    audit = payload.get("audit") if isinstance(payload.get("audit"), dict) else {}
+    autonomy_contract = payload.get("autonomy_contract") if isinstance(payload.get("autonomy_contract"), dict) else {}
+    return {
+        "event": payload.get("event"),
+        "status": payload.get("status"),
+        "ok": payload.get("ok"),
+        "task_id": payload.get("task_id") or (payload.get("task") or {}).get("id"),
+        "run_id": payload.get("run_id"),
+        "scheduled_for": payload.get("scheduled_for"),
+        "started_at": payload.get("started_at"),
+        "finished_at": payload.get("finished_at"),
+        "duration_seconds": payload.get("duration_seconds"),
+        "summary": payload.get("summary") or payload.get("message"),
+        "next_run": payload.get("next_run"),
+        "audit_id": payload.get("audit_id") or audit.get("id"),
+        "notification": {
+            "status": notification.get("status"),
+            "channel": notification.get("channel"),
+            "reason": notification.get("reason"),
+        }
+        if notification
+        else None,
+        "autonomy": {
+            "level": autonomy_contract.get("level"),
+            "level_id": autonomy_contract.get("level_id"),
+            "status": autonomy_contract.get("status"),
+            "execution_allowed": autonomy_contract.get("execution_allowed"),
+        }
+        if autonomy_contract
+        else None,
+    }
+
+
+def maybe_schedule_retry_event(task: dict[str, Any], failed_payload: dict[str, Any], finished_at: str, *, origin: str) -> dict[str, Any] | None:
+    retry = task_retry_config(task)
+    if not retry:
+        return None
+    attempt = int(failed_payload.get("attempt") or 1)
+    max_attempts = int(retry.get("max_attempts") or 0)
+    if max_attempts <= attempt:
+        return None
+    delay = parse_interval(str(retry.get("delay") or retry.get("after") or ""))
+    finished = parse_iso_datetime(finished_at) or datetime.now(timezone.utc)
+    next_run = (finished + delay).isoformat() if delay else None
+    retry_event = scheduler_event_payload(
+        task,
+        event="scheduled_task.retry_scheduled",
+        status="retry_scheduled",
+        run_id=str(failed_payload.get("run_id") or ""),
+        scheduled_for=str(failed_payload.get("scheduled_for") or ""),
+        started_at=str(failed_payload.get("started_at") or ""),
+        finished_at=finished_at,
+        summary=f"Retry scheduled after failure: {failed_payload.get('error') or failed_payload.get('reason') or 'unknown error'}",
+    )
+    retry_event["attempt"] = attempt + 1
+    retry_event["max_attempts"] = max_attempts
+    retry_event["next_run"] = next_run
+    failed_payload["retry"] = {
+        "status": "scheduled",
+        "attempt": attempt + 1,
+        "max_attempts": max_attempts,
+        "next_run": next_run,
+    }
+    attach_task_notification(retry_event, task, "scheduled_task.retry_scheduled", origin=origin)
+    record_scheduler_event(retry_event)
+    return scheduler_event_summary(retry_event)
+
+
+def task_retry_config(task: dict[str, Any]) -> dict[str, Any] | None:
+    schedule = task.get("schedule") if isinstance(task.get("schedule"), dict) else {}
+    retry = task.get("retry") if isinstance(task.get("retry"), dict) else schedule.get("retry")
+    if not isinstance(retry, dict):
+        return None
+    max_attempts = safe_positive_int(retry.get("max_attempts") or retry.get("max") or retry.get("attempts"))
+    if max_attempts is None:
+        return None
+    return {**retry, "max_attempts": max_attempts}
+
+
+def next_run_for_task(task: dict[str, Any], finished_at: str) -> str | None:
+    schedule = task.get("schedule") if isinstance(task.get("schedule"), dict) else {}
+    schedule_type = schedule.get("type") or "manual"
+    finished = parse_iso_datetime(finished_at)
+    if finished is None:
+        return None
+    if schedule_type == "interval":
+        interval = parse_interval(str(schedule.get("every") or ""))
+        return (finished + interval).isoformat() if interval else None
+    if schedule_type == "daily":
+        scheduled_time = parse_time(str(schedule.get("time") or "00:00")) or time(0, 0)
+        candidate = datetime.combine(finished.date(), scheduled_time, tzinfo=timezone.utc)
+        if candidate <= finished:
+            candidate = candidate + timedelta(days=1)
+        return candidate.isoformat()
+    return None
+
+
+def run_duration_seconds(started_at: str | None, finished_at: str | None) -> float | None:
+    started = parse_iso_datetime(started_at)
+    finished = parse_iso_datetime(finished_at)
+    if started is None or finished is None:
+        return None
+    return round(max(0.0, (finished - started).total_seconds()), 3)
+
+
+def add_payload_warning(payload: dict[str, Any], warning: dict[str, Any]) -> None:
+    warnings = payload.get("warnings")
+    if isinstance(warnings, list):
+        warnings.append(warning)
+    elif warnings:
+        payload["warnings"] = [warnings, warning]
+    else:
+        payload["warnings"] = [warning]
+
+
+def attach_task_notification(payload: dict[str, Any], task: dict[str, Any], event: str, *, origin: str) -> None:
+    try:
+        notification = maybe_notify_task(task, event, origin=origin, result=payload)
+    except (OSError, ValueError) as exc:
+        notification = {
+            "kind": "notifications",
+            "status": "failed",
+            "ok": False,
+            "channel": "desktop",
+            "reason": "notification-hook-failed",
+            "message": redact_secrets(str(exc)),
+        }
+    if notification is None:
+        return
+    payload["notification"] = notification
+    if notification.get("ok") is False:
+        warning = {
+            "kind": "notification-warning",
+            "message": "Notification was not delivered.",
+            "reason": notification.get("reason"),
+        }
+        add_payload_warning(payload, warning)
+
+
 def public_task(task: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": task.get("id"),
@@ -212,13 +608,26 @@ def public_task(task: dict[str, Any]) -> dict[str, Any]:
         "action": task.get("action") or {},
         "permissions": task.get("permissions") or {},
         "notifications": task.get("notifications") or [],
+        "notify": task.get("notify") or {},
         "run_count": int(task.get("run_count") or 0),
         "last_run_at": task.get("last_run_at"),
     }
 
 
-def task_run_preview(task: dict[str, Any]) -> dict[str, Any]:
+def task_run_preview(
+    task: dict[str, Any],
+    *,
+    origin: str = "cli",
+    dry_run: bool = False,
+    permission: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     action = task.get("action") if isinstance(task.get("action"), dict) else {}
+    autonomy_contract = build_task_autonomy_contract(
+        task,
+        origin=origin,
+        dry_run=dry_run,
+        permission=permission,
+    )
     return {
         "task_id": task.get("id"),
         "action_type": action.get("type"),
@@ -227,6 +636,7 @@ def task_run_preview(task: dict[str, Any]) -> dict[str, Any]:
         "prompt": action.get("prompt"),
         "external_writes": bool(action.get("external_writes")),
         "permissions": task.get("permissions") or {},
+        "autonomy_contract": autonomy_contract,
     }
 
 
@@ -292,6 +702,14 @@ def parse_iso_datetime(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def safe_positive_int(value: Any) -> int | None:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
 def task_external_write_permission(task: dict[str, Any]) -> dict[str, Any]:
     action = task.get("action") if isinstance(task.get("action"), dict) else {}
     permissions = task.get("permissions") if isinstance(task.get("permissions"), dict) else {}
@@ -349,3 +767,13 @@ def safe_task_id(task_id: str) -> str:
 def slugify(value: str) -> str:
     slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", value.lower()).strip(".-")
     return slug[:80] or "task"
+
+
+def redact_event_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return redact_secrets(value)
+    if isinstance(value, list):
+        return [redact_event_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): redact_event_value(item) for key, item in value.items()}
+    return value

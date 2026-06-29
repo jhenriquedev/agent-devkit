@@ -1,0 +1,45 @@
+id: selenium-automation-builder
+kind: specialist-agent
+name: Selenium Automation Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar, revisar e empacotar automacoes Selenium/WebDriver quando
+  houver requisito tecnico para usar Selenium em vez de Playwright.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - plan-selenium-automation
+  - generate-selenium-script
+  - generate-selenium-project-files
+  - review-selenium-script
+  - wrap-selenium-as-capability
+agent_surface:
+  repositories:
+    - infra/integrations/selenium-automation/selenium_automation_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  generation: output_only
+  project_files: local_write
+  review: read_only
+  capability_wrapper: local_write
+  external_side_effects: blocked_by_default
+routing:
+  anchors:
+    - selenium-automation-builder
+    - selenium
+    - webdriver
+    - selenium-grid
+  intents:
+    - selenium-automation.plan
+    - selenium-automation.generate
+    - selenium-automation.review
+  priority: 50

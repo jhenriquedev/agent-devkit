@@ -9,6 +9,8 @@ from typing import Any
 
 from cli.aikit.app_home import ensure_app_home, policies_home
 from cli.aikit.memory import redact_secrets
+from cli.aikit.providers import ProviderRegistryError, load_providers
+from cli.aikit.runtime_paths import ROOT
 
 
 PERMISSION_LEVELS = (
@@ -20,9 +22,6 @@ PERMISSION_LEVELS = (
     "admin",
 )
 DEFAULT_PERMISSION_LEVEL = "read-only"
-PROVIDER_BY_AGENT = {
-    "github-pr-reviewer": "github",
-}
 ACTION_REQUIRED_LEVEL = {
     "read": "read-only",
     "draft": "draft-only",
@@ -228,7 +227,18 @@ def assert_permission(
 
 
 def provider_for_agent(agent: str | None) -> str | None:
-    return PROVIDER_BY_AGENT.get(agent or "")
+    agent_id = agent or ""
+    if not agent_id:
+        return None
+    try:
+        for provider in load_providers(ROOT):
+            capabilities = provider.get("capabilities") if isinstance(provider.get("capabilities"), dict) else {}
+            declared = list(capabilities.get("read") or []) + list(capabilities.get("write") or [])
+            if any(str(item) == agent_id or str(item).startswith(f"{agent_id}/") for item in declared):
+                return str(provider.get("id") or "") or None
+    except ProviderRegistryError:
+        pass
+    return None
 
 
 def required_level_for_action(action: str) -> str:

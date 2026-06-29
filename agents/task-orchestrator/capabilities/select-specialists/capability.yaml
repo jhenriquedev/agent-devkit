@@ -4,7 +4,7 @@ name: Select Specialists
 version: 0.1.6
 status: draft
 purpose: Escolher agentes especialistas e capabilities candidatas para um plano.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: [route, domain_agent]
 outputs:
   artifacts: [specialist-selection]
-

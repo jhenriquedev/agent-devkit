@@ -99,18 +99,52 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
         plan = payload["execution_plan"]
         self.assertEqual(plan["kind"], "agentic-execution-plan")
         self.assertEqual(plan["status"], "planned")
+        self.assertEqual(plan["routing_decision"]["confidence_label"], "high")
+        self.assertIn("deterministic", plan["routing_decision"]["reason"])
+        self.assertIn("policy_summary", plan)
+        self.assertGreaterEqual(plan["policy_summary"]["autonomous_safe"], 1)
         self.assertEqual(plan["coordinator_agent"]["id"], "task-orchestrator")
         self.assertIn("azure-devops-orchestrator", {task["agent_id"] for task in plan["specialist_tasks"]})
         self.assertEqual(plan["review_task"]["agent_id"], "execution-reviewer")
+        self.assertEqual(plan["review_task"]["write_policy_metadata"]["canonical"], "read_only")
         self.assertTrue(plan["configuration_tasks"])
         self.assertEqual(plan["configuration_tasks"][0]["agent_id"], "provider-configurator")
         self.assertEqual(plan["configuration_tasks"][0]["provider"], "azure-devops")
+        self.assertEqual(plan["configuration_tasks"][0]["write_policy_metadata"]["canonical"], "local_config_write")
+        primary = next(task for task in plan["specialist_tasks"] if task["agent_id"] == "azure-devops-orchestrator")
+        self.assertEqual(primary["write_policy_metadata"]["canonical"], primary["write_policy"])
+        self.assertEqual(primary["role"], "collector")
+        self.assertEqual(primary["task_id"], primary["id"])
+        self.assertIn("collaboration_graph", plan)
+        self.assertTrue(plan["collaboration_enabled"])
+        self.assertGreaterEqual(len(plan["collaboration_graph"]["nodes"]), 1)
+        self.assertEqual(plan["shared_context"]["schema_version"], "ai-devkit.collaboration/v1")
+        self.assertEqual(plan["execution_model"]["schema_version"], "ai-devkit.execution-model/v1")
+        self.assertEqual(plan["execution_model"]["decision_owner"], "agent-devkit-core")
+        self.assertEqual(plan["execution_model"]["coordinator"], "task-orchestrator")
+        self.assertEqual(plan["execution_model"]["limits"]["max_specialists"], 1)
+        self.assertEqual(plan["autonomy_contract"]["schema_version"], "ai-devkit.autonomy/v1")
+        self.assertEqual(plan["autonomy_contract"]["level_id"], "assisted")
+        self.assertFalse(plan["autonomy_contract"]["execution_allowed"])
+        self.assertTrue(plan["autonomy_contract"]["requires_human"])
+        self.assertEqual(plan["execution_model"]["autonomy_level_id"], "assisted")
+        self.assertFalse(plan["execution_model"]["execution_allowed"])
+        self.assertEqual(plan["stop_conditions"], plan["execution_model"]["stop_conditions"])
+        self.assertIn("task_id", plan["trace"][1])
         self.assert_plan_agent_ids_are_registered(plan)
         registry = load_agent_registry(ROOT)
+        self.assertEqual(registry["runtime_roles"]["coordinator"], "task-orchestrator")
+        self.assertEqual(registry["runtime_roles"]["provider-configurator"], "provider-configurator")
+        self.assertEqual(registry["runtime_roles"]["local-worker"], "local-llm-operator")
+        self.assertEqual(registry["runtime_roles"]["reviewer"], "execution-reviewer")
         self.assertIn("task-orchestrator/plan-task", registry["capabilities"])
         self.assertIn("provider-configurator/configure-provider-source", registry["capabilities"])
         self.assertIn("local-llm-operator/select-local-worker", registry["capabilities"])
         self.assertIn("execution-reviewer/review-final-output", registry["capabilities"])
+        read_card = registry["capabilities"]["azure-devops-orchestrator/read-card"]
+        self.assertEqual(read_card["source_contract"]["origin"], "runtime.source")
+        self.assertTrue(read_card["source_contract"]["enabled"])
+        self.assertEqual(read_card["provider_resolution"]["source"], "runtime")
 
     def test_missing_card_source_preserves_wizard_inside_multiagent_plan(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
@@ -134,6 +168,12 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
         plan = payload["execution_plan"]
         self.assertEqual(payload["status"], "needs-input")
         self.assertEqual(plan["status"], "needs-input")
+        self.assertEqual(plan["model_plan"]["strategy"], "human")
+        self.assertEqual(plan["execution_model"]["model_strategy"], "human")
+        self.assertEqual(plan["autonomy_contract"]["level_id"], "assisted")
+        self.assertIn("provider-configuration-required", plan["autonomy_contract"]["blockers"])
+        self.assertEqual(plan["execution_model"]["limits"]["max_llm_calls"], 0)
+        self.assertFalse(plan["execution_model"]["allowed_side_effects"]["can_call_llm"])
         self.assertEqual(plan["configuration_tasks"][0]["agent_id"], "provider-configurator")
         self.assertEqual(plan["configuration_tasks"][0]["setup_wizard"]["next_question"]["id"], "azure_devops_opt_in")
         self.assertEqual(payload["setup_wizard"]["next_question"]["id"], "azure_devops_opt_in")
@@ -180,9 +220,19 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         plan = json.loads(result.stdout)["execution_plan"]
+        routing = plan["routing_decision"]
+        self.assertEqual(routing["status"], "selected")
+        self.assertEqual(routing["method"], "manifest-routing")
+        self.assertEqual(routing["confidence_label"], "high")
+        self.assertIn("aws-cloudwatch-log-analyzer", routing["reason"])
+        self.assertTrue(routing["alternatives"])
+        self.assertEqual(routing["selected_agent_id"], "aws-cloudwatch-log-analyzer")
+        self.assertEqual(routing["selected_capability_id"], "analyze-service-error")
+        self.assertIn("cloudwatch", routing["candidates"][0]["matched_anchors"])
+        self.assertIn("cloudwatch", routing["candidates"][0]["selected_capability_matched_anchors"])
         self.assertEqual(plan["domain_agent"]["id"], "aws-cloudwatch-log-analyzer")
         self.assertIn("aws-cloudwatch-log-analyzer", {task["agent_id"] for task in plan["specialist_tasks"]})
-        self.assertIn("aws-cloudwatch", {task["provider"] for task in plan["configuration_tasks"]})
+        self.assertIn("aws", {task["provider"] for task in plan["configuration_tasks"]})
 
     def test_non_card_provider_prompt_requests_configuration_before_llm(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
@@ -204,10 +254,11 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["status"], "needs-input")
-        self.assertEqual(payload["provider"], "aws-cloudwatch")
+        self.assertEqual(payload["provider"], "aws")
         self.assertFalse(payload.get("requires_llm", False))
         self.assertEqual(payload["setup_wizard"]["owner_agent"], "provider-configurator")
         self.assertEqual(payload["execution_plan"]["domain_agent"]["id"], "aws-cloudwatch-log-analyzer")
+        self.assertEqual(payload["execution_plan"]["routing_decision"]["method"], "manifest-routing")
 
     def test_prompt_router_selects_document_specialist_from_registry(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
@@ -226,6 +277,14 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         plan = json.loads(result.stdout)["execution_plan"]
+        routing = plan["routing_decision"]
+        self.assertEqual(routing["status"], "selected")
+        self.assertEqual(routing["method"], "manifest-routing")
+        self.assertEqual(routing["confidence_label"], "high")
+        self.assertIn("software-specification-analyst", routing["reason"])
+        self.assertEqual(routing["selected_agent_id"], "software-specification-analyst")
+        self.assertEqual(routing["selected_capability_id"], "create-technical-spec")
+        self.assertIn("spec.technical", routing["candidates"][0]["selected_capability_matched_intents"])
         self.assertEqual(plan["domain_agent"]["id"], "software-specification-analyst")
         self.assertIn(
             ("software-specification-analyst", "create-technical-spec"),
@@ -237,19 +296,78 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
             result = self.run_agent(
                 "--dry-run",
                 "--json",
-                "planeje",
-                "uma",
-                "atividade",
-                "generica",
+                "zzzz",
+                "yyyyy",
+                "sem",
+                "rota",
+                "conhecida",
                 env={"AI_DEVKIT_CONFIG_HOME": config_home},
             )
 
         self.assertEqual(result.returncode, 0, result.stderr)
         plan = json.loads(result.stdout)["execution_plan"]
+        self.assertEqual(plan["routing_decision"]["status"], "no-match")
+        self.assertEqual(plan["routing_decision"]["confidence_label"], "low")
+        self.assertIn("No manifest routing candidate", plan["routing_decision"]["reason"])
         self.assertEqual(plan["coordinator_agent"]["id"], "task-orchestrator")
         self.assertEqual(plan["domain_agent"]["id"], "task-orchestrator")
+        self.assertTrue(plan["controller_enabled"])
+        self.assertEqual(plan["module_controller"]["mode"]["type"], "planner")
         self.assertNotIn("task-orchestrator", {task["agent_id"] for task in plan["specialist_tasks"]})
         self.assert_plan_agent_ids_are_registered(plan)
+
+    def test_ambiguous_database_prompt_requests_routing_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            result = self.run_agent(
+                "--json",
+                "analise",
+                "banco",
+                "sql",
+                env={"AI_DEVKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")},
+                replace_env=True,
+            )
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        payload = json.loads(result.stdout)
+        plan = payload["execution_plan"]
+        routing = payload["routing_decision"]
+        self.assertEqual(payload["status"], "needs-input")
+        self.assertEqual(payload["mode"], "agentic-routing")
+        self.assertTrue(payload["requires_routing_confirmation"])
+        self.assertEqual(plan["status"], "needs-input")
+        self.assertEqual(plan["domain_agent"]["id"], "task-orchestrator")
+        self.assertEqual(routing["status"], "ambiguous")
+        self.assertEqual(routing["method"], "manifest-routing")
+        self.assertEqual(routing["confidence_label"], "medium")
+        self.assertTrue(routing["requires_confirmation"])
+        self.assertIn("Multiple routing candidates", routing["reason"])
+        self.assertTrue(routing["question"])
+        self.assertGreaterEqual(len(routing["options"]), 2)
+        self.assertTrue(routing["alternatives"])
+        self.assertIsNone(routing["selected_agent_id"])
+        self.assertFalse(plan["specialist_tasks"])
+        self.assertFalse(plan["configuration_tasks"])
+        self.assertIn("postgres-data-analyzer", {item["agent_id"] for item in routing["candidates"]})
+        self.assertIn("sqlserver-data-analyzer", {item["agent_id"] for item in routing["candidates"]})
+
+    def test_ambiguous_database_dry_run_exposes_routing_confirmation(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            result = self.run_agent(
+                "--dry-run",
+                "--json",
+                "analise",
+                "banco",
+                "sql",
+                env={"AI_DEVKIT_CONFIG_HOME": config_home, "PATH": os.environ.get("PATH", "")},
+                replace_env=True,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["requires_routing_confirmation"])
+        self.assertEqual(payload["routing_decision"]["status"], "ambiguous")
+        self.assertTrue(payload["matches"])
+        self.assertIn("confirmacao", payload["response"])
 
     def test_card_prompt_with_source_executes_through_multiagent_plan(self) -> None:
         with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as tmpdir:
@@ -302,6 +420,7 @@ class AgenticMultiAgentContractsTest(unittest.TestCase):
         self.assertEqual(payload["mode"], "agentic-route")
         self.assertEqual(payload["execution_plan"]["status"], "ok")
         self.assertEqual(payload["execution_plan"]["executed_tasks"][0]["agent_id"], "azure-devops-orchestrator")
+        self.assertEqual(payload["execution_plan"]["executed_tasks"][0]["write_policy_metadata"]["canonical"], "read_only")
         self.assertIn("# Card Analysis", payload["response"])
         self.assertIn("- ID: 9901", payload["response"])
         self.assertEqual(payload["review_task"]["status"], "reviewed")

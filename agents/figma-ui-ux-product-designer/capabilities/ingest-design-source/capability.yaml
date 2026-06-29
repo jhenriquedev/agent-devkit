@@ -12,4 +12,4 @@ inputs:
   optional: [brief, depth, output_dir]
 outputs:
   artifacts: [design-brief.md, screen-inventory.md, source-traceability.md, open-design-questions.md]
-write_policy: ask_before_creating_output_directory
+write_policy: output_only

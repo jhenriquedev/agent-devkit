@@ -1,0 +1,53 @@
+id: supabase-project-analyst
+kind: specialist-agent
+name: Supabase Project Analyst
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Diagnosticar projetos Supabase em modo read-only, analisando configuracao
+  local, migrations, RLS, Auth, Storage, Edge Functions, riscos e planos de
+  correcao sem aplicar mudancas.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional:
+    - SUPABASE_PROJECT_REF
+    - SUPABASE_ACCESS_TOKEN
+    - SUPABASE_DB_URL
+    - SUPABASE_SERVICE_ROLE_KEY
+capabilities:
+  - inspect-supabase-project
+  - audit-rls-policies
+  - audit-auth-security
+  - audit-storage-policies
+  - review-migrations
+  - generate-supabase-report
+  - plan-supabase-fix
+agent_surface:
+  repositories:
+    - infra/integrations/supabase-project/supabase_project_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  inspection: read_only
+  audits: read_only
+  report: output_only
+  fix_plan: dry_run
+  sql_execution: blocked_by_default
+  remote_changes: blocked_by_default
+routing:
+  anchors:
+    - supabase
+    - rls
+    - storage policies
+    - edge functions
+    - supabase auth
+  intents:
+    - supabase.project.audit
+    - supabase.rls.audit
+    - supabase.security.review
+  priority: 50

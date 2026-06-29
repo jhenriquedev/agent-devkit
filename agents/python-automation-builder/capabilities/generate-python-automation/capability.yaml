@@ -1,0 +1,18 @@
+id: python-automation-builder.generate-python-automation
+kind: capability
+name: Generate Python Automation
+version: 0.1.0
+status: draft
+purpose: Gerar script Python seguro em modo output-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/automation.py
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - automation.py
+write_policy: output_only

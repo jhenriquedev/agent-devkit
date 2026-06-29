@@ -1,0 +1,20 @@
+id: execution-loop-builder.generate-loop-project-files
+kind: capability
+name: Generate Loop Project Files
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever pacote local de loop dentro de target_project.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/loop-readme.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - execution-loop-project-files.json
+write_policy: local_write

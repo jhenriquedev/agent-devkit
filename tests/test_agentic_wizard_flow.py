@@ -12,8 +12,11 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 AGENT = ROOT / "agent"
 CLI_TIMEOUT_SECONDS = int(os.environ.get("AI_DEVKIT_TEST_CLI_TIMEOUT_SECONDS", "60"))
+
+from cli.aikit.configuration_orchestrator import provider_setup_wizard
 
 
 class AgenticWizardFlowTest(unittest.TestCase):
@@ -169,6 +172,19 @@ class AgenticWizardFlowTest(unittest.TestCase):
             state_path = Path(config_home) / "state" / "wizards" / f"{wizard_id}.json"
             state_text = state_path.read_text(encoding="utf-8")
             self.assertNotIn("sk-abcdefghijklmnop", state_text)
+
+    def test_provider_wizard_secret_config_field_requests_env_ref(self) -> None:
+        wizard = provider_setup_wizard(ROOT, "bpo")
+        question = next(
+            item
+            for item in wizard["questions"]
+            if item.get("env_ref_key") == "BPO_FORBIDDEN_URL_PATTERNS"
+        )
+
+        self.assertTrue(question["secret"])
+        self.assertFalse(question["stores_secret"])
+        self.assertNotIn("config_key", question)
+        self.assertEqual(question["suggested_value"], "BPO_FORBIDDEN_URL_PATTERNS")
 
     def test_wizard_no_run_flag_can_be_used_after_answer(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:

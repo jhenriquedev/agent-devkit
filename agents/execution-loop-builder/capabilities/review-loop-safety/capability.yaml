@@ -1,0 +1,19 @@
+id: execution-loop-builder.review-loop-safety
+kind: capability
+name: Review Loop Safety
+version: 0.1.0
+status: draft
+purpose: Revisar contrato de loop contra riscos de execucao infinita, custo e side effects.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/loop-review.md
+inputs:
+  required: []
+  optional:
+    - spec
+    - text
+outputs:
+  artifacts:
+    - execution-loop-review.json
+write_policy: read_only

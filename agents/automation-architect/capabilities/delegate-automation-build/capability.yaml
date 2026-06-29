@@ -1,0 +1,34 @@
+id: automation-architect.delegate-automation-build
+kind: capability
+name: Delegate Automation Build
+version: 0.1.0
+status: draft
+purpose: Gerar contrato de delegacao manual para o builder especializado adequado, sem executar automaticamente.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required: []
+  optional:
+    - request
+    - spec
+outputs:
+  artifacts:
+    - automation-delegation.json
+write_policy: delegated
+routing:
+  anchors:
+    - delegar-automacao
+    - automation-delegation
+    - delegate-automation
+  keywords:
+    - delegar
+    - encaminhar
+    - builder
+    - automacao
+  intents:
+    - automation.delegate
+  examples:
+    - encaminhe para o builder correto
+    - delegue a construcao da automacao
+  priority: 70

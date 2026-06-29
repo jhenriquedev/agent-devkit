@@ -4,7 +4,7 @@ name: Create review automation
 status: draft
 version: 0.1.0
 purpose: Criar task local diaria para revisar PRs pendentes em modo report-only.
-write_policy: local-write
+write_policy: local_write
 entrypoint:
   workflow: workflow.md
   output_template: ../../templates/pr-automation-output.md

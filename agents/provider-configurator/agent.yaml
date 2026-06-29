@@ -9,6 +9,9 @@ purpose: >
   Conduzir wizards agenticos de configuracao de providers e sources, coletando
   opt-in, campos de projeto e referencias seguras de credencial.
 
+runtime_role:
+  kind: provider-configurator
+
 default_context:
   - knowledge/system.md
   - knowledge/context.md
@@ -19,7 +22,6 @@ capabilities:
   - validate-provider-readiness
 
 write_policy:
-  config_writes: explicit_opt_in
-  stores_secret_values: never
-  default_mode: ask-first
-
+  config_writes: confirm
+  stores_secret_values: blocked_by_default
+  default_mode: confirm

@@ -11,7 +11,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import yaml
+
+from cli.aikit.write_policy import canonical_write_policies, legacy_write_policy_aliases
 
 
 KEBAB_CASE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -71,6 +77,36 @@ CAPABILITY_PROVIDER_FALLBACKS = {
     "skip_provider",
     "blocked",
 }
+CAPABILITY_EXECUTION_FIELDS = {"modes", "idempotency", "timeout_seconds"}
+CAPABILITY_EXECUTION_MODES = {"run", "dry-run"}
+CAPABILITY_IDEMPOTENCY_VALUES = {
+    "safe-repeat",
+    "creates-artifact",
+    "external-read",
+    "external-write",
+}
+CAPABILITY_ARTIFACT_KINDS = {"markdown", "json", "xlsx", "pptx", "drawio", "log", "other"}
+RUNTIME_SOURCE_FIELDS = {"enabled", "args", "env"}
+SOURCE_CONTRACT_FIELDS = {"enabled", "supported", "args", "env", "mappings", "apply"}
+SOURCE_MAPPING_FIELDS = {"field", "name", "arg", "env"}
+RUNTIME_ROLE_KINDS = {"coordinator", "reviewer", "provider-configurator", "local-worker", "none"}
+AGENT_MODE_TYPES = {"reactive", "workflow", "planner", "reviewer"}
+AGENT_MODE_LLM_VALUES = {False, "optional", "required"}
+AGENT_MODE_FIELDS = {
+    "type",
+    "max_steps",
+    "max_specialists",
+    "max_llm_calls",
+    "timeout_seconds",
+    "can_call_capabilities",
+    "can_call_llm",
+    "can_request_user_input",
+    "external_writes",
+    "allowed_capabilities",
+    "stop_conditions",
+}
+CANONICAL_WRITE_POLICIES = canonical_write_policies()
+LEGACY_WRITE_POLICY_ALIASES = legacy_write_policy_aliases()
 SECRET_MARKERS = ("SECRET", "TOKEN", "PASSWORD", "PAT", "API_KEY", "PRIVATE_KEY")
 ROOT_ARTIFACT_NAMES = {"json", "markdown"}
 ROOT_IGNORED_NAMES = {
@@ -138,6 +174,7 @@ class ValidationState:
             "errors": self.errors,
             "warnings": self.warnings,
             "agents": self.agent_stats,
+            "providers": sorted(self.provider_ids),
             "plugins": self.plugin_stats,
         }
 
@@ -439,6 +476,10 @@ def validate_agent(state: ValidationState, agent_dir: Path, manifest_path: Path)
 
     validate_status(state, manifest_path, manifest.get("status"))
     validate_relative_refs(state, agent_dir, manifest.get("default_context", []), "default_context")
+    validate_agent_write_policy(state, manifest_path, manifest.get("write_policy"))
+    validate_routing(state, manifest_path, manifest.get("routing"))
+    validate_runtime_role(state, manifest_path, manifest.get("runtime_role"), agent_kind=manifest.get("kind"))
+    validate_agent_mode(state, manifest_path, manifest.get("agent_mode"), write_policy=manifest.get("write_policy"))
 
     surface = manifest.get("agent_surface", {}) or {}
     if isinstance(surface, dict):
@@ -498,6 +539,12 @@ def validate_capability(state: ValidationState, agent_dir: Path, manifest_path: 
         )
 
     validate_status(state, manifest_path, manifest.get("status"))
+    validate_write_policy_value(state, manifest_path, manifest.get("write_policy"))
+    validate_routing(state, manifest_path, manifest.get("routing"))
+    validate_runtime_contract(state, manifest_path, manifest.get("runtime"))
+    validate_source_contract(state, manifest_path, manifest.get("source"), field_prefix="source")
+    validate_capability_execution(state, manifest_path, manifest.get("execution"))
+    validate_capability_outputs(state, manifest_path, manifest.get("outputs"))
 
     entrypoint = manifest.get("entrypoint", {}) or {}
     if isinstance(entrypoint, dict):
@@ -522,6 +569,220 @@ def validate_capability(state: ValidationState, agent_dir: Path, manifest_path: 
         validate_relative_refs(state, capability_dir, integration.get("methods", []), "integration.methods")
 
     validate_capability_provider_requirements(state, manifest_path, manifest.get("requires", {}))
+
+
+def validate_capability_execution(state: ValidationState, manifest_path: Path, execution: Any) -> None:
+    if execution is None:
+        return
+    relative_manifest = rel(state, manifest_path)
+    if not isinstance(execution, dict):
+        state.error(f"{relative_manifest} execution must be a mapping")
+        return
+    for key in execution:
+        if key not in CAPABILITY_EXECUTION_FIELDS:
+            state.error(f"{relative_manifest} execution has unsupported field: {key}")
+    modes = execution.get("modes")
+    if modes is not None:
+        if not isinstance(modes, list):
+            state.error(f"{relative_manifest} execution.modes must be a list")
+        else:
+            for mode in modes:
+                if mode not in CAPABILITY_EXECUTION_MODES:
+                    state.error(f"{relative_manifest} execution.modes has unsupported mode: {mode}")
+    idempotency = execution.get("idempotency")
+    if idempotency is not None and idempotency not in CAPABILITY_IDEMPOTENCY_VALUES:
+        state.error(f"{relative_manifest} execution.idempotency has unsupported value: {idempotency}")
+    timeout = execution.get("timeout_seconds")
+    if timeout is not None and (not isinstance(timeout, int) or timeout <= 0):
+        state.error(f"{relative_manifest} execution.timeout_seconds must be a positive integer")
+
+
+def validate_capability_outputs(state: ValidationState, manifest_path: Path, outputs: Any) -> None:
+    if outputs is None:
+        return
+    relative_manifest = rel(state, manifest_path)
+    if not isinstance(outputs, dict):
+        state.error(f"{relative_manifest} outputs must be a mapping")
+        return
+    artifacts = outputs.get("artifacts")
+    if artifacts is None:
+        return
+    if not isinstance(artifacts, list):
+        state.error(f"{relative_manifest} outputs.artifacts must be a list")
+        return
+    for item in artifacts:
+        if isinstance(item, str):
+            continue
+        if not isinstance(item, dict):
+            state.error(f"{relative_manifest} outputs.artifacts entries must be strings or mappings")
+            continue
+        path = item.get("path") or item.get("ref")
+        if not isinstance(path, str) or not path.strip():
+            state.error(f"{relative_manifest} outputs.artifacts entry missing path")
+        kind = item.get("kind")
+        if kind is not None and kind not in CAPABILITY_ARTIFACT_KINDS:
+            state.error(f"{relative_manifest} outputs.artifacts has unsupported kind: {kind}")
+        sensitive = item.get("sensitive")
+        if sensitive is not None and not isinstance(sensitive, bool):
+            state.error(f"{relative_manifest} outputs.artifacts sensitive must be boolean")
+
+
+def validate_runtime_contract(state: ValidationState, manifest_path: Path, runtime: Any) -> None:
+    if runtime is None:
+        return
+    relative_manifest = rel(state, manifest_path)
+    if not isinstance(runtime, dict):
+        state.error(f"{relative_manifest} runtime must be a mapping")
+        return
+    provider = runtime.get("provider")
+    if provider is not None:
+        provider_id = str(provider)
+        if not provider_id:
+            state.error(f"{relative_manifest} runtime.provider must be a non-empty string")
+        elif provider_id not in state.provider_ids:
+            state.error(f"{relative_manifest} runtime references unknown provider: {provider_id}")
+    source = runtime.get("source")
+    if source is None:
+        return
+    validate_source_contract(state, manifest_path, source, field_prefix="runtime.source", allowed_fields=RUNTIME_SOURCE_FIELDS)
+
+
+def validate_source_contract(
+    state: ValidationState,
+    manifest_path: Path,
+    source: Any,
+    *,
+    field_prefix: str,
+    allowed_fields: set[str] = SOURCE_CONTRACT_FIELDS,
+) -> None:
+    if source is None:
+        return
+    if not isinstance(source, dict):
+        state.error(f"{rel(state, manifest_path)} {field_prefix} must be a mapping")
+        return
+    relative_manifest = rel(state, manifest_path)
+    for key in source:
+        if key not in allowed_fields:
+            state.error(f"{relative_manifest} {field_prefix} has unsupported field: {key}")
+    for boolean_field in ("enabled", "supported"):
+        if boolean_field in source and not isinstance(source.get(boolean_field), bool):
+            state.error(f"{relative_manifest} {field_prefix}.{boolean_field} must be boolean")
+    for field in ("args", "env"):
+        mapping = source.get(field)
+        if mapping is None:
+            continue
+        if not isinstance(mapping, dict):
+            state.error(f"{relative_manifest} {field_prefix}.{field} must be a mapping")
+            continue
+        for name, value in mapping.items():
+            if not isinstance(name, str) or not name.strip() or not isinstance(value, str) or not value.strip():
+                state.error(f"{relative_manifest} {field_prefix}.{field} entries must be non-empty strings")
+                continue
+            if field == "args" and not value.startswith("--"):
+                state.error(f"{relative_manifest} {field_prefix}.args.{name} must map to a CLI flag")
+            if field == "env" and not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", value):
+                state.error(f"{relative_manifest} {field_prefix}.env.{name} must map to an environment variable")
+    for list_field in ("mappings", "apply"):
+        mappings = source.get(list_field)
+        if mappings is None:
+            continue
+        if not isinstance(mappings, list):
+            state.error(f"{relative_manifest} {field_prefix}.{list_field} must be a list")
+            continue
+        for index, item in enumerate(mappings):
+            item_prefix = f"{field_prefix}.{list_field}[{index}]"
+            if not isinstance(item, dict):
+                state.error(f"{relative_manifest} {item_prefix} entries must be mappings")
+                continue
+            for key in item:
+                if key not in SOURCE_MAPPING_FIELDS:
+                    state.error(f"{relative_manifest} {item_prefix} has unsupported field: {key}")
+            field_name = item.get("field") or item.get("name")
+            if not isinstance(field_name, str) or not field_name.strip():
+                state.error(f"{relative_manifest} {item_prefix} missing field")
+            arg = item.get("arg")
+            if arg is not None and (not isinstance(arg, str) or not arg.startswith("--")):
+                state.error(f"{relative_manifest} {item_prefix}.arg must map to a CLI flag")
+            env = item.get("env")
+            if env is not None and (not isinstance(env, str) or not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", env)):
+                state.error(f"{relative_manifest} {item_prefix}.env must map to an environment variable")
+
+
+def validate_runtime_role(state: ValidationState, manifest_path: Path, runtime_role: Any, *, agent_kind: Any) -> None:
+    relative_manifest = rel(state, manifest_path)
+    if agent_kind == "runtime-agent" and runtime_role is None:
+        state.error(f"{relative_manifest} runtime-agent must declare runtime_role")
+        return
+    if runtime_role is None:
+        return
+    if not isinstance(runtime_role, dict):
+        state.error(f"{relative_manifest} runtime_role must be a mapping")
+        return
+    role_kind = str(runtime_role.get("kind") or "")
+    if not role_kind:
+        state.error(f"{relative_manifest} runtime_role.kind must be a non-empty string")
+    elif role_kind not in RUNTIME_ROLE_KINDS:
+        state.error(f"{relative_manifest} runtime_role.kind has unsupported value: {role_kind}")
+
+
+def validate_agent_mode(state: ValidationState, manifest_path: Path, agent_mode: Any, *, write_policy: Any) -> None:
+    if agent_mode is None:
+        return
+    relative_manifest = rel(state, manifest_path)
+    if not isinstance(agent_mode, dict):
+        state.error(f"{relative_manifest} agent_mode must be a mapping")
+        return
+    for key in agent_mode:
+        if key not in AGENT_MODE_FIELDS:
+            state.error(f"{relative_manifest} agent_mode has unsupported field: {key}")
+    mode_type = str(agent_mode.get("type") or "")
+    if not mode_type:
+        state.error(f"{relative_manifest} agent_mode.type must be a non-empty string")
+    elif mode_type not in AGENT_MODE_TYPES:
+        state.error(f"{relative_manifest} agent_mode.type has unsupported value: {mode_type}")
+    max_steps = agent_mode.get("max_steps")
+    if not isinstance(max_steps, int) or max_steps <= 0 or max_steps > 20:
+        state.error(f"{relative_manifest} agent_mode.max_steps must be an integer between 1 and 20")
+    max_specialists = agent_mode.get("max_specialists")
+    if max_specialists is not None and (not isinstance(max_specialists, int) or max_specialists <= 0 or max_specialists > 20):
+        state.error(f"{relative_manifest} agent_mode.max_specialists must be an integer between 1 and 20")
+    max_llm_calls = agent_mode.get("max_llm_calls")
+    if max_llm_calls is not None and (not isinstance(max_llm_calls, int) or max_llm_calls < 0 or max_llm_calls > 20):
+        state.error(f"{relative_manifest} agent_mode.max_llm_calls must be an integer between 0 and 20")
+    timeout = agent_mode.get("timeout_seconds")
+    if timeout is not None and (not isinstance(timeout, int) or timeout <= 0):
+        state.error(f"{relative_manifest} agent_mode.timeout_seconds must be a positive integer")
+    for boolean_field in ("can_call_capabilities", "can_request_user_input", "external_writes"):
+        if boolean_field in agent_mode and not isinstance(agent_mode.get(boolean_field), bool):
+            state.error(f"{relative_manifest} agent_mode.{boolean_field} must be boolean")
+    llm_value = agent_mode.get("can_call_llm")
+    if llm_value not in AGENT_MODE_LLM_VALUES:
+        state.error(f"{relative_manifest} agent_mode.can_call_llm must be false, optional, or required")
+    for list_field in ("allowed_capabilities", "stop_conditions"):
+        values = agent_mode.get(list_field)
+        if values is None:
+            continue
+        if not isinstance(values, list):
+            state.error(f"{relative_manifest} agent_mode.{list_field} must be a list")
+            continue
+        for item in values:
+            if not isinstance(item, str) or not item.strip():
+                state.error(f"{relative_manifest} agent_mode.{list_field} entries must be non-empty strings")
+    if agent_mode.get("external_writes") is True and not agent_write_policy_requires_confirmation(write_policy):
+        state.error(f"{relative_manifest} agent_mode.external_writes=true requires confirm, delegated, or blocked_by_default write_policy")
+
+
+def agent_write_policy_requires_confirmation(write_policy: Any) -> bool:
+    if isinstance(write_policy, dict):
+        values = [normalize_write_policy_value(policy) for policy in write_policy.values()]
+    else:
+        values = [normalize_write_policy_value(write_policy)]
+    return any(value in {"confirm", "delegated", "blocked_by_default"} for value in values)
+
+
+def normalize_write_policy_value(value: Any) -> str:
+    raw = str(value or "").strip()
+    return LEGACY_WRITE_POLICY_ALIASES.get(raw, raw)
 
 
 def validate_capability_provider_requirements(state: ValidationState, manifest_path: Path, requires: Any) -> None:
@@ -574,6 +835,57 @@ def validate_status(state: ValidationState, path: Path, status: Any) -> None:
         return
     if str(status) not in ALLOWED_STATUSES:
         state.error(f"{rel(state, path)} has unsupported status: {status}")
+
+
+def validate_agent_write_policy(state: ValidationState, path: Path, write_policy: Any) -> None:
+    if write_policy is None:
+        return
+    if isinstance(write_policy, dict):
+        for name, value in sorted(write_policy.items()):
+            validate_write_policy_value(state, path, value, field=f"write_policy.{name}")
+        return
+    validate_write_policy_value(state, path, write_policy)
+
+
+def validate_write_policy_value(
+    state: ValidationState,
+    path: Path,
+    write_policy: Any,
+    *,
+    field: str = "write_policy",
+) -> None:
+    if write_policy is None:
+        return
+    policy = str(write_policy)
+    if policy in CANONICAL_WRITE_POLICIES:
+        return
+    if policy in LEGACY_WRITE_POLICY_ALIASES:
+        state.warn(
+            f"{rel(state, path)} uses legacy {field}: {policy!r}; use {LEGACY_WRITE_POLICY_ALIASES[policy]!r}"
+        )
+        return
+    state.error(f"{rel(state, path)} has unsupported {field}: {policy!r}")
+
+
+def validate_routing(state: ValidationState, path: Path, routing: Any) -> None:
+    if routing is None:
+        return
+    relative = rel(state, path)
+    if not isinstance(routing, dict):
+        state.error(f"{relative} routing must be a mapping")
+        return
+    for field in ("aliases", "anchors", "domains", "entities", "intents", "keywords", "examples"):
+        value = routing.get(field)
+        if value is None:
+            continue
+        if not isinstance(value, list):
+            state.error(f"{relative} routing.{field} must be a list")
+            continue
+        for item in value:
+            if not isinstance(item, str) or not item.strip():
+                state.error(f"{relative} routing.{field} entries must be non-empty strings")
+    if "priority" in routing and not isinstance(routing.get("priority"), int):
+        state.error(f"{relative} routing.priority must be an integer")
 
 
 def validate_relative_refs(state: ValidationState, base: Path, refs: Any, field: str) -> None:

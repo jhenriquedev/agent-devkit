@@ -57,8 +57,20 @@ agent_surface:
     - ../../vendor/skills/CATALOG.md
 
 write_policy:
-  read_operations: auto
-  artifact_generation: auto
-  remediation_execution: unsupported
-  aws_mutations: unsupported
-  external_side_effects: unsupported
+  read_operations: read_only
+  artifact_generation: read_only
+  remediation_execution: blocked_by_default
+  aws_mutations: blocked_by_default
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - aws
+    - cloudtrail
+    - iam
+    - s3
+    - security
+    - seguranca
+  intents:
+    - aws.security.audit
+  priority: 50

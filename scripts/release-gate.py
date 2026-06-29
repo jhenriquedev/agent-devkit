@@ -11,11 +11,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 AGENT = ROOT / "agent"
 VALIDATE_REPO = ROOT / "scripts" / "validate-repo.py"
 MVP_READINESS = ROOT / "scripts" / "mvp-readiness.py"
+CATALOG_SNAPSHOT = ROOT / "scripts" / "release-catalog-snapshot.json"
 CLAUDE_SKILL = ROOT / "plugins" / "claude-skill-ai-devkit" / "ai-devkit"
 CODEX_HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
 SKILL_VALIDATOR = CODEX_HOME / "skills" / ".system" / "skill-creator" / "scripts" / "quick_validate.py"
@@ -39,6 +42,7 @@ def run_gate(*, quick: bool = False) -> dict[str, Any]:
     checks = [
         check_command("agent version", [sys.executable, str(AGENT), "--version"], validate_agent_version),
         check_json("repo strict validation", [sys.executable, str(VALIDATE_REPO), "--strict", "--json"], validate_repo),
+        catalog_snapshot_check(),
         check_json("mvp readiness", [sys.executable, str(MVP_READINESS), "--json"], validate_mvp_readiness),
         skill_validation_check(),
     ]
@@ -141,6 +145,104 @@ def validate_repo(payload: dict[str, Any]) -> str | None:
     return None
 
 
+def catalog_snapshot_check() -> dict[str, Any]:
+    name = "catalog snapshot"
+    if not CATALOG_SNAPSHOT.exists():
+        return failed_static_check(name, f"catalog snapshot not found: {CATALOG_SNAPSHOT}")
+    try:
+        expected = json.loads(CATALOG_SNAPSHOT.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return failed_static_check(name, f"invalid catalog snapshot json: {exc}")
+    current = build_catalog_snapshot()
+    message = validate_catalog_snapshot(expected, current)
+    if message:
+        check = failed_static_check(name, message)
+        check["summary"] = {"expected": summarize_snapshot(expected), "current": summarize_snapshot(current)}
+        return check
+    check = ok_static_check(name)
+    check["summary"] = summarize_snapshot(current)
+    return check
+
+
+def build_catalog_snapshot() -> dict[str, Any]:
+    agents: list[str] = []
+    capabilities_by_agent: dict[str, list[str]] = {}
+    for manifest_path in sorted(ROOT.glob("agents/*/agent.yaml")):
+        manifest = load_yaml(manifest_path)
+        agent_id = str(manifest.get("id") or manifest_path.parent.name)
+        agents.append(agent_id)
+        capabilities = []
+        for capability_path in sorted((manifest_path.parent / "capabilities").glob("*/capability.yaml")):
+            capability = load_yaml(capability_path)
+            capabilities.append(str(capability.get("id") or capability_path.parent.name).split(".")[-1])
+        capabilities_by_agent[agent_id] = sorted(capabilities)
+
+    providers = [
+        str(load_yaml(path).get("id") or path.stem)
+        for path in sorted(ROOT.glob("providers/*.yaml"))
+    ]
+    plugins = [
+        str(load_json(plugin_manifest_path(path)).get("id") or path.name)
+        for path in sorted((ROOT / "plugins").iterdir())
+        if path.is_dir() and plugin_manifest_path(path).exists()
+    ]
+    return {
+        "schema_version": "ai-devkit.release-catalog-snapshot/v1",
+        "version": expected_version(),
+        "summary": {
+            "agents": len(agents),
+            "capabilities": sum(len(items) for items in capabilities_by_agent.values()),
+            "providers": len(providers),
+            "plugins": len(plugins),
+        },
+        "agents": sorted(agents),
+        "providers": sorted(providers),
+        "plugins": sorted(plugins),
+        "capabilities_by_agent": capabilities_by_agent,
+    }
+
+
+def validate_catalog_snapshot(expected: dict[str, Any], current: dict[str, Any]) -> str | None:
+    if expected.get("schema_version") != current["schema_version"]:
+        return "catalog snapshot schema_version is not supported"
+    for key in ("version", "summary", "agents", "providers", "plugins", "capabilities_by_agent"):
+        if expected.get(key) != current.get(key):
+            return f"catalog snapshot mismatch in {key}; update scripts/release-catalog-snapshot.json intentionally for this release"
+    return None
+
+
+def summarize_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "version": snapshot.get("version"),
+        "summary": snapshot.get("summary") or {},
+    }
+
+
+def expected_version() -> str:
+    result = run([sys.executable, str(AGENT), "--version"])
+    prefix = "agent "
+    if result.returncode == 0 and result.stdout.startswith(prefix):
+        return result.stdout.strip()[len(prefix) :]
+    return "unknown"
+
+
+def plugin_manifest_path(plugin_dir: Path) -> Path:
+    codex_manifest = plugin_dir / ".codex-plugin" / "plugin.json"
+    if codex_manifest.exists():
+        return codex_manifest
+    return plugin_dir / "plugin.json"
+
+
+def load_yaml(path: Path) -> dict[str, Any]:
+    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else {}
+
+
 def validate_mvp_readiness(payload: dict[str, Any]) -> str | None:
     if payload.get("kind") != "mvp-readiness" or payload.get("status") != "ok":
         return "mvp readiness is not ok"
@@ -182,6 +284,15 @@ def ok_check(name: str, result: subprocess.CompletedProcess[str]) -> dict[str, A
     }
 
 
+def ok_static_check(name: str) -> dict[str, Any]:
+    return {
+        "name": name,
+        "status": "ok",
+        "returncode": None,
+        "message": "",
+    }
+
+
 def failed_check(name: str, message: str, result: subprocess.CompletedProcess[str]) -> dict[str, Any]:
     return {
         "name": name,
@@ -190,6 +301,15 @@ def failed_check(name: str, message: str, result: subprocess.CompletedProcess[st
         "message": message,
         "stdout": trim(result.stdout),
         "stderr": trim(result.stderr),
+    }
+
+
+def failed_static_check(name: str, message: str) -> dict[str, Any]:
+    return {
+        "name": name,
+        "status": "failed",
+        "returncode": None,
+        "message": message,
     }
 
 

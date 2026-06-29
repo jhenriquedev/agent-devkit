@@ -1,0 +1,22 @@
+id: selenium-automation-builder.wrap-selenium-as-capability
+kind: capability
+name: Wrap Selenium As Capability
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever wrapper de capability para automacao Selenium aprovada.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/capability-wrapper.md
+inputs:
+  required:
+    - spec
+    - agent-id
+    - capability-id
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - selenium-capability-wrapper-files.json
+write_policy: local_write

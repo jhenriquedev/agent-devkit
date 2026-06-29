@@ -48,7 +48,15 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
+  read_operations: read_only
   create_operations: confirm
   update_operations: confirm
-  destructive_operations: unsupported
+  destructive_operations: blocked_by_default
+
+routing:
+  anchors:
+    - chamado
+    - topdesk
+  intents:
+    - topdesk.incident
+  priority: 50

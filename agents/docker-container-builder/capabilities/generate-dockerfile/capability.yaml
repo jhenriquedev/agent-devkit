@@ -1,0 +1,18 @@
+id: docker-container-builder.generate-dockerfile
+kind: capability
+name: Generate Dockerfile
+version: 0.1.0
+status: draft
+purpose: Gerar conteudo de Dockerfile seguro em modo output-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/dockerfile.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - Dockerfile
+write_policy: output_only

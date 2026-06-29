@@ -32,10 +32,14 @@ fallbacks:
   - manual_steps
 capabilities:
   read:
+    - github-pr-reviewer/list-review-requests
+    - github-pr-reviewer/inspect-pr
+    - github-pr-reviewer/review-pr-diff
     - pr.list-review-requests
     - pr.inspect
     - pr.review-report
   write:
+    - github-pr-reviewer/create-review-automation
     - pr.comment
     - pr.approve
     - pr.request-changes

@@ -1,0 +1,20 @@
+id: selenium-automation-builder.review-selenium-script
+kind: capability
+name: Review Selenium Script
+version: 0.1.0
+status: draft
+purpose: Revisar script Selenium contra robustez, guardrails e compatibilidade.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/selenium-review-report.md
+inputs:
+  required: []
+  optional:
+    - input
+    - text
+    - side-effects
+outputs:
+  artifacts:
+    - selenium-review.json
+write_policy: read_only

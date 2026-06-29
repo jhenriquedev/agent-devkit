@@ -10,6 +10,9 @@ purpose: >
   repetitivas, mantendo coordenadores principais responsaveis por decisao,
   especificacao e revisao.
 
+runtime_role:
+  kind: local-worker
+
 default_context:
   - knowledge/system.md
   - knowledge/context.md
@@ -20,7 +23,6 @@ capabilities:
   - delegate-operational-task
 
 write_policy:
-  external_writes: never
-  default_mode: operational-worker
-  requires_coordinator_review: true
-
+  external_writes: blocked_by_default
+  default_mode: delegated
+  requires_coordinator_review: confirm

@@ -1,0 +1,18 @@
+id: supabase-project-analyst.plan-supabase-fix
+kind: capability
+name: Plan Supabase Fix
+version: 0.1.0
+status: draft
+purpose: Gerar plano de correcao e SQL sugerido sem aplicar mudancas.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/supabase-fix-plan.md
+inputs:
+  required: []
+  optional:
+    - project-path
+outputs:
+  artifacts:
+    - supabase-fix-plan.json
+write_policy: dry_run

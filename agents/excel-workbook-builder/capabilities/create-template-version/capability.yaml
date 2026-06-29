@@ -12,4 +12,4 @@ inputs:
   optional: [base_version, template]
 outputs:
   artifacts: [template.xlsx]
-write_policy: create_new_version
+write_policy: local_write

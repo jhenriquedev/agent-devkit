@@ -1,0 +1,5 @@
+# Dockerfile
+
+```dockerfile
+{{content}}
+```

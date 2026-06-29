@@ -1,0 +1,22 @@
+id: playwright-automation-builder.run-playwright-check
+kind: capability
+name: Run Playwright Check
+version: 0.1.0
+status: draft
+purpose: Executar check Playwright local controlado com dry-run e confirmacao.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - confirm
+    - headed
+outputs:
+  artifacts:
+    - playwright-check-result.json
+    - playwright-artifacts/screenshots
+    - playwright-artifacts/traces
+write_policy: confirm

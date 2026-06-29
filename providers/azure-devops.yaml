@@ -23,6 +23,15 @@ detection:
   env_any:
     - AZURE_DEVOPS_ORG
     - AZURE_DEVOPS_PAT
+wizard:
+  suggested_config:
+    project: prompt.project
+    AZURE_DEVOPS_PROJECT: prompt.project
+  field_suggestions:
+    AZURE_DEVOPS_PROJECT: prompt.project
+  questions:
+    AZURE_DEVOPS_ORG: Qual e a organizacao do Azure DevOps?
+    AZURE_DEVOPS_PROJECT: Qual e o nome do projeto no Azure DevOps?
 capabilities:
   read:
     - azure-devops-orchestrator/list-cards

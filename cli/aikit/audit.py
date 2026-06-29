@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import getpass
 import json
 import re
@@ -11,10 +12,16 @@ from pathlib import Path
 from typing import Any
 
 from cli.aikit.app_home import audit_home, ensure_app_home
+from cli.aikit.autonomy import summarize_autonomy_contract
 from cli.aikit.memory import normalize_prompt, redact_secrets
+from cli.aikit.mini_brain import summarize_mini_brain
 
 
 AUDIT_VERSION = 1
+
+
+class AuditRedactionError(RuntimeError):
+    """Raised when an audit payload cannot be safely redacted."""
 
 
 def now_utc() -> datetime:
@@ -45,22 +52,30 @@ def record_audit(
     args: dict[str, Any],
     result: dict[str, Any] | None = None,
     error: str | None = None,
+    origin: str = "unknown",
 ) -> dict[str, Any]:
     created_at = now_iso()
     execution_id = f"exec_{now_utc().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}"
     prompt = extract_prompt(args)
-    safe_result = redact_value(result or {})
+    try:
+        safe_result = redact_value(result or {})
+        safe_prompt = redact_secrets(prompt) if prompt else None
+        safe_error = redact_secrets(error) if error else None
+    except Exception as exc:  # noqa: BLE001 - never write an unredacted audit fallback.
+        raise AuditRedactionError("audit redaction failed") from exc
     entry = {
         "version": AUDIT_VERSION,
         "id": execution_id,
         "created_at": created_at,
+        "origin": normalize_origin(origin),
         "user": safe_user(),
         "command": command,
-        "prompt": redact_secrets(prompt) if prompt else None,
+        "prompt": safe_prompt,
         "prompt_normalized": normalize_prompt(prompt) if prompt else None,
         "session": extract_session(safe_result),
         "route": safe_result.get("route"),
         "orchestration": extract_orchestration(safe_result),
+        "autonomy": summarize_autonomy_contract(safe_result.get("autonomy_contract")),
         "agent": extract_agent(safe_result, args),
         "providers": extract_providers(safe_result),
         "sources": extract_sources(safe_result),
@@ -70,7 +85,7 @@ def record_audit(
         "token_estimate": extract_token_estimate(safe_result),
         "external_actions": extract_external_actions(safe_result),
         "result": summarize_result(safe_result),
-        "error": redact_secrets(error) if error else None,
+        "error": safe_error,
         "redaction_applied": True,
     }
     day_home = audit_day_home(created_at[:10])
@@ -79,6 +94,64 @@ def record_audit(
     json_path.write_text(json.dumps(entry, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     md_path.write_text(render_audit_md(entry), encoding="utf-8")
     return {"id": execution_id, "json_path": str(json_path), "markdown_path": str(md_path)}
+
+
+def try_record_audit(
+    *,
+    command: str | None,
+    args: dict[str, Any],
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+    origin: str = "unknown",
+    required: bool = False,
+    recorder: Any | None = None,
+) -> dict[str, Any]:
+    """Record an audit trail and return a safe success or warning envelope."""
+
+    audit_recorder = recorder or record_audit
+    try:
+        audit = audit_recorder(command=command, args=args, result=result, error=error, origin=origin)
+    except TypeError as exc:
+        if recorder is None:
+            return {"audit_warning": audit_warning(exc, required=required)}
+        try:
+            audit = audit_recorder(command=command, args=args, result=result, error=error)
+        except Exception as fallback_exc:  # noqa: BLE001 - audit remains best-effort.
+            return {"audit_warning": audit_warning(fallback_exc, required=required)}
+    except Exception as exc:  # noqa: BLE001 - audit remains best-effort.
+        return {"audit_warning": audit_warning(exc, required=required)}
+    return {"audit": audit}
+
+
+def audit_warning(exc: Exception, *, required: bool = False) -> dict[str, Any]:
+    return {
+        "kind": "audit-warning",
+        "code": "audit_record_failed",
+        "status": "not-recorded",
+        "reason": classify_audit_error(exc),
+        "message": "Audit trail could not be written.",
+        "required": bool(required),
+    }
+
+
+def classify_audit_error(exc: Exception) -> str:
+    if isinstance(exc, AuditRedactionError):
+        return "redaction-error"
+    if isinstance(exc, PermissionError):
+        return "permission-denied"
+    if isinstance(exc, FileNotFoundError):
+        return "path-not-found"
+    if isinstance(exc, OSError) and getattr(exc, "errno", None) == errno.ENOSPC:
+        return "disk-full"
+    if isinstance(exc, (TypeError, ValueError)):
+        return "serialization-error"
+    return "unknown-audit-error"
+
+
+def normalize_origin(origin: str | None) -> str:
+    allowed = {"cli", "mcp", "scheduler", "wizard", "agent-prompt", "plugin", "core", "unknown"}
+    value = str(origin or "unknown").strip()
+    return value if value in allowed else "unknown"
 
 
 def list_audits(limit: int = 20) -> dict[str, Any]:
@@ -232,6 +305,17 @@ def extract_sources(result: dict[str, Any]) -> list[Any]:
     source = result.get("source")
     if source:
         return [source]
+    if result.get("kind") == "source-configure" and result.get("status") == "blocked":
+        return [
+            {
+                "id": result.get("source_id"),
+                "provider": result.get("provider"),
+                "status": result.get("status"),
+                "field": result.get("field"),
+                "reason": result.get("reason"),
+                "stored_secret": False,
+            }
+        ]
     return []
 
 
@@ -294,8 +378,11 @@ def extract_orchestration(result: dict[str, Any]) -> dict[str, Any] | None:
         "domain_agent": (plan.get("domain_agent") or {}).get("id") if isinstance(plan.get("domain_agent"), dict) else None,
         "specialist_tasks": [
             {
+                "task_id": task.get("task_id") or task.get("id"),
                 "agent_id": task.get("agent_id"),
                 "capability_id": task.get("capability_id"),
+                "role": task.get("role"),
+                "depends_on": list(task.get("depends_on") or []),
                 "status": task.get("status"),
             }
             for task in plan.get("specialist_tasks") or []
@@ -303,20 +390,101 @@ def extract_orchestration(result: dict[str, Any]) -> dict[str, Any] | None:
         ],
         "configuration_tasks": [
             {
+                "task_id": task.get("task_id") or task.get("id"),
                 "agent_id": task.get("agent_id"),
                 "provider": task.get("provider"),
+                "role": task.get("role"),
+                "depends_on": list(task.get("depends_on") or []),
                 "status": task.get("status"),
             }
             for task in plan.get("configuration_tasks") or []
             if isinstance(task, dict)
         ],
         "review_task": {
+            "task_id": (plan.get("review_task") or {}).get("task_id") or (plan.get("review_task") or {}).get("id"),
             "agent_id": (plan.get("review_task") or {}).get("agent_id"),
+            "role": (plan.get("review_task") or {}).get("role"),
+            "depends_on": list((plan.get("review_task") or {}).get("depends_on") or []),
             "status": (plan.get("review_task") or {}).get("status"),
         }
         if isinstance(plan.get("review_task"), dict)
         else None,
+        "collaboration_enabled": plan.get("collaboration_enabled") is True,
+        "collaboration_graph": summarize_collaboration_graph(plan.get("collaboration_graph")),
+        "model_plan": summarize_model_plan(plan.get("model_plan")),
+        "execution_model": summarize_execution_model(plan.get("execution_model")),
+        "autonomy_contract": summarize_autonomy_contract(plan.get("autonomy_contract")),
+        "human_escalations": len(plan.get("human_escalations") or []),
+        "shared_context": summarize_shared_context(plan.get("shared_context")),
         "trace": result.get("orchestration_trace") or plan.get("trace") or [],
+    }
+
+
+def summarize_collaboration_graph(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    nodes = value.get("nodes") if isinstance(value.get("nodes"), list) else []
+    edges = value.get("edges") if isinstance(value.get("edges"), list) else []
+    return {
+        "schema_version": value.get("schema_version"),
+        "nodes": len(nodes),
+        "edges": len(edges),
+        "parallel_groups": len(value.get("parallel_groups") or []),
+    }
+
+
+def summarize_shared_context(value: Any) -> dict[str, int] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        key: len(value.get(key) or [])
+        for key in (
+            "facts",
+            "inferences",
+            "artifacts",
+            "blockers",
+            "decisions",
+            "risks",
+            "questions",
+            "handoffs",
+            "conflicts",
+            "human_escalations",
+        )
+    }
+
+
+def summarize_execution_model(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "schema_version": value.get("schema_version"),
+        "decision_owner": value.get("decision_owner"),
+        "review_required": value.get("review_required"),
+        "model_strategy": value.get("model_strategy"),
+        "model_risk": value.get("model_risk"),
+        "model_confidence": value.get("model_confidence"),
+        "autonomy_level": value.get("autonomy_level"),
+        "autonomy_level_id": value.get("autonomy_level_id"),
+        "autonomy_status": value.get("autonomy_status"),
+        "execution_allowed": value.get("execution_allowed"),
+        "requires_human": value.get("requires_human"),
+        "limits": value.get("limits") if isinstance(value.get("limits"), dict) else {},
+        "stop_conditions": list(value.get("stop_conditions") or []),
+    }
+
+
+def summarize_model_plan(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "strategy": value.get("strategy"),
+        "risk": value.get("risk"),
+        "confidence": value.get("confidence"),
+        "fallback": value.get("fallback"),
+        "local_llm_selected": value.get("local_llm_selected") is True,
+        "local_llm_recommended": value.get("local_llm_recommended") is True,
+        "mini_brain": summarize_mini_brain(value.get("mini_brain")),
+        "max_llm_calls": value.get("max_llm_calls"),
     }
 
 
@@ -343,6 +511,7 @@ def render_audit_md(entry: dict[str, Any]) -> str:
         f"# Audit {entry.get('id')}",
         "",
         f"- Created at: `{entry.get('created_at')}`",
+        f"- Origin: `{entry.get('origin') or 'unknown'}`",
         f"- User: `{entry.get('user')}`",
         f"- Command: `{entry.get('command')}`",
         f"- Status: `{(entry.get('result') or {}).get('status')}`",

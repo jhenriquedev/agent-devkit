@@ -9,12 +9,17 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from cli.aikit.audit import redact_value
+from cli.aikit.cli_dispatch import add_payload_warning
+from cli.aikit.main import main
 from cli.aikit.permissions import grant_permission, permission_check, permissions_json_path
 from cli.aikit.tasks import create_task, run_task
 
@@ -212,9 +217,11 @@ class AgenticWave6ContractsTest(unittest.TestCase):
 
             self.assertEqual(show.returncode, 0, show.stderr)
             self.assertEqual(export.returncode, 0, export.stderr)
+            self.assertEqual(json.loads(show.stdout)["entry"]["origin"], "cli")
             self.assertNotIn(token, show.stdout)
             self.assertNotIn(token, export.stdout)
             self.assertIn("[REDACTED_SECRET]", show.stdout)
+            self.assertIn("- Origin: `cli`", json.loads(export.stdout)["content"])
 
     def test_audit_redacts_camel_case_secret_keys_without_redacting_token_metrics(self) -> None:
         payload = redact_value(
@@ -232,6 +239,96 @@ class AgenticWave6ContractsTest(unittest.TestCase):
         self.assertEqual(payload["apiKey"], "[REDACTED_SECRET]")
         self.assertEqual(payload["token_estimate"], 123)
         self.assertEqual(payload["usage"]["total_tokens"], 456)
+
+    def test_audit_failure_is_reported_in_json_without_blocking_command(self) -> None:
+        token = "ghp_1234567890abcdefghijklmnop"
+        stdout = StringIO()
+        stderr = StringIO()
+        with tempfile.TemporaryDirectory() as tmpdir, mock.patch.dict(os.environ, {"AI_DEVKIT_CONFIG_HOME": tmpdir}), mock.patch(
+            "cli.aikit.cli_dispatch.record_audit",
+            side_effect=RuntimeError(f"audit failed token={token}"),
+        ):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                exit_code = main(["--json", "commands"], prog="agent")
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(payload["kind"], "commands")
+        self.assertIn("audit_warning", payload)
+        self.assertIn("warnings", payload)
+        warning = payload["audit_warning"]
+        self.assertEqual(warning["kind"], "audit-warning")
+        self.assertEqual(warning["code"], "audit_record_failed")
+        self.assertEqual(warning["status"], "not-recorded")
+        self.assertEqual(warning["reason"], "unknown-audit-error")
+        self.assertEqual(warning["message"], "Audit trail could not be written.")
+        self.assertFalse(warning["required"])
+        self.assertNotIn("error", warning)
+        self.assertNotIn(token, json.dumps(warning))
+        self.assertEqual(payload["warnings"], [warning])
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_audit_failure_reason_is_classified_without_exception_detail(self) -> None:
+        stdout = StringIO()
+        stderr = StringIO()
+        with tempfile.TemporaryDirectory() as tmpdir, mock.patch.dict(os.environ, {"AI_DEVKIT_CONFIG_HOME": tmpdir}), mock.patch(
+            "cli.aikit.cli_dispatch.record_audit",
+            side_effect=PermissionError("permission denied at /secret/path token=ghp_1234567890abcdefghijklmnop"),
+        ):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                exit_code = main(["--json", "commands"], prog="agent")
+
+        self.assertEqual(exit_code, 0)
+        payload = json.loads(stdout.getvalue())
+        warning = payload["audit_warning"]
+        self.assertEqual(warning["reason"], "permission-denied")
+        self.assertEqual(warning["message"], "Audit trail could not be written.")
+        self.assertNotIn("secret", json.dumps(warning).lower())
+        self.assertNotIn("ghp_", json.dumps(warning))
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_audit_failure_is_reported_in_human_output_without_blocking_command(self) -> None:
+        stdout = StringIO()
+        stderr = StringIO()
+        with tempfile.TemporaryDirectory() as tmpdir, mock.patch.dict(os.environ, {"AI_DEVKIT_CONFIG_HOME": tmpdir}), mock.patch(
+            "cli.aikit.cli_dispatch.record_audit",
+            side_effect=RuntimeError("audit path denied"),
+        ):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                exit_code = main(["commands"], prog="agent")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Warnings:", stdout.getvalue())
+        self.assertIn("audit trail was not recorded", stdout.getvalue())
+        self.assertIn("unknown-audit-error", stdout.getvalue())
+        self.assertNotIn("audit path denied", stdout.getvalue())
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_audit_failure_during_command_error_is_reported_on_stderr(self) -> None:
+        token = "ghp_1234567890abcdefghijklmnop"
+        stdout = StringIO()
+        stderr = StringIO()
+        with tempfile.TemporaryDirectory() as tmpdir, mock.patch.dict(os.environ, {"AI_DEVKIT_CONFIG_HOME": tmpdir}), mock.patch(
+            "cli.aikit.cli_dispatch.record_audit",
+            side_effect=RuntimeError(f"audit failed token={token}"),
+        ):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                exit_code = main(["provider", "status", "missing-provider"], prog="agent")
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertIn("warning: Audit trail could not be written.", stderr.getvalue())
+        self.assertIn("unknown-audit-error", stderr.getvalue())
+        self.assertIn("error: provider not found: missing-provider", stderr.getvalue())
+        self.assertNotIn(token, stderr.getvalue())
+
+    def test_audit_warning_preserves_existing_scalar_warning(self) -> None:
+        result = {"kind": "example", "warnings": "legacy warning"}
+        warning = {"kind": "audit-warning", "message": "Audit recording failed."}
+
+        add_payload_warning(result, warning)
+
+        self.assertEqual(result["warnings"], ["legacy warning", warning])
 
 
 if __name__ == "__main__":

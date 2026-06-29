@@ -25,4 +25,4 @@ outputs:
 integration:
   repository: null
   methods: []
-write_policy: ask_before_write
+write_policy: confirm

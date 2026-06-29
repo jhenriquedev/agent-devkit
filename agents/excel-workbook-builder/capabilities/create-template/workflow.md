@@ -18,7 +18,7 @@ RACIOCÍNIO:
 
 REGRAS DE DECISÃO:
 - Nunca grave o template no projeto sem --yes-save ou autorização explícita
-  (write_policy: ask_before_write).
+  (write_policy: confirm).
 - Se o brief não define abas ou dados, pergunte antes de gerar.
 
 SAÍDA: template.xlsx no caminho --output (ou plano .md se Node ausente).

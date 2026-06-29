@@ -19,3 +19,15 @@ integration:
   repository: null
   methods: []
 write_policy: read_only
+
+routing:
+  anchors:
+    - arquitetura
+    - especificacao tecnica
+    - spec tecnica
+    - technical spec
+  intents:
+    - spec.technical
+  examples:
+    - gere uma especificacao tecnica para essa demanda
+  priority: 80

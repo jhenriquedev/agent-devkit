@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from cli.aikit.write_policy import (
+    is_blocked_by_default,
+    is_known_write_policy,
+    normalize_write_policy,
+    requires_runtime_confirmation,
+)
+
 
 RUNTIME_CONFIRM_FLAG = "--confirm-execute"
 RUNTIME_DANGEROUS_FLAG = "--allow-dangerous"
@@ -12,13 +19,6 @@ EXECUTE_INTENT_FLAGS = {
     EXECUTE_FLAG,
     "--yes-confirm",
     "--yes-save",
-}
-DANGEROUS_POLICIES = {"blocked_by_default"}
-WRITE_POLICIES_REQUIRING_CONFIRMATION = {
-    "confirm",
-    "ask_before_write",
-    "template_version_write",
-    "create_new_version",
 }
 
 
@@ -29,12 +29,27 @@ def evaluate_execution_guardrails(
     """Return sanitized args and an optional blocked guardrail result."""
 
     sanitized_args = strip_runtime_flags(capability_args)
-    write_policy = str(capability.get("write_policy") or "")
+    raw_write_policy = capability.get("write_policy")
+    write_policy = normalize_write_policy(raw_write_policy or "")
     execute_requested = any(flag in capability_args for flag in EXECUTE_INTENT_FLAGS)
     confirmed = RUNTIME_CONFIRM_FLAG in capability_args
     dangerous_allowed = RUNTIME_DANGEROUS_FLAG in capability_args
 
-    if execute_requested and write_policy in DANGEROUS_POLICIES and not dangerous_allowed:
+    if raw_write_policy and not is_known_write_policy(raw_write_policy):
+        return {
+            "ready": False,
+            "args": sanitized_args,
+            "reason": "unknown_write_policy",
+            "write_policy": write_policy,
+            "risks": [
+                "Capability declares an unsupported write policy, so runtime safety semantics are ambiguous.",
+            ],
+            "next_steps": [
+                "Fix the capability manifest to use a canonical write_policy before requesting execution.",
+            ],
+        }
+
+    if execute_requested and is_blocked_by_default(write_policy) and not dangerous_allowed:
         return {
             "ready": False,
             "args": sanitized_args,
@@ -48,7 +63,7 @@ def evaluate_execution_guardrails(
             ],
         }
 
-    if execute_requested and write_policy in WRITE_POLICIES_REQUIRING_CONFIRMATION and not confirmed:
+    if execute_requested and requires_runtime_confirmation(write_policy) and not confirmed:
         return {
             "ready": False,
             "args": sanitized_args,

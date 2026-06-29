@@ -64,10 +64,22 @@ agent_surface:
     - ../../vendor/skills/CATALOG.md
 
 write_policy:
-  read_operations: auto
-  dry_run: default
-  execute_operations: requires_execute
-  production_operations: requires_explicit_environment
+  read_operations: read_only
+  dry_run: dry_run
+  execute_operations: confirm
+  production_operations: confirm
   destructive_operations: blocked_by_default
-  account_validation: required_for_execute
-  sensitive_payloads: redacted_in_artifacts
+  account_validation: confirm
+  sensitive_payloads: output_only
+
+routing:
+  anchors:
+    - aws
+    - cloudfront
+    - ecs
+    - eventbridge
+    - lambda
+    - sqs
+  intents:
+    - aws.operations
+  priority: 50

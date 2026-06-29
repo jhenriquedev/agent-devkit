@@ -1,0 +1,46 @@
+id: supabase
+name: Supabase
+kind: platform
+status: draft
+description: Analise read-only de projetos Supabase locais, CLI/MCP readiness e contexto fornecido pelo usuario.
+auth_methods:
+  - id: supabase-cli
+    label: Supabase CLI auth
+    native: true
+    secret_fields: []
+  - id: access-token
+    label: Supabase access token
+    secret_fields:
+      - SUPABASE_ACCESS_TOKEN
+      - SUPABASE_SERVICE_ROLE_KEY
+      - SUPABASE_DB_URL
+config_fields:
+  - name: SUPABASE_PROJECT_REF
+    required: false
+    secret: false
+  - name: SUPABASE_ACCESS_TOKEN
+    required: false
+    secret: true
+  - name: SUPABASE_DB_URL
+    required: false
+    secret: true
+  - name: SUPABASE_SERVICE_ROLE_KEY
+    required: false
+    secret: true
+detection:
+  env_any:
+    - SUPABASE_PROJECT_REF
+    - SUPABASE_ACCESS_TOKEN
+    - SUPABASE_DB_URL
+capabilities:
+  read:
+    - supabase-project-analyst
+health_check:
+  command: agent provider doctor supabase
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - use_user_supplied_context
+  - manual_steps
+  - plan_only

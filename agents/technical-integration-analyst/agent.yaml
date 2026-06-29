@@ -53,7 +53,20 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
-  artifact_generation: auto
+  read_operations: read_only
+  artifact_generation: read_only
   external_calls: confirm
   mutation_operations: confirm
+
+routing:
+  anchors:
+    - api
+    - integracao
+    - integration
+    - mcp
+    - rest
+    - sftp
+    - soap
+  intents:
+    - technical.integration.analysis
+  priority: 50

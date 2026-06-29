@@ -1,0 +1,20 @@
+id: generic-agent-builder.review-generic-agent
+kind: capability
+name: Review Generic Agent
+version: 0.1.0
+status: draft
+purpose: Revisar instrucoes de agente generico contra compatibilidade e guardrails.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/generic-review-report.md
+inputs:
+  required: []
+  optional:
+    - input
+    - text
+    - target-host
+outputs:
+  artifacts:
+    - generic-agent-review.json
+write_policy: read_only

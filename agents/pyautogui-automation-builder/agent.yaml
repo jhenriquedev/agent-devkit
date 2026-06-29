@@ -1,0 +1,45 @@
+id: pyautogui-automation-builder
+kind: specialist-agent
+name: PyAutoGUI Automation Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar, revisar e empacotar automacoes desktop com PyAutoGUI como
+  ultimo recurso, com dry-run, confirmacao forte, screenshots e failsafe.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - plan-desktop-automation
+  - generate-pyautogui-script
+  - generate-pyautogui-project-files
+  - review-pyautogui-script
+  - wrap-pyautogui-as-capability
+agent_surface:
+  repositories:
+    - infra/integrations/pyautogui-automation/pyautogui_automation_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  planning: read_only
+  generation: output_only
+  project_files: local_write
+  review: read_only
+  capability_wrapper: local_write
+  external_side_effects: blocked_by_default
+routing:
+  anchors:
+    - pyautogui-automation-builder
+    - pyautogui
+    - desktop-automation
+    - automacao-desktop
+  intents:
+    - desktop-automation.plan
+    - pyautogui.generate
+    - pyautogui.review
+  priority: 50

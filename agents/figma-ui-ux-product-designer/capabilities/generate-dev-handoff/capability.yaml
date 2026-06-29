@@ -11,4 +11,4 @@ inputs:
   optional: [brief, source, figma_file_url, output_dir]
 outputs:
   artifacts: [dev-handoff.md, design-brief.md, source-traceability.md]
-write_policy: ask_before_creating_output_directory
+write_policy: output_only

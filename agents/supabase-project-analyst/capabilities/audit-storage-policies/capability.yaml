@@ -1,0 +1,18 @@
+id: supabase-project-analyst.audit-storage-policies
+kind: capability
+name: Audit Storage Policies
+version: 0.1.0
+status: draft
+purpose: Auditar buckets e policies de Supabase Storage em SQL local.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/supabase-audit.md
+inputs:
+  required: []
+  optional:
+    - project-path
+outputs:
+  artifacts:
+    - supabase-storage-audit.json
+write_policy: read_only

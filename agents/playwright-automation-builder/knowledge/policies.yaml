@@ -1,0 +1,25 @@
+policies:
+  supported_scope: playwright-modern-web-automation
+  default_write_mode: dry_run
+  external_side_effects: blocked_by_default
+  secrets: never_persist
+  storage_state: never_commit_sensitive_state
+  target_project_boundary: required_for_writes
+  overwrite: blocked_without_explicit_permission
+  selector_preference:
+    - role
+    - label
+    - test_id
+    - text
+    - css
+  selector_avoid:
+    - absolute_xpath
+    - generated_class
+    - coordinates
+    - fixed_sleep
+  artifacts:
+    screenshots: supported
+    traces: supported
+    videos: optional
+    console_logs: supported
+  selenium_boundary: use_selenium_only_for_webdriver_legacy_or_grid

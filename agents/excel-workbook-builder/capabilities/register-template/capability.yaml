@@ -11,5 +11,4 @@ inputs:
   optional: [name, version, status, templates_root, yes_save]
 outputs:
   artifacts: [template.xlsx, template.yaml, input-schema.xlsx, sheet-map.yaml]
-write_policy: ask_before_write
-
+write_policy: confirm

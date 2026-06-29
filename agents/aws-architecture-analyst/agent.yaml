@@ -52,7 +52,20 @@ agent_surface:
     - ../../vendor/skills/CATALOG.md
 
 write_policy:
-  read_operations: auto
-  artifact_generation: auto
-  aws_mutations: unsupported
-  external_side_effects: unsupported
+  read_operations: read_only
+  artifact_generation: read_only
+  aws_mutations: blocked_by_default
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - architecture
+    - arquitetura
+    - aws
+    - observability
+    - resiliencia
+    - vpc
+    - workload
+  intents:
+    - aws.architecture.analysis
+  priority: 50

@@ -1,0 +1,22 @@
+id: playwright-automation-builder.wrap-playwright-as-capability
+kind: capability
+name: Wrap Playwright As Capability
+version: 0.1.0
+status: draft
+purpose: Gerar wrapper de capability local para automacao Playwright.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/capability-wrapper.md
+inputs:
+  required:
+    - spec
+    - agent-id
+    - capability-id
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - playwright-capability-wrapper-files.json
+write_policy: local_write

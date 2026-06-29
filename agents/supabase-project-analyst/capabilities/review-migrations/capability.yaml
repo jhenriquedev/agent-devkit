@@ -1,0 +1,18 @@
+id: supabase-project-analyst.review-migrations
+kind: capability
+name: Review Migrations
+version: 0.1.0
+status: draft
+purpose: Revisar migrations Supabase locais sem aplicar SQL.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/supabase-audit.md
+inputs:
+  required: []
+  optional:
+    - project-path
+outputs:
+  artifacts:
+    - supabase-migration-review.json
+write_policy: read_only

@@ -1,0 +1,23 @@
+write_policy:
+  planning: read_only
+  project_generation: local_write
+  security_review: read_only
+  package_local: local_write
+  deploy_plan: dry_run
+  deploy_real: blocked_by_default
+supported_runtime_families:
+  - python
+  - nodejs
+supported_triggers:
+  - api-gateway
+  - eventbridge-schedule
+  - sqs
+  - sns
+  - s3-event
+  - manual-test-event
+guardrails:
+  block_hardcoded_secrets: true
+  block_unjustified_iam_wildcards: true
+  require_local_tests: true
+  require_event_fixture: true
+  prohibit_real_deploy: true

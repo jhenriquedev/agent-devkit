@@ -46,6 +46,33 @@ class AiDevKitPluginsTest(unittest.TestCase):
         skill = (plugin / "skills" / "ai-devkit-router" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("agent run", skill)
         self.assertIn("provider configure", skill)
+        self.assertIn("agent-devkit-db-analyst", skill)
+
+    def test_claude_plugin_subagents_are_scoped_and_conservative(self) -> None:
+        plugin = PLUGINS / "claude-code-ai-devkit"
+        agents_dir = plugin / "agents"
+        expected = {
+            "agent-devkit-repo-explorer.md",
+            "agent-devkit-db-analyst.md",
+            "agent-devkit-pr-reviewer.md",
+            "agent-devkit-support-triage.md",
+            "agent-devkit-execution-reviewer.md",
+        }
+
+        self.assertTrue(agents_dir.is_dir())
+        self.assertFalse(expected - {path.name for path in agents_dir.glob("*.md")})
+        for name in expected:
+            text = (agents_dir / name).read_text(encoding="utf-8")
+            with self.subTest(subagent=name):
+                self.assertTrue(text.startswith("---\n"))
+                self.assertIn("name: agent-devkit-", text)
+                self.assertIn("tools:", text)
+                self.assertIn("mcp__agent-devkit__capability_run", text)
+                self.assertIn("run-capability.py --json", text)
+                self.assertIn("write_policy", text)
+                self.assertNotIn("permissionMode:", text)
+                self.assertNotIn("mcpServers:", text)
+                self.assertNotIn("tools: '*'", text)
 
     def test_claude_desktop_skill_bundle(self) -> None:
         plugin = PLUGINS / "claude-skill-ai-devkit"
@@ -60,7 +87,7 @@ class AiDevKitPluginsTest(unittest.TestCase):
         skill = skill_path.read_text(encoding="utf-8")
         self.assertIn("Claude Desktop", skill)
         self.assertIn("agent run", skill)
-        for reference in ("routing.md", "providers.md", "sustentacao.md", "infra.md", "desenvolvimento.md"):
+        for reference in ("routing.md", "providers.md", "sustentacao.md", "infra.md", "desenvolvimento.md", "subagents.md"):
             self.assertTrue((skill_path.parent / "references" / reference).exists())
 
     def test_plugin_doctor_scripts_delegate_to_aikit(self) -> None:

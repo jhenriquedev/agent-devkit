@@ -39,7 +39,17 @@ agent_surface:
     - ../../vendor/skills/CATALOG.md
 
 write_policy:
-  read_operations: auto
-  knowledge_generation: ask_before_creating_output_directory
+  read_operations: read_only
+  knowledge_generation: output_only
   overwrite_operations: confirm
-  external_side_effects: unsupported
+  external_side_effects: blocked_by_default
+
+routing:
+  anchors:
+    - conhecimento
+    - documentacao
+    - knowledge
+    - runbook
+  intents:
+    - knowledge.generate
+  priority: 50

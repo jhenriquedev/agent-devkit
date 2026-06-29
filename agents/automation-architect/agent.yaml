@@ -1,0 +1,57 @@
+id: automation-architect
+kind: specialist-agent
+name: Automation Architect
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Classificar pedidos de automacao, escolher a abordagem correta, planejar a
+  solucao e delegar por contrato para builders especializados sem duplicar os
+  geradores de Python, Selenium, PyAutoGUI, Lambda, Docker ou loops.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - classify-automation-request
+  - plan-automation-solution
+  - delegate-automation-build
+  - review-automation-solution
+agent_surface:
+  repositories:
+    - infra/integrations/automation-architecture/automation_architecture_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  classification: read_only
+  planning: read_only
+  delegation: delegated
+  review: read_only
+  external_side_effects: blocked_by_default
+routing:
+  anchors:
+    - automation-architect
+    - automation-architecture
+    - arquiteto-automacao
+    - automatize
+    - automacao
+  keywords:
+    - automation
+    - automacao
+    - automatizar
+    - automatize
+    - robotizar
+    - workflow
+  intents:
+    - automation.classify
+    - automation.plan
+    - automation.delegate
+    - automation.review
+  examples:
+    - automatize esta tarefa
+    - escolha a melhor forma de automatizar
+    - que tipo de automacao devo usar
+  priority: 80

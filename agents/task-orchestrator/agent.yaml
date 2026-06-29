@@ -9,6 +9,29 @@ purpose: >
   Coordenar prompts livres, selecionar agentes especialistas, montar planos de
   execucao, identificar configuracoes pendentes e acionar revisao final.
 
+runtime_role:
+  kind: coordinator
+
+agent_mode:
+  type: planner
+  max_steps: 5
+  max_specialists: 3
+  max_llm_calls: 1
+  timeout_seconds: 300
+  can_call_capabilities: true
+  can_call_llm: optional
+  can_request_user_input: true
+  external_writes: false
+  allowed_capabilities:
+    - provider-configurator/configure-provider-source
+    - local-llm-operator/select-local-worker
+    - execution-reviewer/review-final-output
+  stop_conditions:
+    - success
+    - needs-input
+    - blocked
+    - max-steps
+
 default_context:
   - knowledge/system.md
   - knowledge/context.md
@@ -25,7 +48,6 @@ agent_surface:
     - execution-reviewer/review-final-output
 
 write_policy:
-  default_mode: plan-first
+  default_mode: confirm
   external_writes: delegated
-  requires_review: true
-
+  requires_review: confirm

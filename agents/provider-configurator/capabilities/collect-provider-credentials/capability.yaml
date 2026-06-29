@@ -4,7 +4,7 @@ name: Collect Provider Credentials
 version: 0.1.6
 status: draft
 purpose: Coletar referencias seguras para credenciais de provider.
-write_policy: local-config-write
+write_policy: local_config_write
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: [auth_method]
 outputs:
   artifacts: [credential-references]
-

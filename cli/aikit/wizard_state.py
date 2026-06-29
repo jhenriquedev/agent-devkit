@@ -12,7 +12,7 @@ from typing import Any
 from cli.aikit.app_home import app_path, ensure_app_home
 from cli.aikit.decision_store import set_decision
 from cli.aikit.memory import redact_secrets
-from cli.aikit.sources import SourceRegistryError, add_source
+from cli.aikit.sources import SourceConfigBlockedError, SourceRegistryError, add_source
 
 
 YES_VALUES = {"s", "sim", "y", "yes", "true", "1", "ok"}
@@ -196,6 +196,20 @@ def complete_wizard(state: dict[str, Any]) -> dict[str, Any]:
         return {"kind": "wizard", "status": "completed", "wizard": public_wizard(state), "stored_secret": False}
     try:
         source_result = create_source_from_wizard(state)
+    except SourceConfigBlockedError as exc:
+        state["status"] = "failed"
+        state["updated_at"] = now_iso()
+        state["error"] = str(exc)
+        state["source_result"] = exc.payload
+        save_state(state)
+        return {
+            "kind": "wizard",
+            "status": "failed",
+            "wizard": public_wizard(state),
+            "source_result": exc.payload,
+            "error": str(exc),
+            "stored_secret": False,
+        }
     except SourceRegistryError as exc:
         state["status"] = "failed"
         state["updated_at"] = now_iso()

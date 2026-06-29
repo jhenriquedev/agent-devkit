@@ -101,13 +101,34 @@ def build_review_prompt(
             "coordinator": (execution_plan.get("coordinator_agent") or {}).get("id") if isinstance(execution_plan.get("coordinator_agent"), dict) else None,
             "specialist_tasks": [
                 {
+                    "task_id": task.get("task_id") or task.get("id"),
                     "agent_id": task.get("agent_id"),
                     "capability_id": task.get("capability_id"),
+                    "role": task.get("role"),
+                    "depends_on": list(task.get("depends_on") or []),
                     "status": task.get("status"),
                 }
                 for task in execution_plan.get("specialist_tasks") or []
                 if isinstance(task, dict)
             ],
+            "collaboration_enabled": execution_plan.get("collaboration_enabled") is True,
+            "shared_context_counts": {
+                key: len((execution_plan.get("shared_context") or {}).get(key) or [])
+                for key in (
+                    "facts",
+                    "inferences",
+                    "artifacts",
+                    "blockers",
+                    "decisions",
+                    "risks",
+                    "questions",
+                    "handoffs",
+                    "conflicts",
+                    "human_escalations",
+                )
+            }
+            if isinstance(execution_plan.get("shared_context"), dict)
+            else None,
         }
     return "\n".join(
         [

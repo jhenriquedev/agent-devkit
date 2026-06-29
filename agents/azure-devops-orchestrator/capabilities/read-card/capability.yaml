@@ -32,4 +32,33 @@ integration:
     - ../../infra/integrations/azure/methods/get-work-item.yaml
     - ../../infra/integrations/azure/methods/get-work-item-comments.yaml
 
+runtime:
+  provider: azure-devops
+  source:
+    enabled: true
+    args:
+      project: --project
+      AZURE_DEVOPS_PROJECT: --project
+      fixture: --fixture
+    env:
+      org: AZURE_DEVOPS_ORG
+      organization: AZURE_DEVOPS_ORG
+      project: AZURE_DEVOPS_PROJECT
+      api_version: AZURE_DEVOPS_API_VERSION
+      AZURE_DEVOPS_ORG: AZURE_DEVOPS_ORG
+      AZURE_DEVOPS_PROJECT: AZURE_DEVOPS_PROJECT
+      AZURE_DEVOPS_API_VERSION: AZURE_DEVOPS_API_VERSION
+
 write_policy: read_only
+
+routing:
+  anchors:
+    - card
+    - tarefa
+    - work item
+    - workitem
+  intents:
+    - work-item.card.read
+  examples:
+    - analise o card 9900
+  priority: 90

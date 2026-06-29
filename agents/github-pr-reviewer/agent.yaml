@@ -26,8 +26,20 @@ capabilities:
   - create-review-automation
 
 write_policy:
-  read_operations: auto
-  comments: explicit_opt_in
-  approvals: explicit_opt_in
-  request_changes: explicit_opt_in
-  default_mode: report-only
+  read_operations: read_only
+  comments: confirm
+  approvals: confirm
+  request_changes: confirm
+  default_mode: read_only
+
+routing:
+  anchors:
+    - gh
+    - github
+    - pr
+    - prs
+    - pull
+    - request
+  intents:
+    - github.pr-review
+  priority: 50

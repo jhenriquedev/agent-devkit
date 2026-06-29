@@ -1,0 +1,18 @@
+id: pyautogui-automation-builder.generate-pyautogui-script
+kind: capability
+name: Generate PyAutoGUI Script
+version: 0.1.0
+status: draft
+purpose: Gerar script Python PyAutoGUI em modo output-only.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/pyautogui-automation.py
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - pyautogui_automation.py
+write_policy: output_only

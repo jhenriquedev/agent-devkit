@@ -1,0 +1,18 @@
+id: docker-container-builder.plan-image-build
+kind: capability
+name: Plan Image Build
+version: 0.1.0
+status: draft
+purpose: Gerar plano de build, tags e comandos Docker sem executar build/push.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/container-plan.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - image-build-plan.json
+write_policy: dry_run

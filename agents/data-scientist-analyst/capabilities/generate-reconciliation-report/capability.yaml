@@ -20,4 +20,4 @@ integration:
   repository: ../../infra/integrations/file-dataset/data_repository.py
   methods:
     - ../../infra/integrations/file-dataset/methods/generate-reconciliation-report.yaml
-write_policy: generated_artifacts_only
+write_policy: output_only

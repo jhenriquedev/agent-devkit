@@ -1,0 +1,20 @@
+id: aws-lambda-builder.generate-lambda-project
+kind: capability
+name: Generate Lambda Project
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever projeto AWS Lambda local.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/lambda-readme.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - lambda-project-files.json
+write_policy: local_write

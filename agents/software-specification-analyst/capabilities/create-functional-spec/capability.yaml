@@ -19,3 +19,14 @@ integration:
   repository: null
   methods: []
 write_policy: read_only
+
+routing:
+  anchors:
+    - especificacao funcional
+    - functional spec
+    - regra de negocio
+  intents:
+    - spec.functional
+  examples:
+    - gere uma especificacao funcional
+  priority: 80

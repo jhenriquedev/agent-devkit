@@ -1,0 +1,43 @@
+id: notification-operator
+kind: runtime-agent
+name: Notification Operator
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Padronizar, enviar e configurar notificacoes locais de conclusao, falha,
+  bloqueio e eventos operacionais de tarefas do Agent DevKit.
+runtime_role:
+  kind: local-worker
+  scope: runtime-notifications
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - format-task-completion-notification
+  - send-task-completion-notification
+  - configure-notification-channel
+agent_surface:
+  repositories: []
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  format: read_only
+  send: confirm
+  configure: local_config_write
+  remote_channels: blocked_by_default
+routing:
+  anchors:
+    - notification-operator
+    - notifications
+    - task-notification
+    - completion-notification
+  intents:
+    - notification.format
+    - notification.send
+    - notification.configure
+  priority: 70

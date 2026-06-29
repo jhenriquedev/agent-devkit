@@ -48,9 +48,22 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
+  read_operations: read_only
   comment_operations: confirm
   tag_operations: confirm
   assign_operations: confirm
   move_state_operations: confirm
-  bulk_operations: plan_then_confirm
+  bulk_operations: confirm
+
+routing:
+  anchors:
+    - azure
+    - board
+    - card
+    - devops
+    - item
+    - work
+    - workitem
+  intents:
+    - work-item.card
+  priority: 80

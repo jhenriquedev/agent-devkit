@@ -1,8 +1,8 @@
 id: local-notification
 name: Local Notification
 kind: local-runtime
-status: draft
-description: Local notification provider for terminal notifications.
+status: active
+description: Local notifications for task completion and operational alerts.
 auth_methods: []
 config_fields: []
 health_check:
@@ -15,5 +15,8 @@ fallbacks:
 capabilities:
   read: []
   write:
+    - notification.desktop
     - notification.terminal
+    - notification.stdout
+    - notification.audit
 write: true

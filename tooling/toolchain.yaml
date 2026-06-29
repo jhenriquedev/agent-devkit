@@ -27,6 +27,15 @@ tools:
       linux: See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
       windows: winget install --id GitHub.cli
     notes: Required for GitHub PR reviewer workflows.
+  playwright:
+    label: Playwright
+    command: playwright
+    required: false
+    install:
+      darwin: python3 -m pip install playwright && python3 -m playwright install chromium
+      linux: python3 -m pip install playwright && python3 -m playwright install chromium
+      windows: python -m pip install playwright && python -m playwright install chromium
+    notes: Optional; used by Playwright automation builder for real browser checks.
   aws-cli:
     label: AWS CLI
     command: aws

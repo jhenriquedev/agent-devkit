@@ -1,0 +1,20 @@
+id: generic-agent-builder.generate-project-agent-files
+kind: capability
+name: Generate Project Agent Files
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever arquivos de agente generico em projeto destino.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/generic-agent-instructions.md
+inputs:
+  required:
+    - spec
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - project-agent-files.json
+write_policy: local_write

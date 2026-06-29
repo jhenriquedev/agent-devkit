@@ -52,6 +52,17 @@ agent_surface:
     - knowledge/policies.yaml
 
 write_policy:
-  read_operations: auto
+  read_operations: read_only
   write_operations: confirm
   destructive_operations: blocked_by_default
+
+routing:
+  anchors:
+    - banco
+    - database
+    - migracao
+    - migration
+    - postgres
+  intents:
+    - database.change
+  priority: 35

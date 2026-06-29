@@ -4,7 +4,7 @@ name: Inspect Local Models
 version: 0.1.6
 status: draft
 purpose: Diagnosticar disponibilidade de Ollama e modelos locais instalados.
-write_policy: read-only
+write_policy: read_only
 entrypoint:
   workflow: workflow.md
 inputs:
@@ -12,4 +12,3 @@ inputs:
   optional: [model]
 outputs:
   artifacts: [local-model-report]
-

@@ -1,0 +1,12 @@
+policies:
+  supported_scope: python-general-automation
+  out_of_scope_dependencies:
+    selenium: problem 16
+    pyautogui: problem 17
+    playwright: problem 27
+  default_write_mode: dry_run
+  external_side_effects: blocked_by_default
+  secrets: never_persist
+  target_project_boundary: required_for_writes
+  overwrite: blocked_without_explicit_permission
+  dependency_preference: standard_library_first

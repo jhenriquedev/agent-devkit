@@ -16,4 +16,4 @@ outputs:
 integration:
   repository: null
   methods: []
-write_policy: create_new_version
+write_policy: local_write

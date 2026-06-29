@@ -1,0 +1,22 @@
+id: python-automation-builder.wrap-automation-as-capability
+kind: capability
+name: Wrap Automation As Capability
+version: 0.1.0
+status: draft
+purpose: Planejar ou escrever wrapper de capability para automacao Python aprovada.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/capability-wrapper.md
+inputs:
+  required:
+    - spec
+    - agent-id
+    - capability-id
+  optional:
+    - execute
+    - allow-overwrite
+outputs:
+  artifacts:
+    - capability-wrapper-files.json
+write_policy: local_write

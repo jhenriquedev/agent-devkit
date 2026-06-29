@@ -20,7 +20,7 @@ um template draft estruturado a partir de um brief.
 5. Marcar como `draft` — nunca `validated` automaticamente.
 
 ## RUBRICA / REGRAS DE DECISAO
-- `ask_before_write`: nao crie nenhum arquivo sem confirmacao.
+- `confirm`: nao crie nenhum arquivo sem confirmacao.
 - Nunca reutilize identidade visual de outro template sem pedido explicito.
 - Nunca marque como `validated` automaticamente.
 - Se brief for muito vago: perguntar ate ter informacao suficiente.

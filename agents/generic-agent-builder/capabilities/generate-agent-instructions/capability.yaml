@@ -1,0 +1,18 @@
+id: generic-agent-builder.generate-agent-instructions
+kind: capability
+name: Generate Agent Instructions
+version: 0.1.0
+status: draft
+purpose: Gerar instrucoes Markdown portaveis para um agente generico.
+entrypoint:
+  runner: runner.py
+  workflow: workflow.md
+  output_template: ../../templates/generic-agent-instructions.md
+inputs:
+  required:
+    - spec
+  optional: []
+outputs:
+  artifacts:
+    - generic-agent-instructions.md
+write_policy: output_only

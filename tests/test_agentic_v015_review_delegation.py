@@ -84,6 +84,31 @@ class AgenticReviewDelegationTest(unittest.TestCase):
         path.chmod(0o755)
         return path
 
+    def write_fake_ollama(self, directory: Path) -> Path:
+        path = directory / "ollama"
+        path.write_text(
+            "\n".join(
+                [
+                    "#!/usr/bin/env sh",
+                    "set -eu",
+                    "if [ \"${1:-}\" = \"--version\" ] || [ \"${1:-}\" = \"version\" ]; then",
+                    "  printf '%s\\n' 'ollama version 0.9.0'",
+                    "elif [ \"${1:-}\" = \"list\" ]; then",
+                    "  printf '%s\\n' 'NAME ID SIZE MODIFIED'",
+                    "  printf '%s\\n' 'qwen3:0.6b qwen3id 522MB 1 hour ago'",
+                    "elif [ \"${1:-}\" = \"pull\" ]; then",
+                    "  printf 'pulled %s\\n' \"${2:-}\"",
+                    "else",
+                    "  printf '%s\\n' '{}'",
+                    "fi",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        path.chmod(0o755)
+        return path
+
     def test_operational_prompt_delegates_to_ollama_then_reviews_with_codex(self) -> None:
         class OllamaHandler(RecordingOpenAiHandler):
             response_text = "LOCAL SUMMARY: timeout errors grouped by request id."
@@ -96,6 +121,7 @@ class AgenticReviewDelegationTest(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as bin_dir:
                 fake_codex = self.write_fake_host_cli(Path(bin_dir), "codex", "REVIEW OK: final answer is supported.")
+                self.write_fake_ollama(Path(bin_dir))
                 env = {
                     "AI_DEVKIT_CONFIG_HOME": config_home,
                     "OPENAI_API_KEY": "test-openai-key",
@@ -109,6 +135,13 @@ class AgenticReviewDelegationTest(unittest.TestCase):
                     ollama_base_url,
                     "--model",
                     "fake-ollama",
+                    "--json",
+                    env=env,
+                )
+                self.run_agent(
+                    "setup",
+                    "mini-brain",
+                    "--yes",
                     "--json",
                     env=env,
                 )
@@ -146,9 +179,12 @@ class AgenticReviewDelegationTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["llm_backend"], "openai")
+        self.assertEqual(payload["model_plan"]["strategy"], "mini-brain")
+        self.assertEqual(payload["model_plan"]["risk"], "low")
         self.assertEqual(payload["local_llm_execution"]["status"], "ok")
         self.assertEqual(payload["local_llm_execution"]["agent_id"], "local-llm-operator")
         self.assertEqual(payload["local_llm_execution"]["llm_backend"], "ollama")
+        self.assertEqual(payload["local_llm_execution"]["strategy"], "mini-brain")
         self.assertEqual(payload["review_gate"]["status"], "reviewed")
         self.assertEqual(payload["review_result"]["status"], "ok")
         self.assertEqual(payload["review_result"]["llm_backend"], "codex-cli")

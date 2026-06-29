@@ -1,0 +1,20 @@
+automation_architecture:
+  supported_scope: automation-classification-and-planning
+  external_execution: blocked_by_default
+  delegation_execution: manual_contract_only
+  prefer:
+    - api
+    - cli
+    - repository
+    - deterministic-python
+  avoid:
+    - visual-automation-without-justification
+    - hardcoded-secrets
+    - external-writes-without-policy
+    - cloud-automation-without-operational-need
+  confirmation_required_when:
+    - confidence-low
+    - destructive-side-effects
+    - external-write
+    - desktop-visual-automation
+    - missing-target-system

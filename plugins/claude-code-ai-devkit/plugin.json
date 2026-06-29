@@ -1,7 +1,7 @@
 {
   "id": "claude-code-ai-devkit",
   "name": "AI DevKit",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Thin Claude Code adapter for routing software support, infrastructure, data, and development tasks through the local AI DevKit runtime.",
   "runtime": {
     "command": "agent",

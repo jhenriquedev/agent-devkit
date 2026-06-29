@@ -1,0 +1,52 @@
+id: docker-container-builder
+kind: specialist-agent
+name: Docker Container Builder
+version: 0.1.0
+status: draft
+owner: agent-devkit
+purpose: >
+  Planejar, gerar e revisar artefatos Docker locais seguros e revisaveis,
+  incluindo Dockerfile, .dockerignore, docker-compose.yml, README.docker.md e
+  planos de build sem executar build, push ou deploy real.
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+  - knowledge/policies.yaml
+env:
+  required: []
+  optional: []
+capabilities:
+  - analyze-containerization-target
+  - generate-dockerfile
+  - generate-compose
+  - generate-container-project-files
+  - review-docker-security
+  - plan-image-build
+agent_surface:
+  repositories:
+    - infra/integrations/docker-container/docker_container_repository.py
+  policies:
+    - knowledge/policies.yaml
+write_policy:
+  analysis: read_only
+  dockerfile_generation: output_only
+  compose_generation: output_only
+  project_files: local_write
+  review: read_only
+  build_plan: dry_run
+  build_real: blocked_by_default
+  push_real: blocked_by_default
+  deploy_real: blocked_by_default
+routing:
+  anchors:
+    - docker-container-builder
+    - docker
+    - dockerfile
+    - docker-compose
+    - container
+    - containerization
+  intents:
+    - docker.generate
+    - docker.review
+    - docker.containerize
+  priority: 50

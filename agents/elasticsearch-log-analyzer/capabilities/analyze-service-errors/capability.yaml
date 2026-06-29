@@ -23,3 +23,17 @@ integration:
     - ../../infra/integrations/elasticsearch/methods/aggregate-terms.yaml
     - ../../infra/integrations/elasticsearch/methods/aggregate-timeline.yaml
 write_policy: read_only
+
+routing:
+  anchors:
+    - elastic
+    - elasticsearch
+    - erro
+    - error
+    - service
+    - servico
+  intents:
+    - logs.error-analysis
+  examples:
+    - analise logs do elasticsearch para erro no servico
+  priority: 80

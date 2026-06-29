@@ -557,7 +557,9 @@ python3 scripts/mvp-readiness.py --json
 dos agentes; apenas instalam skill/commands e delegam para o runtime `agent`.
 
 - `plugins/codex-ai-devkit`: plugin local para Codex App.
-- `plugins/claude-code-ai-devkit`: plugin local para Claude Code.
+- `plugins/claude-code-ai-devkit`: plugin local para Claude Code, incluindo
+  skill, comandos e subagentes opcionais para usar capabilities do Agent DevKit
+  em contextos isolados.
 - `plugins/claude-skill-ai-devkit`: skill para Claude Desktop/Claude.ai.
 
 Os nomes de pastas dos plugins ainda preservam `ai-devkit` por
@@ -621,6 +623,30 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 
 ## Agentes disponiveis
 
+- [`agent-devkit-agent-builder`](agents/agent-devkit-agent-builder/):
+  especialista interno para planejar, criar scaffold e validar novos agentes do
+  proprio Agent DevKit.
+- [`automation-architect`](agents/automation-architect/): especialista em
+  classificar pedidos de automacao, escolher tecnologia adequada, planejar a
+  solucao e delegar por contrato para builders especificos.
+- [`generic-agent-builder`](agents/generic-agent-builder/): especialista em
+  planejar, gerar e revisar agentes genericos portaveis para projetos e hosts
+  externos.
+- [`python-automation-builder`](agents/python-automation-builder/):
+  especialista em planejar, gerar, revisar e empacotar automacoes Python
+  seguras para tarefas repetitivas.
+- [`selenium-automation-builder`](agents/selenium-automation-builder/):
+  especialista em planejar, gerar e revisar automacoes Selenium/WebDriver quando
+  houver requisito tecnico para Selenium.
+- [`pyautogui-automation-builder`](agents/pyautogui-automation-builder/):
+  especialista em planejar, gerar e revisar automacoes desktop visuais com
+  PyAutoGUI como ultimo recurso.
+- [`playwright-automation-builder`](agents/playwright-automation-builder/):
+  especialista em planejar, gerar, revisar e executar checks controlados de
+  automacoes web modernas com Playwright.
+- [`aws-lambda-builder`](agents/aws-lambda-builder/): especialista em
+  planejar, gerar, revisar e empacotar projetos AWS Lambda locais sem executar
+  deploy real.
 - [`aws-architecture-analyst`](agents/aws-architecture-analyst/): especialista
   em analise arquitetural AWS read-only, inventario, dependencias, resiliencia,
   observabilidade, rede e blast radius.
@@ -645,6 +671,13 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`database-change-operator`](agents/database-change-operator/):
   especialista em mudancas controladas em PostgreSQL, incluindo migrations,
   rollback, scripts de escrita, upserts e updates com dry-run por padrao.
+- [`docker-container-builder`](agents/docker-container-builder/): especialista
+  em planejar, gerar e revisar artefatos Docker locais, incluindo Dockerfile,
+  .dockerignore, docker-compose.yml, README.docker.md e planos de build sem
+  executar build, push ou deploy real.
+- [`execution-loop-builder`](agents/execution-loop-builder/): especialista em
+  planejar, gerar, revisar e registrar loops de execucao controlados com
+  budgets, criterios de parada, estado minimo e auditoria por iteracao.
 - [`drawio-diagram-builder`](agents/drawio-diagram-builder/): especialista em
   criar, revisar e refinar diagramas Draw.io editaveis a partir de briefings,
   documentos, pastas, cards Azure, especificacoes, inventarios tecnicos e
@@ -667,6 +700,9 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   knowledge versionavel a partir de arquivos, pastas, projetos e documentacoes.
 - [`local-llm-operator`](agents/local-llm-operator/): agente runtime para
   diagnosticar, selecionar e delegar tarefas operacionais a LLMs locais.
+- [`notification-operator`](agents/notification-operator/): agente runtime para
+  formatar, enviar e configurar notificacoes locais de tarefas com payload
+  canonico.
 - [`n1-support-agent`](agents/n1-support-agent/): especialista N1 para executar
   runbooks operacionais a partir de cards Azure DevOps, orquestrando Azure,
   SQL Server, logs e TOPdesk.
@@ -676,6 +712,10 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   especialista em PostgreSQL read-only para descoberta de databases, schemas,
   tabelas, relacionamentos, joins, queries assistidas, perfilamento, qualidade
   de dados e relatorios analiticos.
+- [`supabase-project-analyst`](agents/supabase-project-analyst/):
+  especialista em inspecao local e auditoria report-only de projetos Supabase,
+  cobrindo RLS, Auth, Storage, migrations, Edge Functions e planos de correcao
+  sem aplicar mudancas reais.
 - [`provider-configurator`](agents/provider-configurator/): agente runtime que
   conduz wizard de providers, sources e referencias seguras de credenciais.
 - [`presentation-deck-builder`](agents/presentation-deck-builder/):

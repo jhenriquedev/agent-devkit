@@ -65,6 +65,7 @@ class MvpReadinessTest(unittest.TestCase):
         checks = {item["name"]: item for item in payload["checks"]}
         self.assertEqual(checks["agent version"]["status"], "ok")
         self.assertEqual(checks["repo strict validation"]["status"], "ok")
+        self.assertEqual(checks["catalog snapshot"]["status"], "ok")
         self.assertEqual(checks["mvp readiness"]["status"], "ok")
         self.assertIn(checks["claude skill validation"]["status"], {"ok", "skipped"})
         self.assertEqual(checks["full unittest suite"]["status"], "skipped")
