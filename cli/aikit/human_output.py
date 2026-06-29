@@ -27,6 +27,22 @@ def print_human(result: dict[str, Any]) -> None:
         print_command_modes(result)
     elif kind == "architecture":
         print_architecture(result)
+    elif kind == "roadmap":
+        print_roadmap(result)
+    elif kind in {"catalog", "catalog-item"}:
+        print_catalog(result)
+    elif kind == "route-explain":
+        print_route_explain(result)
+    elif kind in {"eval-suites", "eval-run", "eval-report"}:
+        print_eval(result)
+    elif kind in {"secrets-doctor", "secret-backends", "secret-references", "secret-reference", "secret-reference-remove"}:
+        print_secrets(result)
+    elif kind in {"local-extensions", "local-extension", "local-extension-remove", "local-extension-validation"}:
+        print_local_extensions(result)
+    elif kind in {"workflows", "workflow", "workflow-install", "workflow-run"}:
+        print_workflows(result)
+    elif kind in {"contributions", "contribution-checklist", "contribution-validation", "contribution-prepare", "contribution-review"}:
+        print_contribution(result)
     elif kind == "agent":
         print_agent_response(result)
     elif kind == "llm-backends":
@@ -133,6 +149,86 @@ def print_agents(items: list[dict[str, Any]]) -> None:
         print(f"{item['id']}  {item.get('status') or '-'}  {count} capabilities")
         if item.get("purpose"):
             print(f"  {item['purpose']}")
+
+
+def print_roadmap(result: dict[str, Any]) -> None:
+    print(f"Agent DevKit roadmap {result.get('version_scope')}: {len(result.get('active_problems') or [])} active problems")
+    preteridos = result.get("preteridos") or []
+    if preteridos:
+        print(f"Out of scope: {', '.join(str(item) for item in preteridos)}")
+    for phase in result.get("phases") or []:
+        problems = ", ".join(str(item) for item in phase.get("problems") or []) or "-"
+        print(f"- {phase.get('number')}: {phase.get('name')} [{problems}]")
+
+
+def print_catalog(result: dict[str, Any]) -> None:
+    if result["kind"] == "catalog-item":
+        item = result["item"]
+        print(f"{item.get('type')} {item.get('id')}")
+        if item.get("description"):
+            print(item["description"])
+        print(f"Path: {item.get('path') or '-'}")
+        print(f"Status: {item.get('status') or '-'}")
+        return
+    print(f"Catalog {result.get('action')}: {result.get('count', 0)} item(s)")
+    for item in result.get("items") or []:
+        print(f"- {item.get('type')} {item.get('id')}  {item.get('status') or '-'}")
+
+
+def print_route_explain(result: dict[str, Any]) -> None:
+    selected = result.get("selected") or {}
+    print(f"Route: {result.get('decision')} ({result.get('confidence_label')})")
+    print(f"Selected: {selected.get('agent_id') or '-'} / {selected.get('capability_id') or '-'}")
+    print(f"Execution: {result.get('execution')}")
+    if result.get("reason"):
+        print(result["reason"])
+    if result.get("next_step"):
+        print(f"Next: {result['next_step']}")
+
+
+def print_eval(result: dict[str, Any]) -> None:
+    if result["kind"] == "eval-suites":
+        print("Eval suites:")
+        for suite in result.get("suites") or []:
+            print(f"- {suite.get('id')}")
+        return
+    if result["kind"] == "eval-run":
+        print(f"Eval {result.get('suite')}: {result.get('status')}")
+        for check in result.get("checks") or []:
+            print(f"- {check.get('id')}: {check.get('status')}")
+        return
+    print(result.get("message") or "Eval report")
+
+
+def print_secrets(result: dict[str, Any]) -> None:
+    print(f"{result['kind']}: {result.get('status')}")
+    if result.get("backends"):
+        for backend in result["backends"]:
+            print(f"- {backend.get('id')}: {backend.get('status')}")
+    if result.get("references"):
+        print(f"References: {len(result['references'])}")
+
+
+def print_local_extensions(result: dict[str, Any]) -> None:
+    print(f"{result['kind']}: {result.get('status')}")
+    for item in result.get("items") or []:
+        state = "enabled" if item.get("enabled") else "disabled"
+        print(f"- {item.get('id')} {state} {item.get('path')}")
+
+
+def print_workflows(result: dict[str, Any]) -> None:
+    print(f"{result['kind']}: {result.get('status')}")
+    for item in result.get("items") or []:
+        print(f"- {item.get('id')}: {item.get('description')}")
+    if result.get("workflow"):
+        workflow = result["workflow"]
+        print(f"{workflow.get('id')}: {workflow.get('description')}")
+
+
+def print_contribution(result: dict[str, Any]) -> None:
+    print(f"{result['kind']}: {result.get('status')}")
+    for check in result.get("checks") or []:
+        print(f"- {check.get('id')}: {check.get('status')}")
 
 
 def print_structured_warnings(result: dict[str, Any]) -> None:

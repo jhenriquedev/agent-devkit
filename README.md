@@ -44,6 +44,18 @@ agent commands list
 agent doctor
 ```
 
+Na `v0.2.0`, o runtime tambem expoe superficies deterministicas para
+descoberta, avaliacao e integracao por hosts:
+
+```bash
+agent roadmap
+agent catalog search pr
+agent route explain "revise as prs que recebi hoje"
+agent eval run routing
+agent secrets doctor
+agent mcp tools
+```
+
 Instale os artefatos locais do Agent DevKit no projeto em que voce trabalha:
 
 ```bash

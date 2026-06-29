@@ -7,6 +7,11 @@ import argparse
 
 DETERMINISTIC_COMMANDS = (
     "architecture",
+    "roadmap",
+    "catalog",
+    "route",
+    "eval",
+    "secrets",
     "agents",
     "capabilities",
     "inspect",
@@ -38,6 +43,10 @@ DETERMINISTIC_COMMANDS = (
     "decisions",
     "ollama",
     "mcp",
+    "local",
+    "workflow",
+    "contribute",
+    "contribution",
     "install",
     "wizard",
 )
@@ -81,6 +90,34 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     architecture_parser = subparsers.add_parser("architecture", help="show the Agent DevKit architecture contract")
     architecture_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     architecture_parser.add_argument("action", nargs="?", default="show", choices=["show"])
+
+    roadmap_parser = subparsers.add_parser("roadmap", help="show the deterministic Agent DevKit roadmap")
+    roadmap_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    roadmap_parser.add_argument("action", nargs="?", default="show", choices=["show", "phase", "problem"])
+    roadmap_parser.add_argument("target", nargs="?")
+
+    catalog_parser = subparsers.add_parser("catalog", help="search and inspect the Agent DevKit catalog")
+    catalog_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    catalog_parser.add_argument("action", nargs="?", default="list", choices=["list", "search", "show"])
+    catalog_parser.add_argument("query", nargs="?")
+
+    route_parser = subparsers.add_parser("route", help="explain deterministic routing without execution")
+    route_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    route_parser.add_argument("action", nargs="?", default="explain", choices=["explain"])
+    route_parser.add_argument("prompt", nargs="*")
+
+    eval_parser = subparsers.add_parser("eval", help="run deterministic Agent DevKit eval suites")
+    eval_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    eval_parser.add_argument("action", nargs="?", default="list", choices=["list", "run", "report"])
+    eval_parser.add_argument("suite", nargs="?")
+
+    secrets_parser = subparsers.add_parser("secrets", help="diagnose secret backends and safe references")
+    secrets_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    secrets_parser.add_argument("action", nargs="?", default="doctor", choices=["doctor", "backends", "reference"])
+    secrets_parser.add_argument("reference_action", nargs="?", choices=["add", "list", "remove"])
+    secrets_parser.add_argument("provider", nargs="?")
+    secrets_parser.add_argument("key", nargs="?")
+    secrets_parser.add_argument("--env", dest="env")
 
     providers_parser = subparsers.add_parser("providers", help="list provider registry entries")
     providers_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -305,9 +342,10 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     install_parser.add_argument("--profiles", help="comma-separated project profiles to record in the lock")
     install_parser.add_argument("--dry-run", action="store_true", help="print planned writes without creating files")
 
-    agents_parser = subparsers.add_parser("agents", aliases=["a"], help="list available agents")
+    agents_parser = subparsers.add_parser("agents", aliases=["a"], help="list, search or inspect available agents")
     agents_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    agents_parser.add_argument("action", nargs="?", default="list", choices=["list"])
+    agents_parser.add_argument("action", nargs="?", default="list", choices=["list", "search", "show"])
+    agents_parser.add_argument("query", nargs="?")
 
     capabilities_parser = subparsers.add_parser(
         "capabilities",
@@ -317,7 +355,32 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     capabilities_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     capabilities_parser.add_argument("action_or_agent", nargs="?", default="list")
     capabilities_parser.add_argument("legacy_agent", nargs="?")
+    capabilities_parser.add_argument("show_capability", nargs="?")
     capabilities_parser.add_argument("--agent", dest="agent")
+
+    local_parser = subparsers.add_parser("local", help="manage local Agent DevKit extensions")
+    local_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    local_parser.add_argument("action", nargs="?", default="list", choices=["list", "add", "disable", "enable", "remove", "validate"])
+    local_parser.add_argument("extension_id", nargs="?")
+    local_parser.add_argument("--path")
+
+    workflow_parser = subparsers.add_parser("workflow", help="list, install or run installable workflows")
+    workflow_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    workflow_parser.add_argument("action", nargs="?", default="list", choices=["list", "show", "install", "run"])
+    workflow_parser.add_argument("workflow_id", nargs="?")
+    workflow_parser.add_argument("--dry-run", action="store_true")
+    workflow_parser.add_argument("--yes", action="store_true")
+
+    for contribution_command in ("contribute", "contribution"):
+        contribution_parser = subparsers.add_parser(contribution_command, help="prepare or review local extension contributions")
+        contribution_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+        contribution_parser.add_argument(
+            "action",
+            nargs="?",
+            default="list" if contribution_command == "contribute" else "checklist",
+            choices=["list", "prepare", "validate", "review", "checklist"],
+        )
+        contribution_parser.add_argument("extension_id", nargs="?")
 
     inspect_parser = subparsers.add_parser(
         "inspect",

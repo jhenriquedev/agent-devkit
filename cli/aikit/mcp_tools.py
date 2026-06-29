@@ -6,6 +6,7 @@ import json
 from typing import Any, Callable
 
 from cli.aikit.audit import redact_value, try_record_audit
+from cli.aikit.catalog import catalog_search
 from cli.aikit.core.requests import CapabilityRunRequest
 from cli.aikit.core.runtime import (
     inspect_capability_request,
@@ -14,8 +15,14 @@ from cli.aikit.core.runtime import (
     run_capability_request,
 )
 from cli.aikit.doctor_runtime import doctor
+from cli.aikit.eval import eval_list, eval_run
 from cli.aikit.errors import DevKitError
 from cli.aikit.mcp_manifest import mcp_tools
+from cli.aikit.orchestrator import build_execution_plan
+from cli.aikit.roadmap_cli import roadmap_payload
+from cli.aikit.router_explain import explain_route
+from cli.aikit.runtime_paths import ROOT
+from cli.aikit.secrets import secrets_doctor
 from cli.aikit.sources import SourceRegistryError, list_sources, source_status
 from cli.aikit.wizard_state import WizardStateError, answer_wizard, show_wizard
 
@@ -34,6 +41,13 @@ def call_mcp_tool(name: str, arguments: dict[str, Any] | None) -> dict[str, Any]
         "agent_devkit_capability_inspect": tool_capability_inspect,
         "agent_devkit_capability_run": tool_capability_run,
         "agent_devkit_doctor": tool_doctor,
+        "agent_devkit_catalog_search": tool_catalog_search,
+        "agent_devkit_route_explain": tool_route_explain,
+        "agent_devkit_agent_prompt_dry_run": tool_agent_prompt_dry_run,
+        "agent_devkit_eval_list": tool_eval_list,
+        "agent_devkit_eval_run": tool_eval_run,
+        "agent_devkit_secrets_doctor": tool_secrets_doctor,
+        "agent_devkit_roadmap": tool_roadmap,
         "agent_devkit_source_list": tool_source_list,
         "agent_devkit_source_status": tool_source_status,
         "agent_devkit_wizard_show": tool_wizard_show,
@@ -123,6 +137,37 @@ def tool_doctor(args: dict[str, Any]) -> dict[str, Any]:
         home=optional_string(args, "home"),
         scope=optional_string(args, "scope") or "auto",
     )
+
+
+def tool_catalog_search(args: dict[str, Any]) -> dict[str, Any]:
+    item_type = optional_string(args, "type")
+    if item_type not in {None, "agent", "capability", "provider"}:
+        raise McpToolError("type must be agent, capability or provider")
+    return catalog_search(required_string(args, "query"), ROOT, item_type=item_type)
+
+
+def tool_route_explain(args: dict[str, Any]) -> dict[str, Any]:
+    return explain_route(required_string(args, "prompt"), ROOT)
+
+
+def tool_agent_prompt_dry_run(args: dict[str, Any]) -> dict[str, Any]:
+    return build_execution_plan(ROOT, required_string(args, "prompt"), dry_run=True)
+
+
+def tool_eval_list(_args: dict[str, Any]) -> dict[str, Any]:
+    return eval_list()
+
+
+def tool_eval_run(args: dict[str, Any]) -> dict[str, Any]:
+    return eval_run(required_string(args, "suite"), ROOT)
+
+
+def tool_secrets_doctor(_args: dict[str, Any]) -> dict[str, Any]:
+    return secrets_doctor()
+
+
+def tool_roadmap(_args: dict[str, Any]) -> dict[str, Any]:
+    return roadmap_payload(ROOT)
 
 
 def tool_source_list(_args: dict[str, Any]) -> dict[str, Any]:

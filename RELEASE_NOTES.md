@@ -1,3 +1,31 @@
+# v0.2.0
+
+Runtime consolidation release.
+
+## Highlights
+
+- Adds deterministic runtime discovery with `agent roadmap`, searchable
+  `agent catalog`, `agent route explain` and `agent --explain`.
+- Adds MVP eval suites for routing, catalog, MCP, prompt injection,
+  mini-brain limits and generated-agent contracts, wired into the quick release
+  gate.
+- Adds safe secret reference diagnostics with `agent secrets`, without storing
+  raw secret values.
+- Evolves MCP stdio with catalog search, route explain, dry-run planning,
+  eval, secrets and roadmap tools while preserving read-only defaults.
+- Adds local extension, workflow and contribution MVP commands for future
+  operational completion work.
+- Adds prompt-injection external-content labeling and focused regression tests
+  for v0.2.0 CLI contracts.
+- Keeps Slack, WhatsApp and Teams integrations out of scope and filters
+  preterido problem items from the active roadmap.
+
+## Validation
+
+- Focused v0.2.0, MCP, CLI and architecture tests pass locally.
+- Release gate quick check, package build and package verify pass before tag.
+- Full Python unittest suite must pass before the release tag.
+
 # v0.1.7
 
 Runtime foundation and integration expansion release.

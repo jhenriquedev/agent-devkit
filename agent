@@ -12,6 +12,7 @@ from cli.aikit.main import DETERMINISTIC_COMMANDS, LLM_COMMANDS, main
 
 SESSION_SHORTCUTS = {"-s", "--sessions"}
 AGENT_PROMPT_FLAGS = {"--llm", "--no-llm-fallback", "--session", "--new-session"}
+EXPLAIN_FLAGS = {"--explain"}
 GLOBAL_PROMPT_FLAGS = {"--json", "--dry-run"}
 
 
@@ -28,6 +29,8 @@ def normalize_args(argv: list[str]) -> list[str]:
             return [*leading, "agent"]
         if remaining[0] in SESSION_SHORTCUTS:
             return [*leading, *remaining]
+        if remaining[0] in EXPLAIN_FLAGS:
+            return [*leading, "route", "explain", *remaining[1:]]
         if remaining[0] in commands:
             return [*leading, *remaining]
         return [*leading, "agent", *remaining]
@@ -36,6 +39,8 @@ def normalize_args(argv: list[str]) -> list[str]:
         return remaining
     if first in SESSION_SHORTCUTS:
         return remaining
+    if first in EXPLAIN_FLAGS:
+        return ["route", "explain", *remaining[1:]]
     if first in AGENT_PROMPT_FLAGS:
         return ["agent", *remaining]
     if first in commands:

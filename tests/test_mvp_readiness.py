@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import subprocess
 import sys
 import unittest
@@ -13,6 +14,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MVP_READINESS = ROOT / "scripts" / "mvp-readiness.py"
 RELEASE_GATE = ROOT / "scripts" / "release-gate.py"
+
+
+def load_release_gate_module():
+    spec = importlib.util.spec_from_file_location("release_gate", RELEASE_GATE)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 class MvpReadinessTest(unittest.TestCase):
@@ -69,6 +79,15 @@ class MvpReadinessTest(unittest.TestCase):
         self.assertEqual(checks["mvp readiness"]["status"], "ok")
         self.assertIn(checks["claude skill validation"]["status"], {"ok", "skipped"})
         self.assertEqual(checks["full unittest suite"]["status"], "skipped")
+
+    def test_release_gate_unittest_discovery_ignores_generated_runtime(self) -> None:
+        release_gate = load_release_gate_module()
+
+        command = release_gate.unittest_command()
+
+        self.assertIn("tests/test_aikit_cli.py", command)
+        self.assertFalse(any("vendor/" in item for item in command))
+        self.assertFalse(any(item.startswith("tooling/agent-devkit/runtime/") for item in command))
 
 
 if __name__ == "__main__":

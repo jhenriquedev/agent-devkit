@@ -26,7 +26,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.1.7
+agent 0.2.0
 ```
 
 ## Quick Start
@@ -39,6 +39,18 @@ agent capabilities list
 agent providers list
 agent llm list
 agent commands list
+```
+
+Agent DevKit `v0.2.0` also includes deterministic runtime discovery and
+integration commands:
+
+```bash
+agent roadmap
+agent catalog search pr
+agent route explain "review the PRs waiting for me"
+agent eval run routing
+agent secrets doctor
+agent mcp tools
 ```
 
 Install project-local host artifacts for Codex, Claude Code and Claude

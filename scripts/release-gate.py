@@ -44,6 +44,7 @@ def run_gate(*, quick: bool = False) -> dict[str, Any]:
         check_json("repo strict validation", [sys.executable, str(VALIDATE_REPO), "--strict", "--json"], validate_repo),
         catalog_snapshot_check(),
         check_json("mvp readiness", [sys.executable, str(MVP_READINESS), "--json"], validate_mvp_readiness),
+        check_json("v0.2.0 runtime evals", [sys.executable, str(AGENT), "eval", "run", "all", "--json"], validate_v020_evals),
         skill_validation_check(),
     ]
     if quick:
@@ -75,11 +76,19 @@ def unittest_command() -> list[str]:
     paths = [
         path
         for path in ROOT.rglob("test*.py")
-        if "vendor" not in path.relative_to(ROOT).parts
+        if include_unittest_path(path)
     ]
     paths.sort(key=unittest_path_sort_key)
     test_files = [str(path.relative_to(ROOT)) for path in paths]
     return [sys.executable, "-m", "unittest", *test_files]
+
+
+def include_unittest_path(path: Path) -> bool:
+    relative = path.relative_to(ROOT)
+    parts = relative.parts
+    if "vendor" in parts:
+        return False
+    return parts[:3] != ("tooling", "agent-devkit", "runtime")
 
 
 def unittest_path_sort_key(path: Path) -> tuple[int, str]:
@@ -248,6 +257,17 @@ def validate_mvp_readiness(payload: dict[str, Any]) -> str | None:
         return "mvp readiness is not ok"
     if payload.get("errors"):
         return "mvp readiness returned errors"
+    return None
+
+
+def validate_v020_evals(payload: dict[str, Any]) -> str | None:
+    if payload.get("kind") != "eval-run" or payload.get("suite") != "all":
+        return "v0.2.0 eval command returned an unexpected payload"
+    if payload.get("status") != "passed":
+        return "v0.2.0 runtime evals did not pass"
+    checks = payload.get("checks") or []
+    if not isinstance(checks, list) or len(checks) < 5:
+        return "v0.2.0 runtime evals returned too few suites"
     return None
 
 

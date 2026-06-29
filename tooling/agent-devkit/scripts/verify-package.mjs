@@ -72,6 +72,14 @@ async function main() {
   await assertExists("cli/aikit/app_home.py");
   await assertExists("cli/aikit/control_router.py");
   await assertExists("cli/aikit/execution_reviewer.py");
+  await assertExists("cli/aikit/catalog.py");
+  await assertExists("cli/aikit/router_explain.py");
+  await assertExists("cli/aikit/roadmap_cli.py");
+  await assertExists("cli/aikit/eval.py");
+  await assertExists("cli/aikit/secrets.py");
+  await assertExists("cli/aikit/extensions.py");
+  await assertExists("cli/aikit/workflows.py");
+  await assertExists("cli/aikit/contribution.py");
   await assertExists("cli/aikit/local_llm_operator.py");
   await assertExists("cli/aikit/orchestrator.py");
   await assertExists("cli/aikit/wizard_state.py");
@@ -100,10 +108,31 @@ async function main() {
     const commands = await run("node", [agentBin, "commands", "list", "--json"], { env });
     const payload = JSON.parse(commands.stdout);
     const deterministic = new Set(payload.deterministic.map((item) => item.command));
-    for (const command of ["agents", "capabilities", "run", "doctor", "install", "source", "memory"]) {
+    for (const command of [
+      "agents",
+      "capabilities",
+      "run",
+      "doctor",
+      "install",
+      "source",
+      "memory",
+      "roadmap",
+      "catalog",
+      "route",
+      "eval",
+      "secrets",
+      "local",
+      "workflow",
+      "contribution",
+    ]) {
       if (!deterministic.has(command)) {
         throw new Error(`Missing deterministic command in package smoke: ${command}`);
       }
+    }
+    const roadmap = await run("node", [agentBin, "roadmap", "--json"], { env });
+    const roadmapPayload = JSON.parse(roadmap.stdout);
+    if (!Array.isArray(roadmapPayload.preteridos) || !roadmapPayload.preteridos.includes(25) || !roadmapPayload.preteridos.includes(26)) {
+      throw new Error(`Packaged runtime roadmap did not filter preteridos: ${roadmap.stdout}`);
     }
     const doctor = await run("node", [agentBin, "doctor", "--json"], { env });
     const doctorPayload = JSON.parse(doctor.stdout);

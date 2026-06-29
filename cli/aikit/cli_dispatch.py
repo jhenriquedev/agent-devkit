@@ -12,7 +12,15 @@ from cli.aikit.app_home import app_home_status, migrate_default_home
 from cli.aikit.architecture import architecture_contract
 from cli.aikit.audit import export_audit, list_audits, record_audit, show_audit, try_record_audit
 from cli.aikit.calendar import calendar_list, calendar_today, calendar_tomorrow, configure_calendar
+from cli.aikit.catalog import catalog_list, catalog_search, catalog_show
 from cli.aikit.cli_parser import DETERMINISTIC_COMMANDS, LLM_COMMANDS
+from cli.aikit.contribution import (
+    contribution_checklist,
+    contribution_list,
+    contribution_prepare,
+    contribution_review,
+    contribution_validate,
+)
 from cli.aikit.core.requests import AgentPromptRequest, CapabilityRunRequest
 from cli.aikit.core.runtime import (
     inspect_capability_request,
@@ -24,7 +32,15 @@ from cli.aikit.core.runtime import (
 from cli.aikit.credentials import CredentialResolverError, credential_backends
 from cli.aikit.decision_store import forget_decision, list_decisions, reset_decisions, set_decision
 from cli.aikit.doctor_runtime import doctor
+from cli.aikit.eval import eval_list, eval_report, eval_run
 from cli.aikit.errors import DevKitError
+from cli.aikit.extensions import (
+    local_extension_add,
+    local_extension_enable,
+    local_extension_remove,
+    local_extension_validate,
+    local_extensions_list,
+)
 from cli.aikit.github_pr import planned_pr_commands, pr_create_automation, pr_inspect, pr_list_review_requests, pr_review
 from cli.aikit.install import InstallError, install_runtime
 from cli.aikit.llm import (
@@ -60,10 +76,19 @@ from cli.aikit.providers import (
     provider_status_with_credentials,
     unset_provider_config,
 )
+from cli.aikit.roadmap_cli import roadmap_payload
+from cli.aikit.router_explain import explain_route
 from cli.aikit.runtime_paths import ROOT
 from cli.aikit.scheduler import run_scheduler_once, scheduler_daemon_plan
 from cli.aikit.sessions import list_sessions, resume_session, show_session
 from cli.aikit.setup_wizard import setup_wizard
+from cli.aikit.secrets import (
+    add_secret_reference,
+    list_secret_references,
+    remove_secret_reference,
+    secret_backends,
+    secrets_doctor,
+)
 from cli.aikit.sources import SourceConfigBlockedError, SourceRegistryError, add_source, list_sources, remove_source, source_status
 from cli.aikit.tasks import (
     create_task,
@@ -76,6 +101,7 @@ from cli.aikit.tasks import (
     update_task_status,
 )
 from cli.aikit.toolchain import doctor_toolchain, install_toolchain, list_toolchain
+from cli.aikit.workflows import workflow_install, workflow_list, workflow_run, workflow_show
 from cli.aikit.wizard_state import WizardStateError, answer_wizard, cancel_wizard, list_wizards, show_wizard
 from cli.aikit.interactive_wizard import resume_agent_prompt
 
@@ -96,6 +122,16 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return list_command_modes()
     if command == "architecture":
         return architecture_contract(ROOT)
+    if command == "roadmap":
+        return dispatch_roadmap(args)
+    if command == "catalog":
+        return dispatch_catalog(args)
+    if command == "route":
+        return dispatch_route(args)
+    if command == "eval":
+        return dispatch_eval(args)
+    if command == "secrets":
+        return dispatch_secrets(args)
     if command == "providers":
         return dispatch_providers(args)
     if command == "provider":
@@ -142,14 +178,20 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return dispatch_ollama(args)
     if command == "mcp":
         return dispatch_mcp(args)
+    if command == "local":
+        return dispatch_local(args)
+    if command == "workflow":
+        return dispatch_workflow(args)
+    if command in {"contribute", "contribution"}:
+        return dispatch_contribution(args)
     if command == "llm":
         return dispatch_llm(args)
     if command == "install":
         return dispatch_install(args)
     if command == "agents":
-        return list_agent_modules()
+        return dispatch_agents(args)
     if command == "capabilities":
-        return list_capability_modules(capabilities_agent_from_args(args))
+        return dispatch_capabilities(args)
     if command == "inspect":
         return inspect_capability_request(args.agent, args.capability)
     if command == "run":
@@ -220,6 +262,163 @@ def list_command_modes() -> dict[str, Any]:
             for command in LLM_COMMANDS
         ],
     }
+
+
+def dispatch_roadmap(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "show":
+        if args.target:
+            raise DevKitError("roadmap show does not accept a target")
+        return roadmap_payload(ROOT)
+    if args.action in {"phase", "problem"}:
+        if not args.target or not str(args.target).isdigit():
+            raise DevKitError(f"roadmap {args.action} requires a numeric target")
+        number = int(args.target)
+        return roadmap_payload(ROOT, phase=number if args.action == "phase" else None, problem=number if args.action == "problem" else None)
+    raise DevKitError(f"unsupported roadmap action: {args.action}")
+
+
+def dispatch_catalog(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "list":
+        if args.query:
+            raise DevKitError("catalog list does not accept a query")
+        return catalog_list(ROOT)
+    if args.action == "search":
+        return catalog_search(args.query or "", ROOT)
+    if args.action == "show":
+        return catalog_show(args.query or "", ROOT)
+    raise DevKitError(f"unsupported catalog action: {args.action}")
+
+
+def dispatch_route(args: argparse.Namespace) -> dict[str, Any]:
+    prompt = " ".join(args.prompt or []).strip()
+    if not prompt:
+        raise DevKitError("route explain requires a prompt")
+    return explain_route(prompt, ROOT)
+
+
+def dispatch_eval(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.suite:
+                raise DevKitError("eval list does not accept a suite")
+            return eval_list()
+        if args.action == "run":
+            return eval_run(args.suite or "all", ROOT)
+        if args.action == "report":
+            if args.suite:
+                raise DevKitError("eval report does not accept a suite")
+            return eval_report()
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported eval action: {args.action}")
+
+
+def dispatch_secrets(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "doctor":
+        if args.reference_action or args.provider or args.key:
+            raise DevKitError("secrets doctor does not accept reference arguments")
+        return secrets_doctor()
+    if args.action == "backends":
+        if args.reference_action or args.provider or args.key:
+            raise DevKitError("secrets backends does not accept reference arguments")
+        return secret_backends()
+    if args.action == "reference":
+        if args.reference_action == "list":
+            return list_secret_references()
+        if args.reference_action == "add":
+            return add_secret_reference(args.provider, args.key, env=args.env)
+        if args.reference_action == "remove":
+            return remove_secret_reference(args.provider, args.key)
+        raise DevKitError("secrets reference requires add, list or remove")
+    raise DevKitError(f"unsupported secrets action: {args.action}")
+
+
+def dispatch_agents(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "list":
+        if args.query:
+            raise DevKitError("agents list does not accept a query")
+        return list_agent_modules()
+    if args.action == "search":
+        return catalog_search(args.query or "", ROOT, item_type="agent")
+    if args.action == "show":
+        return catalog_show(args.query or "", ROOT, item_type="agent")
+    raise DevKitError(f"unsupported agents action: {args.action}")
+
+
+def dispatch_capabilities(args: argparse.Namespace) -> dict[str, Any]:
+    action = args.action_or_agent
+    if action == "search":
+        if not args.legacy_agent:
+            raise DevKitError("capabilities search requires a query")
+        if args.show_capability:
+            raise DevKitError("capabilities search received too many arguments")
+        return catalog_search(args.legacy_agent, ROOT, item_type="capability")
+    if action == "show":
+        if not args.legacy_agent:
+            raise DevKitError("capabilities show requires an agent id")
+        if not args.show_capability:
+            raise DevKitError("capabilities show requires a capability id")
+        return catalog_show(f"{args.legacy_agent}/{args.show_capability}", ROOT, item_type="capability")
+    if args.show_capability:
+        raise DevKitError("unexpected extra argument for capabilities")
+    return list_capability_modules(capabilities_agent_from_args(args))
+
+
+def dispatch_local(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "list":
+        if args.extension_id:
+            raise DevKitError("local list does not accept an extension id")
+        return local_extensions_list()
+    if args.action == "add":
+        return local_extension_add(args.path)
+    if args.action == "enable":
+        require_id(args.extension_id, "local enable")
+        return local_extension_enable(args.extension_id, True)
+    if args.action == "disable":
+        require_id(args.extension_id, "local disable")
+        return local_extension_enable(args.extension_id, False)
+    if args.action == "remove":
+        require_id(args.extension_id, "local remove")
+        return local_extension_remove(args.extension_id)
+    if args.action == "validate":
+        require_id(args.extension_id, "local validate")
+        return local_extension_validate(args.extension_id)
+    raise DevKitError(f"unsupported local action: {args.action}")
+
+
+def dispatch_workflow(args: argparse.Namespace) -> dict[str, Any]:
+    try:
+        if args.action == "list":
+            if args.workflow_id:
+                raise DevKitError("workflow list does not accept a workflow id")
+            return workflow_list()
+        require_id(args.workflow_id, f"workflow {args.action}")
+        if args.action == "show":
+            return workflow_show(args.workflow_id)
+        if args.action == "install":
+            return workflow_install(args.workflow_id, dry_run=effective_dry_run(args) or not args.yes, yes=args.yes)
+        if args.action == "run":
+            return workflow_run(args.workflow_id, dry_run=effective_dry_run(args) or not args.yes)
+    except ValueError as exc:
+        raise DevKitError(str(exc)) from exc
+    raise DevKitError(f"unsupported workflow action: {args.action}")
+
+
+def dispatch_contribution(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "list":
+        if args.extension_id:
+            raise DevKitError(f"{args.command} list does not accept an extension id")
+        return contribution_list()
+    require_id(args.extension_id, f"{args.command} {args.action}")
+    if args.action == "prepare":
+        return contribution_prepare(args.extension_id)
+    if args.action == "validate":
+        return contribution_validate(args.extension_id)
+    if args.action == "review":
+        return contribution_review(args.extension_id)
+    if args.action == "checklist":
+        return contribution_checklist(args.extension_id)
+    raise DevKitError(f"unsupported {args.command} action: {args.action}")
 
 
 def maybe_record_cli_audit(args: argparse.Namespace, *, result: dict[str, Any] | None, error: str | None) -> dict[str, Any] | None:

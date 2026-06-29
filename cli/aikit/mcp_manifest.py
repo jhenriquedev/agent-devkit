@@ -71,6 +71,64 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "agent_devkit_catalog_search",
+        "description": "Search agents, capabilities and providers in the deterministic Agent DevKit catalog.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "type": {"type": "string"},
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "agent_devkit_route_explain",
+        "description": "Explain how Agent DevKit would route a prompt without executing it.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"prompt": {"type": "string"}},
+            "required": ["prompt"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "agent_devkit_agent_prompt_dry_run",
+        "description": "Build a dry-run agentic execution plan for a natural-language prompt.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"prompt": {"type": "string"}},
+            "required": ["prompt"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "agent_devkit_eval_list",
+        "description": "List deterministic Agent DevKit eval suites.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "name": "agent_devkit_eval_run",
+        "description": "Run one deterministic Agent DevKit eval suite.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"suite": {"type": "string"}},
+            "required": ["suite"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "agent_devkit_secrets_doctor",
+        "description": "Diagnose secret reference backends without exposing values.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
+        "name": "agent_devkit_roadmap",
+        "description": "Return the deterministic Agent DevKit roadmap payload.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
+    {
         "name": "agent_devkit_source_list",
         "description": "List configured sources without exposing secrets.",
         "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
