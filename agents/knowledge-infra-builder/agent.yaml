@@ -1,0 +1,38 @@
+id: knowledge-infra-builder
+kind: specialist-agent
+name: Knowledge Infra Builder
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Criar, validar e diagnosticar a infraestrutura file-first de bases de
+  conhecimento compartilhadas, mantendo tokens em referencias seguras e
+  providers remotos como opt-in.
+
+routing:
+  anchors:
+    - knowledge-base create
+    - criar base de conhecimento
+    - infraestrutura de knowledge
+  keywords:
+    - knowledge-base
+    - storage
+    - provider
+    - tokens
+    - indexes
+  intents:
+    - knowledge.infra.create
+    - knowledge.infra.diagnose
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - create-knowledge-base
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: local_config_write
+  blocks_on_high_risk: confirm

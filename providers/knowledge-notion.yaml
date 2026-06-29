@@ -1,0 +1,32 @@
+id: knowledge-notion
+name: Knowledge Notion
+kind: knowledge-storage-provider
+status: draft
+description: Provider Notion para espelhar knowledge base file-first em paginas ou databases autorizadas.
+auth_methods:
+  - id: notion-token
+    label: Notion integration token
+    secret_fields:
+      - NOTION_TOKEN
+config_fields:
+  - name: NOTION_TOKEN
+    required: false
+    secret: true
+  - name: AGENT_DEVKIT_KNOWLEDGE_NOTION_DATABASE_ID
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge.snapshot.submit
+health_check:
+  command: agent provider doctor knowledge-notion
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

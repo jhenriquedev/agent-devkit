@@ -269,18 +269,47 @@ class AgenticV015ContractsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as bindir:
             bin_path = Path(bindir)
             self.write_fake_ollama(bin_path)
-            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": f"{bin_path}{os.pathsep}{os.environ.get('PATH', '')}"}
+            (Path(tmpdir) / "config.json").write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "local_llm": {
+                            "recommended_models": [
+                                {
+                                    "name": "tiny-custom",
+                                    "family": "custom",
+                                    "recommended_for": "custom smoke model",
+                                }
+                            ]
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            env = {
+                "AI_DEVKIT_CONFIG_HOME": tmpdir,
+                "OLLAMA_BASE_URL": "http://127.0.0.1:9",
+                "PATH": f"{bin_path}{os.pathsep}{os.environ.get('PATH', '')}",
+            }
             status = self.run_agent("ollama", "status", "--json", env=env)
             models = self.run_agent("ollama", "models", "--json", env=env)
+            pull_needs_confirmation = self.run_agent("ollama", "pull", "qwen2.5-coder", "--json", env=env)
             pull = self.run_agent("ollama", "pull", "qwen2.5-coder", "--yes", "--json", env=env)
 
         self.assertEqual(status.returncode, 0, status.stderr)
         self.assertEqual(models.returncode, 0, models.stderr)
+        self.assertEqual(pull_needs_confirmation.returncode, 2, pull_needs_confirmation.stderr)
         self.assertEqual(pull.returncode, 0, pull.stderr)
-        self.assertEqual(json.loads(status.stdout)["status"], "ok")
+        status_payload = json.loads(status.stdout)
+        self.assertEqual(status_payload["status"], "partial")
+        self.assertEqual(status_payload["daemon"]["status"], "unavailable")
         self.assertEqual(json.loads(models.stdout)["items"][0]["name"], "qwen3:0.6b")
         recommended = {item["name"]: item for item in json.loads(models.stdout)["recommended"]}
         self.assertTrue(recommended["qwen3:0.6b"]["installed"])
+        self.assertEqual(recommended["tiny-custom"]["source"], "config")
+        blocked_payload = json.loads(pull_needs_confirmation.stdout)
+        self.assertEqual(blocked_payload["status"], "needs-confirmation")
+        self.assertEqual(blocked_payload["exit_code"], 2)
         self.assertEqual(json.loads(pull.stdout)["status"], "ok")
 
     def test_setup_mini_brain_dry_run_plans_qwen3_without_side_effect(self) -> None:

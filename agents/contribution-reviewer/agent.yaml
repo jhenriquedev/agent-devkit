@@ -1,0 +1,40 @@
+id: contribution-reviewer
+kind: specialist-agent
+name: Contribution Reviewer
+version: 0.2.1
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Revisar extensoes locais, skills, scripts, agentes e workflows antes de
+  contribuicao upstream, bloqueando segredos, paths locais, URLs privadas,
+  PII e estruturas incompletas.
+
+routing:
+  anchors:
+    - contribution
+    - contribute
+    - upstream
+    - pr
+  keywords:
+    - checklist
+    - sanitize
+    - extension
+    - local
+  intents:
+    - contribution.review
+    - contribution.prepare
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - validate-local-contribution
+  - review-contribution
+  - plan-contribution-pr
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: read_only
+  blocks_on_high_risk: confirm

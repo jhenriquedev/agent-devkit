@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 from typing import Any
 
+from cli.aikit.agent_registry import load_agent_registry
 from cli.aikit.agent_executor import execute_plan_tasks
 from cli.aikit.capability_runtime import load_agent, run_capability
 from cli.aikit.calendar import calendar_summary, calendar_today, calendar_tomorrow
@@ -22,7 +24,7 @@ from cli.aikit.memory import napkin_context, record_usage
 from cli.aikit.model_router import build_model_plan
 from cli.aikit.module_controller import run_module_controller
 from cli.aikit.orchestrator import attach_source_to_primary_task, build_execution_plan, mark_plan_after_execution, mark_review_task
-from cli.aikit.personality import load_personality
+from cli.aikit.personality import load_personality, update_personality
 from cli.aikit.provider_wizard import missing_source_wizard
 from cli.aikit.review_gate import build_review_gate
 from cli.aikit.router import route_prompt
@@ -34,6 +36,106 @@ from cli.aikit.sources import SourceRegistryError, public_source, resolve_source
 
 def effective_dry_run(args: argparse.Namespace) -> bool:
     return bool(getattr(args, "dry_run", False) or getattr(args, "global_dry_run", False))
+
+
+def parse_rename_prompt(prompt: str) -> str | None:
+    text = " ".join(prompt.strip().split())
+    patterns = [
+        r"(?i)\b(?:mude|troque|altere|renomeie)\s+(?:o\s+)?seu\s+nome\s+para\s+(.+)$",
+        r"(?i)\b(?:seu\s+nome\s+agora\s+e|seu\s+nome\s+agora\s+é)\s+(.+)$",
+        r"(?i)\b(?:teu\s+nome\s+agora\s+e|teu\s+nome\s+agora\s+é)\s+(.+)$",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        value = clean_requested_name(match.group(1))
+        if value:
+            return value
+    return None
+
+
+def clean_requested_name(value: str) -> str | None:
+    cleaned = " ".join(value.strip().strip("\"'`.,;:!").split())
+    if not cleaned:
+        return None
+    return cleaned[:80]
+
+
+def is_capabilities_help_prompt(prompt: str) -> bool:
+    normalized = normalize_text(prompt)
+    if normalized in {"ajuda", "help", "o que voce faz", "o que voce consegue fazer"}:
+        return True
+    capability_markers = (
+        "o que voce consegue fazer",
+        "o que voce pode fazer",
+        "como voce pode ajudar",
+        "como usar o agent",
+        "como usar voce",
+        "quais suas capacidades",
+        "quais sao suas capacidades",
+        "quais agentes voce tem",
+        "que agentes voce tem",
+    )
+    return any(marker in normalized for marker in capability_markers)
+
+
+def normalize_text(value: str) -> str:
+    replacements = str.maketrans(
+        {
+            "á": "a",
+            "à": "a",
+            "ã": "a",
+            "â": "a",
+            "é": "e",
+            "ê": "e",
+            "í": "i",
+            "ó": "o",
+            "õ": "o",
+            "ô": "o",
+            "ú": "u",
+            "ç": "c",
+        }
+    )
+    text = value.lower().translate(replacements)
+    return " ".join(re.sub(r"[^a-z0-9._:-]+", " ", text).split())
+
+
+def local_capabilities_help_response(prompt: str, *, name: str) -> dict[str, Any]:
+    registry = load_agent_registry(ROOT)
+    agents = registry.get("agents") if isinstance(registry.get("agents"), dict) else {}
+    capabilities = registry.get("capabilities") if isinstance(registry.get("capabilities"), dict) else {}
+    examples = [
+        'agent "analise o card 7914 do projeto sustentacao no azure"',
+        'agent "mude seu nome para Ianota"',
+        "agent onboard minimal",
+        "agent catalog search pr",
+        "agent mcp tools",
+        "agent memory show",
+    ]
+    response = (
+        f"Eu sou {name}. Posso operar como harness/agente local do Agent DevKit: "
+        "validar onboarding, lembrar preferencias locais, rotear pedidos para agentes especialistas, "
+        "criar wizards de configuracao quando faltar provider/source, executar capabilities deterministicas, "
+        "expor ferramentas via MCP, preparar automacoes locais e usar LLMs configuradas quando a tarefa exigir raciocinio aberto. "
+        f"Neste runtime encontrei {len(agents)} agentes e {len(capabilities)} capabilities."
+    )
+    return {
+        "kind": "agent",
+        "status": "ok",
+        "ok": True,
+        "requires_llm": False,
+        "prompt_received": True,
+        "prompt_length": len(prompt),
+        "mode": "local-capabilities-help",
+        "identity": {"name": name, "source": "local"},
+        "response": response,
+        "catalog": {
+            "agents": len(agents),
+            "capabilities": len(capabilities),
+        },
+        "next_steps": examples,
+    }
 
 
 def agent_requires_llm(args: argparse.Namespace) -> dict[str, Any]:
@@ -70,6 +172,21 @@ def run_agent_prompt_request(request: AgentPromptRequest) -> dict[str, Any]:
         raise DevKitError(str(exc)) from exc
     personality = load_personality()
     name = public_name(personality=personality, invoked_as=request.prog_name)
+    rename = parse_rename_prompt(prompt)
+    if rename:
+        updated = update_personality(agent_name=rename)
+        result = {
+            "kind": "agent",
+            "status": "ok",
+            "ok": True,
+            "requires_llm": False,
+            "prompt_received": True,
+            "prompt_length": len(prompt),
+            "identity": {"name": updated.get("agent_name"), "source": "local"},
+            "action": "rename",
+            "response": f"Pronto. Meu nome local agora e {updated.get('agent_name')}.",
+        }
+        return finalize_agent_session(result, session, prompt, backend=request.llm)
     if is_identity_question(prompt):
         result = {
             "kind": "agent",
@@ -82,6 +199,13 @@ def run_agent_prompt_request(request: AgentPromptRequest) -> dict[str, Any]:
             "response": local_identity_response(prompt, name=name),
         }
         return finalize_agent_session(result, session, prompt, backend=request.llm)
+    if is_capabilities_help_prompt(prompt):
+        return finalize_agent_session(
+            local_capabilities_help_response(prompt, name=name),
+            session,
+            prompt,
+            backend=request.llm,
+        )
     natural_result = dispatch_natural_operational_prompt(prompt)
     if natural_result:
         return finalize_agent_session(natural_result, session, prompt, backend=request.llm)

@@ -1,0 +1,31 @@
+id: daily-pr-review
+title: Daily PR review
+description: Create a local scheduled prompt to review pending pull requests.
+schedule:
+  type: cron
+  cron: "0 9 * * 1-5"
+providers:
+  - github
+permissions:
+  mode: report-only
+write_policy: local_config_write
+task:
+  title: Daily PR review
+  prompt: Revise as PRs que aguardam minha revisao hoje.
+  action:
+    type: prompt
+    prompt: Revise as PRs que aguardam minha revisao hoje.
+    external_writes: false
+  permissions:
+    mode: report-only
+  notifications:
+    - type: desktop
+      events:
+        - task.completed
+        - task.blocked
+outputs:
+  - pr-review-summary
+risks:
+  - Requires GitHub source/authentication for real PR data.
+examples:
+  - revise as prs que recebi hoje

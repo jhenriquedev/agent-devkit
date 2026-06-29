@@ -1,10 +1,10 @@
 {
   "schema_version": "ai-devkit.release-catalog-snapshot/v1",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "summary": {
-    "agents": 39,
-    "capabilities": 383,
-    "providers": 22,
+    "agents": 48,
+    "capabilities": 397,
+    "providers": 32,
     "plugins": 3
   },
   "agents": [
@@ -17,6 +17,7 @@
     "aws-security-governance-auditor",
     "azure-devops-orchestrator",
     "bpo-analyser",
+    "contribution-reviewer",
     "data-scientist-analyst",
     "database-change-operator",
     "docker-container-builder",
@@ -28,8 +29,15 @@
     "figma-ui-ux-product-designer",
     "generic-agent-builder",
     "github-pr-reviewer",
+    "knowledge-author",
+    "knowledge-curator",
     "knowledge-generator",
+    "knowledge-infra-builder",
+    "knowledge-owner",
+    "knowledge-reviewer",
     "local-llm-operator",
+    "local-memory-manager",
+    "memory-sync-manager",
     "n1-support-agent",
     "n2-support-agent",
     "notification-operator",
@@ -40,6 +48,7 @@
     "pyautogui-automation-builder",
     "python-automation-builder",
     "selenium-automation-builder",
+    "shared-memory-curator",
     "software-specification-analyst",
     "sqlserver-change-operator",
     "sqlserver-data-analyzer",
@@ -60,6 +69,16 @@
     "figma",
     "file-dataset",
     "github",
+    "knowledge-github",
+    "knowledge-google-drive",
+    "knowledge-local",
+    "knowledge-notion",
+    "knowledge-obsidian",
+    "knowledge-onedrive",
+    "knowledge-s3",
+    "knowledge-sharepoint",
+    "knowledge-supabase",
+    "knowledge-vector",
     "local-files",
     "local-notification",
     "local-scheduler",
@@ -161,6 +180,11 @@
       "find-latest-proposal-by-cpf",
       "list-proposals-by-cpf",
       "test-connection"
+    ],
+    "contribution-reviewer": [
+      "plan-contribution-pr",
+      "review-contribution",
+      "validate-local-contribution"
     ],
     "data-scientist-analyst": [
       "analyze-cohorts",
@@ -320,16 +344,38 @@
       "list-review-requests",
       "review-pr-diff"
     ],
+    "knowledge-author": [
+      "create-knowledge-snapshot"
+    ],
+    "knowledge-curator": [
+      "curate-knowledge-base"
+    ],
     "knowledge-generator": [
       "generate-knowledge",
       "inspect-source",
       "list-knowledge-profiles",
       "validate-knowledge"
     ],
+    "knowledge-infra-builder": [
+      "create-knowledge-base"
+    ],
+    "knowledge-owner": [
+      "publish-knowledge-snapshot"
+    ],
+    "knowledge-reviewer": [
+      "review-knowledge-snapshot"
+    ],
     "local-llm-operator": [
       "delegate-operational-task",
       "inspect-local-models",
       "select-local-worker"
+    ],
+    "local-memory-manager": [
+      "curate-local-memory",
+      "inspect-local-memory"
+    ],
+    "memory-sync-manager": [
+      "plan-memory-backup"
     ],
     "n1-support-agent": [
       "analyze-bpo-proposal",
@@ -445,6 +491,11 @@
       "plan-selenium-automation",
       "review-selenium-script",
       "wrap-selenium-as-capability"
+    ],
+    "shared-memory-curator": [
+      "create-shared-memory",
+      "publish-shared-submission",
+      "review-shared-submission"
     ],
     "software-specification-analyst": [
       "analyze-multiple-projects",

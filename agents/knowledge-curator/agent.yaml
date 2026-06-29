@@ -1,0 +1,37 @@
+id: knowledge-curator
+kind: specialist-agent
+name: Knowledge Curator
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Fazer curadoria continua da knowledge base, consolidando duplicados,
+  mantendo taxonomia, propondo arquivamentos e reindexando apenas dados
+  derivados da base canonica.
+
+routing:
+  anchors:
+    - knowledge curate
+    - curadoria de knowledge
+    - reindexar knowledge
+  keywords:
+    - curate
+    - taxonomy
+    - reindex
+    - duplicate
+  intents:
+    - knowledge.curate
+    - knowledge.reindex
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - curate-knowledge-base
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: local_config_write
+  blocks_on_high_risk: confirm

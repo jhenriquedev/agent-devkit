@@ -1,0 +1,26 @@
+id: knowledge-local
+name: Knowledge Local
+kind: knowledge-storage-provider
+status: active
+description: Storage file-first local para knowledge bases em diretorios Markdown, JSON e YAML.
+auth_methods: []
+config_fields:
+  - name: AGENT_DEVKIT_KNOWLEDGE_ROOT
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge.search
+    - knowledge-base.status
+  write:
+    - knowledge-base.create
+    - knowledge.snapshot.create
+    - knowledge.publish
+health_check:
+  command: agent knowledge doctor
+risk:
+  default: local
+  writes: true
+fallbacks:
+  - manual_steps
+  - plan_only

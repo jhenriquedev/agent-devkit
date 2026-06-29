@@ -1,0 +1,39 @@
+id: knowledge-sharepoint
+name: Knowledge SharePoint
+kind: knowledge-storage-provider
+status: draft
+description: Provider SharePoint para armazenar knowledge bases file-first em bibliotecas documentais.
+auth_methods:
+  - id: microsoft-oauth
+    label: Microsoft OAuth
+    native: true
+    secret_fields: []
+  - id: graph-token
+    label: Microsoft Graph token
+    secret_fields:
+      - MICROSOFT_GRAPH_TOKEN
+config_fields:
+  - name: MICROSOFT_GRAPH_TOKEN
+    required: false
+    secret: true
+  - name: AGENT_DEVKIT_KNOWLEDGE_SHAREPOINT_SITE
+    required: false
+    secret: false
+  - name: AGENT_DEVKIT_KNOWLEDGE_SHAREPOINT_LOCATION
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge.snapshot.submit
+health_check:
+  command: agent provider doctor knowledge-sharepoint
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

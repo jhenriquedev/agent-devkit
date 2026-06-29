@@ -1,0 +1,30 @@
+id: knowledge-infra-builder.create-knowledge-base
+kind: capability
+name: Create knowledge base
+version: 0.3.0
+status: draft
+purpose: Criar ou planejar a estrutura canonica `knowledge-base/` com tokens por referencia segura.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+  properties:
+    provider:
+      type: string
+    name:
+      type: string
+    dry_run:
+      type: boolean
+outputs:
+  type: object
+  artifacts:
+    - path: knowledge-base/kb.yaml
+      kind: markdown
+      sensitive: false
+routing:
+  anchors:
+    - knowledge-base create
+    - criar knowledge base
+  intents:
+    - knowledge.infra.create

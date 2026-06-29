@@ -1,0 +1,37 @@
+id: knowledge-author
+kind: specialist-agent
+name: Knowledge Author
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Criar snapshots de conhecimento reutilizavel a partir de uso real,
+  sanitizando dados sensiveis, generalizando aprendizados e enviando conteudo
+  apenas para revisao.
+
+routing:
+  anchors:
+    - knowledge snapshot create
+    - criar snapshot
+    - proposta de conhecimento
+  keywords:
+    - snapshot
+    - runbook
+    - learning
+    - generalizar
+  intents:
+    - knowledge.snapshot.create
+    - knowledge.snapshot.submit
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - create-knowledge-snapshot
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: local_config_write
+  blocks_on_high_risk: confirm

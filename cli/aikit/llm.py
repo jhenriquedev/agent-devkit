@@ -77,7 +77,7 @@ BACKENDS: dict[str, LlmBackend] = {
         base_url_env="OLLAMA_BASE_URL",
         model_env="OLLAMA_MODEL",
         default_base_url="http://localhost:11434/v1",
-        default_model="qwen2.5-coder",
+        default_model="qwen3:0.6b",
         notes="Uses a local Ollama server through an OpenAI-compatible endpoint.",
     ),
     "codex-cli": LlmBackend(
@@ -387,18 +387,26 @@ def doctor_backend(backend: LlmBackend, config: dict[str, Any]) -> dict[str, Any
         }
 
     if backend.auth == "none":
-        base_url = configured.get("base_url") or env_value(backend.base_url_env) or backend.default_base_url
+        env_base_url = env_value(backend.base_url_env)
+        base_url = configured.get("base_url") or env_base_url or backend.default_base_url
         model = configured.get("model") or env_value(backend.model_env) or backend.default_model
+        binary = shutil.which(backend.id) if backend.id == "ollama" else None
+        local_available = bool(configured or env_base_url or binary)
         return {
             "id": backend.id,
             "display_name": backend.display_name,
             "kind": backend.kind,
-            "status": "ok" if base_url else "missing",
+            "status": "ok" if local_available else "missing",
             "configured": bool(configured),
             "base_url": base_url,
             "model": model,
+            "binary": binary,
             "health": "unchecked",
-            "message": "Local backend configured; daemon health is not probed by default.",
+            "message": (
+                "Local backend configured; daemon health is not probed by default."
+                if local_available
+                else "Local backend is not configured and no local binary was found in PATH."
+            ),
         }
 
     api_key_env = configured.get("api_key_env") or backend.api_key_env

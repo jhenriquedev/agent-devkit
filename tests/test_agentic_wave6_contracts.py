@@ -240,6 +240,23 @@ class AgenticWave6ContractsTest(unittest.TestCase):
         self.assertEqual(payload["token_estimate"], 123)
         self.assertEqual(payload["usage"]["total_tokens"], 456)
 
+    def test_audit_strict_redaction_hides_shared_memory_access_keys(self) -> None:
+        payload = redact_value(
+            {
+                "owner_access": {"key": "own_secret", "role": "owner"},
+                "contributor_access": {"key": "contrib_secret", "role": "contributor"},
+                "owner_key": "own_arg_secret",
+                "contributor_key": "contrib_arg_secret",
+            },
+            redact_access_keys=True,
+        )
+
+        self.assertEqual(payload["owner_access"]["key"], "[REDACTED_SECRET]")
+        self.assertEqual(payload["contributor_access"]["key"], "[REDACTED_SECRET]")
+        self.assertEqual(payload["owner_key"], "[REDACTED_SECRET]")
+        self.assertEqual(payload["contributor_key"], "[REDACTED_SECRET]")
+        self.assertEqual(payload["owner_access"]["role"], "owner")
+
     def test_audit_failure_is_reported_in_json_without_blocking_command(self) -> None:
         token = "ghp_1234567890abcdefghijklmnop"
         stdout = StringIO()

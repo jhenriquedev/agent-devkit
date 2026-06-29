@@ -1,0 +1,19 @@
+id: local-memory-manager.curate-local-memory
+kind: capability
+name: Curate local memory
+version: 0.3.0
+status: draft
+purpose: Planejar curadoria de memoria local e preferencias do usuario.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+outputs:
+  type: object
+routing:
+  anchors:
+    - curadoria de memoria
+    - atualizar preferencias
+  intents:
+    - memory.local.curate

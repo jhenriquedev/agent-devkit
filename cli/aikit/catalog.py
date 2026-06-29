@@ -2,24 +2,28 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import Any
 
+from cli.aikit.app_home import cache_home
 from cli.aikit.agent_registry import load_agent_registry
 from cli.aikit.errors import DevKitError
+from cli.aikit.extensions import local_extensions_list
+from cli.aikit.local_artifacts import local_agent_list, local_automation_list, script_list, skill_list
 from cli.aikit.providers import ProviderRegistryError, list_providers
 from cli.aikit.runtime_paths import ROOT
+from cli.aikit.toolchain import list_toolchain
+from cli.aikit.workflows import workflow_list
 
 
 CATALOG_SCHEMA_VERSION = "agent-devkit.catalog/v1"
 
 
-def catalog_list(root: Path | None = None, *, item_type: str | None = None) -> dict[str, Any]:
+def catalog_list(root: Path | None = None, *, item_type: str | None = None, filters: dict[str, Any] | None = None) -> dict[str, Any]:
     root = root or ROOT
-    items = catalog_items(root)
-    if item_type:
-        items = [item for item in items if item["type"] == item_type]
+    items = filtered_catalog_items(root, item_type=item_type, filters=filters)
     return {
         "kind": "catalog",
         "schema_version": CATALOG_SCHEMA_VERSION,
@@ -28,20 +32,19 @@ def catalog_list(root: Path | None = None, *, item_type: str | None = None) -> d
         "query": None,
         "type": item_type,
         "count": len(items),
+        "filters": public_filters(item_type=item_type, filters=filters),
         "items": items,
     }
 
 
-def catalog_search(query: str, root: Path | None = None, *, item_type: str | None = None) -> dict[str, Any]:
+def catalog_search(query: str, root: Path | None = None, *, item_type: str | None = None, filters: dict[str, Any] | None = None) -> dict[str, Any]:
     root = root or ROOT
     query = (query or "").strip()
     if not query:
         raise DevKitError("catalog search requires a query")
     tokens = tokenize(query)
     scored: list[tuple[int, dict[str, Any]]] = []
-    for item in catalog_items(root):
-        if item_type and item["type"] != item_type:
-            continue
+    for item in filtered_catalog_items(root, item_type=item_type, filters=filters):
         score = match_score(item, tokens)
         if score > 0:
             enriched = dict(item)
@@ -56,6 +59,7 @@ def catalog_search(query: str, root: Path | None = None, *, item_type: str | Non
         "query": query,
         "type": item_type,
         "count": len(scored),
+        "filters": public_filters(item_type=item_type, filters=filters),
         "items": [item for _score, item in scored],
     }
 
@@ -80,6 +84,25 @@ def catalog_show(item_id: str, root: Path | None = None, *, item_type: str | Non
     raise DevKitError(f"catalog item not found{suffix}: {item_id}")
 
 
+def catalog_rebuild_index(root: Path | None = None) -> dict[str, Any]:
+    root = root or ROOT
+    items = catalog_items(root)
+    path = catalog_index_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": CATALOG_SCHEMA_VERSION,
+        "items": items,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {
+        "kind": "catalog-index",
+        "schema_version": CATALOG_SCHEMA_VERSION,
+        "status": "rebuilt",
+        "path": str(path),
+        "count": len(items),
+    }
+
+
 def catalog_items(root: Path) -> list[dict[str, Any]]:
     registry = load_agent_registry(root)
     items: list[dict[str, Any]] = []
@@ -90,6 +113,33 @@ def catalog_items(root: Path) -> list[dict[str, Any]]:
         if isinstance(capability, dict):
             items.append(capability_item(capability))
     items.extend(provider_items(root))
+    items.extend(workflow_items())
+    items.extend(tool_items(root))
+    items.extend(skill_items(root))
+    items.extend(plugin_items(root))
+    items.extend(extension_items())
+    items.extend(local_artifact_items())
+    return items
+
+
+def filtered_catalog_items(root: Path, *, item_type: str | None = None, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    filters = {key: value for key, value in (filters or {}).items() if value not in {None, ""}}
+    items = catalog_items(root)
+    if item_type:
+        items = [
+            item
+            for item in items
+            if item["type"] == item_type or item.get("local_kind") == item_type
+        ]
+    for key, value in filters.items():
+        if key == "provider":
+            items = [item for item in items if value in (item.get("providers_required") or []) or item.get("provider") == value]
+        elif key == "status":
+            items = [item for item in items if item.get("status") == value]
+        elif key == "write_policy":
+            items = [item for item in items if item.get("write_policy") == value]
+        elif key == "readiness":
+            items = [item for item in items if (item.get("readiness") or {}).get("status") == value]
     return items
 
 
@@ -105,6 +155,7 @@ def agent_item(agent: dict[str, Any]) -> dict[str, Any]:
         "write_policy": agent.get("write_policy"),
         "write_policy_metadata": agent.get("write_policy_metadata"),
         "source_contract": None,
+        "provider": None,
         "providers_required": [],
         "runner": None,
         "agent_mode": agent.get("agent_mode") or {},
@@ -142,6 +193,7 @@ def capability_item(capability: dict[str, Any]) -> dict[str, Any]:
         "write_policy": capability.get("write_policy"),
         "write_policy_metadata": capability.get("write_policy_metadata"),
         "source_contract": capability.get("source_contract") or capability.get("source"),
+        "provider": provider,
         "providers_required": providers_required,
         "runner": capability.get("runner") or (capability.get("runtime") or {}).get("runner"),
         "agent_mode": None,
@@ -174,6 +226,7 @@ def provider_items(root: Path) -> list[dict[str, Any]]:
                 "path": provider.get("path"),
                 "write_policy": "read_only",
                 "source_contract": None,
+                "provider": provider.get("id"),
                 "providers_required": [],
                 "runner": None,
                 "agent_mode": None,
@@ -183,6 +236,223 @@ def provider_items(root: Path) -> list[dict[str, Any]]:
             }
         )
     return items
+
+
+def workflow_items() -> list[dict[str, Any]]:
+    try:
+        payload = workflow_list()
+    except Exception:
+        return []
+    return [
+        {
+            "id": str(workflow.get("id") or ""),
+            "type": "workflow",
+            "description": workflow.get("description") or workflow.get("title") or "",
+            "status": "ok",
+            "version": None,
+            "path": workflow.get("path"),
+            "write_policy": workflow.get("write_policy"),
+            "source_contract": None,
+            "provider": None,
+            "providers_required": workflow.get("providers_required") or [],
+            "runner": "workflow",
+            "agent_mode": None,
+            "routing": {},
+            "prompt_examples": workflow.get("examples") or [],
+            "readiness": {"status": "ready"},
+            "next_step": f"agent workflow show {workflow.get('id')}",
+        }
+        for workflow in payload.get("items") or []
+        if isinstance(workflow, dict)
+    ]
+
+
+def tool_items(root: Path) -> list[dict[str, Any]]:
+    try:
+        payload = list_toolchain(root)
+    except Exception:
+        return []
+    return [
+        {
+            "id": str(tool.get("id") or ""),
+            "type": "tool",
+            "description": tool.get("notes") or tool.get("label") or "",
+            "status": "required" if tool.get("required") else "optional",
+            "version": None,
+            "path": None,
+            "write_policy": "confirm",
+            "source_contract": None,
+            "provider": None,
+            "providers_required": [],
+            "runner": tool.get("command"),
+            "agent_mode": None,
+            "routing": {},
+            "prompt_examples": [],
+            "readiness": {"status": "requires-install-check", "command": tool.get("command")},
+            "next_step": f"agent toolchain doctor {tool.get('id')}",
+        }
+        for tool in payload.get("items") or []
+        if isinstance(tool, dict)
+    ]
+
+
+def skill_items(root: Path) -> list[dict[str, Any]]:
+    catalog = parse_markdown_catalog(root / "vendor" / "skills" / "CATALOG.md", item_type="skill")
+    if catalog:
+        return catalog
+    return filesystem_items(root / "vendor" / "skills", item_type="skill", marker="SKILL.md")
+
+
+def plugin_items(root: Path) -> list[dict[str, Any]]:
+    catalog = parse_markdown_catalog(root / "vendor" / "plugins" / "CATALOG.md", item_type="plugin")
+    if catalog:
+        return catalog
+    return filesystem_items(root / "vendor" / "plugins", item_type="plugin", marker="README.md")
+
+
+def extension_items() -> list[dict[str, Any]]:
+    try:
+        payload = local_extensions_list()
+    except Exception:
+        return []
+    return [
+        {
+            "id": str(item.get("id") or ""),
+            "type": "extension",
+            "description": f"Local extension at {item.get('path')}",
+            "status": "enabled" if item.get("enabled") else "disabled",
+            "version": None,
+            "path": item.get("path"),
+            "write_policy": "local_config_write",
+            "source_contract": None,
+            "provider": None,
+            "providers_required": [],
+            "runner": None,
+            "agent_mode": None,
+            "routing": {},
+            "prompt_examples": [],
+            "readiness": {"status": "ready" if item.get("enabled") else "disabled"},
+            "next_step": f"agent local validate {item.get('id')}",
+        }
+        for item in payload.get("items") or []
+        if isinstance(item, dict)
+    ]
+
+
+def local_artifact_items() -> list[dict[str, Any]]:
+    payloads = []
+    for factory, item_type, command in (
+        (skill_list, "skill", "agent skill show"),
+        (script_list, "script", "agent script run"),
+        (local_agent_list, "agent", "agent agents validate"),
+        (local_automation_list, "automation", "agent local automation show"),
+    ):
+        try:
+            payload = factory()
+        except Exception:
+            continue
+        for item in payload.get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            payloads.append(
+                {
+                    "id": str(item.get("id") or ""),
+                    "type": item_type,
+                    "local_kind": item.get("kind"),
+                    "origin": "local",
+                    "description": f"Local {item_type} at {item.get('path')}",
+                    "status": "enabled" if item.get("enabled") else "disabled",
+                    "version": None,
+                    "path": item.get("path"),
+                    "write_policy": "local_config_write",
+                    "source_contract": None,
+                    "provider": None,
+                    "providers_required": [],
+                    "runner": None,
+                    "agent_mode": None,
+                    "routing": {},
+                    "prompt_examples": [],
+                    "readiness": {"status": "ready" if item.get("enabled") else "disabled"},
+                    "next_step": f"{command} {item.get('id')}",
+                }
+            )
+    return payloads
+
+
+def parse_markdown_catalog(path: Path, *, item_type: str) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    items: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("| `"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 3:
+            continue
+        item_id = cells[0].strip("` ")
+        description = cells[1]
+        path_cell = cells[-1].strip("` ")
+        items.append(
+            {
+                "id": item_id,
+                "type": item_type,
+                "description": description,
+                "status": "available",
+                "version": None,
+                "path": path_cell,
+                "write_policy": "read_only",
+                "source_contract": None,
+                "provider": None,
+                "providers_required": [],
+                "runner": None,
+                "agent_mode": None,
+                "routing": {},
+                "prompt_examples": [],
+                "readiness": {"status": "available"},
+                "next_step": f"Use {item_type} {item_id} when relevant.",
+            }
+        )
+    return items
+
+
+def filesystem_items(root: Path, *, item_type: str, marker: str) -> list[dict[str, Any]]:
+    if not root.exists():
+        return []
+    items = []
+    for marker_path in sorted(root.glob(f"**/{marker}")):
+        item_root = marker_path.parent
+        items.append(
+            {
+                "id": item_root.name,
+                "type": item_type,
+                "description": "",
+                "status": "available",
+                "version": None,
+                "path": str(item_root.relative_to(ROOT)) if item_root.is_relative_to(ROOT) else str(item_root),
+                "write_policy": "read_only",
+                "source_contract": None,
+                "provider": None,
+                "providers_required": [],
+                "runner": None,
+                "agent_mode": None,
+                "routing": {},
+                "prompt_examples": [],
+                "readiness": {"status": "available"},
+            }
+        )
+    return items
+
+
+def catalog_index_path() -> Path:
+    return cache_home() / "catalog-index.json"
+
+
+def public_filters(*, item_type: str | None, filters: dict[str, Any] | None) -> dict[str, Any]:
+    payload = {key: value for key, value in (filters or {}).items() if value not in {None, ""}}
+    if item_type:
+        payload["type"] = item_type
+    return payload
 
 
 def tokenize(value: str) -> set[str]:

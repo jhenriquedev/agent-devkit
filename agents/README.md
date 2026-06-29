@@ -71,6 +71,8 @@ agents/<agent-id>/
   artefatos Docker locais sem executar build, push ou deploy real.
 - `execution-loop-builder`: especialista em planejar, gerar, revisar e
   registrar loops de execucao controlados com budgets e criterios de parada.
+- `contribution-reviewer`: agente runtime para validar extensoes locais,
+  revisar riscos de contribuicao upstream e planejar PRs em modo report-only.
 - `drawio-diagram-builder`: especialista em diagramas Draw.io editaveis a
   partir de fontes reais, entrevista, geracao, revisao e refinamento.
 - `elasticsearch-log-analyzer`: especialista em logs no Elasticsearch.
@@ -83,10 +85,24 @@ agents/<agent-id>/
 - `github-pr-reviewer`: especialista em Pull Requests GitHub, revisao
   report-only, permissao explicita para comentarios/aprovacoes e automacoes
   locais conservadoras.
+- `knowledge-infra-builder`: especialista em criar e diagnosticar a
+  infraestrutura file-first da knowledge base compartilhada.
+- `knowledge-author`: especialista em criar snapshots de conhecimento
+  reutilizavel, sanitizado e revisavel.
 - `knowledge-generator`: especialista em gerar knowledge versionavel a partir de
   fontes locais e documentacoes.
+- `knowledge-reviewer`: especialista em revisar snapshots, bloqueando segredo,
+  PII indevida, duplicidade e prompt injection.
+- `knowledge-curator`: especialista em curadoria continua, deduplicacao,
+  arquivamento e reindexacao derivada da knowledge base.
+- `knowledge-owner`: autoridade de publicacao controlada da knowledge base
+  principal apos revisao.
 - `local-llm-operator`: agente runtime para diagnosticar, selecionar e delegar
   tarefas operacionais a LLMs locais como Ollama.
+- `local-memory-manager`: agente runtime para inspecionar e curar memoria local,
+  preferencias, sessoes e identidade sem expor segredos.
+- `memory-sync-manager`: especialista em planejar backup, restore e
+  sincronizacao seletiva da memoria local e personalidade.
 - `n1-support-agent`: especialista N1 para runbooks operacionais a partir de
   cards Azure DevOps.
 - `n2-support-agent`: especialista N2 para investigacao de causa raiz e geracao
@@ -106,6 +122,8 @@ agents/<agent-id>/
   Server.
 - `sqlserver-change-operator`: especialista em mudancas controladas em SQL
   Server.
+- `shared-memory-curator`: agente runtime para criar memorias compartilhadas,
+  revisar contribuicoes externas e publicar apenas conteudo aprovado pelo dono.
 - `software-specification-analyst`: especialista em analise de requisitos,
   entrevistas, analise de projetos e especificacoes completas de software.
 - `task-orchestrator`: agente runtime que planeja prompts livres, seleciona

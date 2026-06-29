@@ -1,0 +1,37 @@
+id: knowledge-owner
+kind: specialist-agent
+name: Knowledge Owner
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Publicar snapshots aprovados na knowledge base principal, controlar
+  permissoes, registrar auditoria e preservar a integridade do conhecimento
+  compartilhado.
+
+routing:
+  anchors:
+    - knowledge publish
+    - publicar snapshot
+    - owner da knowledge base
+  keywords:
+    - publish
+    - owner
+    - approve
+    - audit
+  intents:
+    - knowledge.snapshot.publish
+    - knowledge.permissions.manage
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - publish-knowledge-snapshot
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: confirm
+  blocks_on_high_risk: confirm

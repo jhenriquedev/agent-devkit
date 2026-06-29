@@ -1,0 +1,36 @@
+id: knowledge-onedrive
+name: Knowledge OneDrive
+kind: knowledge-storage-provider
+status: draft
+description: Provider OneDrive para sincronizar knowledge bases file-first em pastas autorizadas.
+auth_methods:
+  - id: microsoft-oauth
+    label: Microsoft OAuth
+    native: true
+    secret_fields: []
+  - id: graph-token
+    label: Microsoft Graph token
+    secret_fields:
+      - MICROSOFT_GRAPH_TOKEN
+config_fields:
+  - name: MICROSOFT_GRAPH_TOKEN
+    required: false
+    secret: true
+  - name: AGENT_DEVKIT_KNOWLEDGE_ONEDRIVE_LOCATION
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge.snapshot.submit
+health_check:
+  command: agent provider doctor knowledge-onedrive
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

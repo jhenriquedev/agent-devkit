@@ -1,0 +1,27 @@
+id: plan-contribution-pr
+kind: capability
+name: Plan Contribution PR
+version: 0.2.1
+status: draft
+purpose: >
+  Planejar uma abertura de PR upstream para extensao validada, sem executar
+  escrita externa por padrao.
+runtime:
+  type: cli
+write_policy: blocked_by_default
+entrypoint:
+  workflow: workflow.md
+inputs:
+  extension_id:
+    type: string
+    required: true
+outputs:
+  plan:
+    type: object
+routing:
+  anchors:
+    - pr
+    - upstream
+    - contribution
+  intents:
+    - contribution.pr

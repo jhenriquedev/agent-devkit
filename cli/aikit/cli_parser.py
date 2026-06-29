@@ -9,8 +9,10 @@ DETERMINISTIC_COMMANDS = (
     "architecture",
     "roadmap",
     "catalog",
+    "plan",
     "route",
     "eval",
+    "secret",
     "secrets",
     "agents",
     "capabilities",
@@ -18,12 +20,14 @@ DETERMINISTIC_COMMANDS = (
     "run",
     "doctor",
     "commands",
+    "onboard",
     "llm",
     "providers",
     "provider",
     "credential",
     "source",
     "memory",
+    "shared-memory",
     "personality",
     "setup",
     "alias",
@@ -40,17 +44,23 @@ DETERMINISTIC_COMMANDS = (
     "tools",
     "integrations",
     "skills",
+    "skill",
+    "script",
     "decisions",
     "ollama",
+    "local-llm",
     "mcp",
     "local",
     "workflow",
+    "team",
+    "knowledge",
+    "knowledge-base",
     "contribute",
     "contribution",
     "install",
     "wizard",
 )
-LLM_COMMANDS = ("agent",)
+LLM_COMMANDS = ("agent", "execute", "orchestrate")
 
 
 def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
@@ -87,6 +97,10 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     commands_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     commands_parser.add_argument("action", nargs="?", default="list", choices=["list"])
 
+    onboard_parser = subparsers.add_parser("onboard", help="inspect startup state and guide first use")
+    onboard_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    onboard_parser.add_argument("action", nargs="?", default="show", choices=["show", "minimal", "complete"])
+
     architecture_parser = subparsers.add_parser("architecture", help="show the Agent DevKit architecture contract")
     architecture_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     architecture_parser.add_argument("action", nargs="?", default="show", choices=["show"])
@@ -98,8 +112,28 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 
     catalog_parser = subparsers.add_parser("catalog", help="search and inspect the Agent DevKit catalog")
     catalog_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    catalog_parser.add_argument("action", nargs="?", default="list", choices=["list", "search", "show"])
+    catalog_parser.add_argument("action", nargs="?", default="list", choices=["list", "search", "show", "inspect", "rebuild-index"])
     catalog_parser.add_argument("query", nargs="?")
+    catalog_parser.add_argument("target", nargs="?")
+    catalog_parser.add_argument("--type", dest="item_type")
+    catalog_parser.add_argument("--provider")
+    catalog_parser.add_argument("--status")
+    catalog_parser.add_argument("--write-policy")
+    catalog_parser.add_argument("--readiness")
+
+    for command_name, help_text in (
+        ("plan", "build an explicit agentic execution plan without executing it"),
+        ("execute", "execute a natural-language task through the agentic runtime"),
+        ("orchestrate", "orchestrate a natural-language task with planning and review gates"),
+    ):
+        agentic_parser = subparsers.add_parser(command_name, help=help_text)
+        agentic_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+        agentic_parser.add_argument("--llm", help="LLM backend id to use")
+        agentic_parser.add_argument("--dry-run", action="store_true", help="show execution plan without invoking LLM or external writes")
+        agentic_parser.add_argument("--no-llm-fallback", action="store_true", help="disable automatic fallback to secondary LLM backends")
+        agentic_parser.add_argument("--session", dest="session_id", help="resume a local conversation session")
+        agentic_parser.add_argument("--new-session", action="store_true", help="start a new local conversation session")
+        agentic_parser.add_argument("prompt", nargs=argparse.REMAINDER)
 
     route_parser = subparsers.add_parser("route", help="explain deterministic routing without execution")
     route_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -118,6 +152,14 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     secrets_parser.add_argument("provider", nargs="?")
     secrets_parser.add_argument("key", nargs="?")
     secrets_parser.add_argument("--env", dest="env")
+
+    secret_parser = subparsers.add_parser("secret", help="manage safe secret references")
+    secret_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    secret_parser.add_argument("action", nargs="?", default="doctor", choices=["set", "get", "list", "delete", "doctor"])
+    secret_parser.add_argument("provider", nargs="?")
+    secret_parser.add_argument("key", nargs="?")
+    secret_parser.add_argument("--env", dest="env")
+    secret_parser.add_argument("--ref", dest="secret_ref")
 
     providers_parser = subparsers.add_parser("providers", help="list provider registry entries")
     providers_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -159,20 +201,42 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     wizard_parser.add_argument("--status", help="filter wizard list by status")
     wizard_parser.add_argument("--no-run", action="store_true", help="do not resume the original prompt after completing a wizard")
 
-    memory_parser = subparsers.add_parser("memory", help="inspect or reset local AI DevKit memory")
+    memory_parser = subparsers.add_parser("memory", help="inspect, backup or reset local AI DevKit memory")
     memory_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    memory_parser.add_argument("action", nargs="?", default="show", choices=["show", "path", "reset"])
+    memory_parser.add_argument("action", nargs="?", default="show", choices=["show", "path", "reset", "backup", "share", "shared", "read", "submit", "review", "publish"])
+    memory_parser.add_argument("memory_id", nargs="?")
+    memory_parser.add_argument("submission_id", nargs="?")
     memory_parser.add_argument("--agent", dest="agent_id")
     memory_parser.add_argument("--source", dest="source_id")
+    memory_parser.add_argument("--title")
+    memory_parser.add_argument("--content")
+    memory_parser.add_argument("--key", dest="contributor_key")
+    memory_parser.add_argument("--owner-key", dest="owner_key")
+    memory_parser.add_argument("--encrypted", action="store_true", help="create an encrypted portable memory backup package")
+    memory_parser.add_argument("--passphrase-env", help="environment variable that contains the memory backup passphrase")
+    memory_parser.add_argument("--file", dest="backup_file", help="restore a portable memory backup package")
     memory_parser.add_argument("--all", action="store_true", help="reset all local memory")
     memory_parser.add_argument("--sessions", action="store_true", help="reset local conversation sessions")
     memory_parser.add_argument("--tasks", action="store_true", help="reset local task schedules")
     memory_parser.add_argument("--cache", action="store_true", help="reset local cache")
+    memory_parser.add_argument("--yes", action="store_true")
+
+    shared_memory_parser = subparsers.add_parser("shared-memory", help="manage owner-reviewed shared memories")
+    shared_memory_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    shared_memory_parser.add_argument("action", nargs="?", default="list", choices=["create", "list", "status", "read", "submit", "review", "publish"])
+    shared_memory_parser.add_argument("memory_id", nargs="?")
+    shared_memory_parser.add_argument("submission_id", nargs="?")
+    shared_memory_parser.add_argument("--title")
+    shared_memory_parser.add_argument("--content")
+    shared_memory_parser.add_argument("--key", dest="contributor_key")
+    shared_memory_parser.add_argument("--owner-key", dest="owner_key")
+    shared_memory_parser.add_argument("--yes", action="store_true")
 
     personality_parser = subparsers.add_parser("personality", help="inspect or update local Agent DevKit personality")
     personality_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     personality_parser.add_argument("action", nargs="?", default="show", choices=["show", "edit", "reset"])
     personality_parser.add_argument("--name", dest="agent_name", help="public agent name")
+    personality_parser.add_argument("--rename", dest="agent_name", help="rename the local agent")
     personality_parser.add_argument("--user-name", help="user name")
     personality_parser.add_argument("--language", help="default response language")
     personality_parser.add_argument("--tone", help="response tone")
@@ -310,6 +374,13 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     ollama_parser.add_argument("--yes", action="store_true", help="confirm Ollama model or update operation")
     ollama_parser.add_argument("--dry-run", action="store_true", help="show Ollama operation without executing it")
 
+    local_llm_parser = subparsers.add_parser("local-llm", help="inspect and manage local LLM workers")
+    local_llm_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    local_llm_parser.add_argument("action", nargs="?", default="list", choices=["list", "doctor", "models", "install", "remove", "benchmark"])
+    local_llm_parser.add_argument("model", nargs="?")
+    local_llm_parser.add_argument("--yes", action="store_true", help="confirm local model operation")
+    local_llm_parser.add_argument("--dry-run", action="store_true", help="show local model operation without executing it")
+
     llm_parser = subparsers.add_parser("llm", help="manage LLM backends")
     llm_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     llm_parser.add_argument(
@@ -344,8 +415,10 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 
     agents_parser = subparsers.add_parser("agents", aliases=["a"], help="list, search or inspect available agents")
     agents_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    agents_parser.add_argument("action", nargs="?", default="list", choices=["list", "search", "show"])
+    agents_parser.add_argument("action", nargs="?", default="list", choices=["list", "search", "show", "create", "validate", "local-list"])
     agents_parser.add_argument("query", nargs="?")
+    agents_parser.add_argument("--description")
+    agents_parser.add_argument("--force", action="store_true")
 
     capabilities_parser = subparsers.add_parser(
         "capabilities",
@@ -360,9 +433,34 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 
     local_parser = subparsers.add_parser("local", help="manage local Agent DevKit extensions")
     local_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    local_parser.add_argument("action", nargs="?", default="list", choices=["list", "add", "disable", "enable", "remove", "validate"])
+    local_parser.add_argument("action", nargs="?", default="list", choices=["list", "add", "disable", "enable", "remove", "validate", "automation", "agents", "agent"])
     local_parser.add_argument("extension_id", nargs="?")
+    local_parser.add_argument("local_item_id", nargs="?")
     local_parser.add_argument("--path")
+    local_parser.add_argument("--title")
+    local_parser.add_argument("--prompt")
+    local_parser.add_argument("--command", dest="local_command")
+    local_parser.add_argument("--every")
+    local_parser.add_argument("--cron")
+    local_parser.add_argument("--force", action="store_true")
+    local_parser.add_argument("--yes", action="store_true")
+
+    skill_parser = subparsers.add_parser("skill", help="create and manage local Agent DevKit skills")
+    skill_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    skill_parser.add_argument("action", nargs="?", default="list", choices=["create", "list", "show", "update", "delete"])
+    skill_parser.add_argument("skill_id", nargs="?")
+    skill_parser.add_argument("--description")
+    skill_parser.add_argument("--force", action="store_true")
+    skill_parser.add_argument("--yes", action="store_true")
+
+    script_parser = subparsers.add_parser("script", help="create and run local scripts")
+    script_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    script_parser.add_argument("action", nargs="?", default="list", choices=["create", "list", "run"])
+    script_parser.add_argument("script_id", nargs="?")
+    script_parser.add_argument("--command", dest="script_command")
+    script_parser.add_argument("--force", action="store_true")
+    script_parser.add_argument("--dry-run", action="store_true")
+    script_parser.add_argument("--yes", action="store_true")
 
     workflow_parser = subparsers.add_parser("workflow", help="list, install or run installable workflows")
     workflow_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -371,6 +469,44 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     workflow_parser.add_argument("--dry-run", action="store_true")
     workflow_parser.add_argument("--yes", action="store_true")
 
+    team_parser = subparsers.add_parser("team", help="manage project-local team profiles")
+    team_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    team_parser.add_argument("action", nargs="?", default="status", choices=["init", "status", "doctor", "onboard", "profile"])
+    team_parser.add_argument("profile_action", nargs="?", choices=["list", "show", "use", "export", "import"])
+    team_parser.add_argument("profile_id", nargs="?")
+    team_parser.add_argument("--path", dest="profile_path")
+    team_parser.add_argument("--force", action="store_true")
+
+    knowledge_parser = subparsers.add_parser("knowledge", help="manage file-first shared knowledge bases")
+    knowledge_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    knowledge_parser.add_argument(
+        "action",
+        nargs="?",
+        default="doctor",
+        choices=["init", "doctor", "search", "index", "reindex", "snapshot", "review", "curate", "publish", "sync"],
+    )
+    knowledge_parser.add_argument("target", nargs="?")
+    knowledge_parser.add_argument("snapshot_action", nargs="?")
+    knowledge_parser.add_argument("--title")
+    knowledge_parser.add_argument("--content")
+    knowledge_parser.add_argument("--from-file")
+    knowledge_parser.add_argument("--type", dest="entry_type")
+    knowledge_parser.add_argument("--owner-agent")
+    knowledge_parser.add_argument("--force", action="store_true")
+    knowledge_parser.add_argument("--yes", action="store_true")
+
+    knowledge_base_parser = subparsers.add_parser("knowledge-base", help="manage file-first shared knowledge bases")
+    knowledge_base_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    knowledge_base_parser.add_argument(
+        "action",
+        nargs="?",
+        default="status",
+        choices=["create", "join", "status", "tokens", "rotate-token"],
+    )
+    knowledge_base_parser.add_argument("target", nargs="?")
+    knowledge_base_parser.add_argument("--provider", default="local")
+    knowledge_base_parser.add_argument("--force", action="store_true")
+
     for contribution_command in ("contribute", "contribution"):
         contribution_parser = subparsers.add_parser(contribution_command, help="prepare or review local extension contributions")
         contribution_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
@@ -378,9 +514,11 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
             "action",
             nargs="?",
             default="list" if contribution_command == "contribute" else "checklist",
-            choices=["list", "prepare", "validate", "review", "checklist"],
+            choices=["list", "prepare", "validate", "review", "checklist", "pr"],
         )
         contribution_parser.add_argument("extension_id", nargs="?")
+        contribution_parser.add_argument("--dry-run", action="store_true")
+        contribution_parser.add_argument("--yes", action="store_true")
 
     inspect_parser = subparsers.add_parser(
         "inspect",

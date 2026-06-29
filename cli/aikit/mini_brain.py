@@ -100,10 +100,12 @@ def setup_mini_brain(
 ) -> dict[str, Any]:
     if dry_run or not yes:
         status = "planned" if dry_run else "needs-confirmation"
+        needs_confirmation = not dry_run and not yes
         return {
             "kind": "mini-brain-setup",
             "status": status,
             "ok": bool(dry_run),
+            "exit_code": 2 if needs_confirmation else 0,
             "dry_run": dry_run,
             "yes": yes,
             "stored_secret": False,
@@ -114,11 +116,19 @@ def setup_mini_brain(
         }
 
     pull = ollama_pull(model, yes=True, dry_run=False)
+    toolchain_install = None
+    if pull.get("status") == "missing":
+        from cli.aikit.toolchain import install_toolchain
+
+        toolchain_install = install_toolchain(None, "ollama", dry_run=False, yes=True)
+        if toolchain_install.get("status") == "installed":
+            pull = ollama_pull(model, yes=True, dry_run=False)
     if not pull.get("ok"):
-        return {
+        payload = {
             "kind": "mini-brain-setup",
             "status": "failed",
             "ok": False,
+            "exit_code": int(pull.get("exit_code") or 2),
             "dry_run": False,
             "yes": True,
             "stored_secret": False,
@@ -127,6 +137,14 @@ def setup_mini_brain(
             "next_steps": ["Install Ollama or run agent ollama pull qwen3:0.6b --yes"],
             "message": pull.get("message") or "Could not pull the mini-brain model.",
         }
+        if toolchain_install:
+            payload["toolchain_install"] = toolchain_install
+            payload["next_steps"] = [
+                "Review `agent toolchain doctor ollama`.",
+                "Run `agent toolchain install ollama --yes` if you approve external installation.",
+                "Then run `agent setup mini-brain --yes` again.",
+            ]
+        return payload
 
     existing_config = load_config()
     existing_ollama = (
@@ -155,6 +173,7 @@ def setup_mini_brain(
         "config_path": str(written_path),
         "mini_brain": contract,
         "pull": pull,
+        "toolchain_install": toolchain_install,
         "llm_configure": configured,
         "next_steps": ["Use low-risk setup, wizard and summary prompts normally."],
     }

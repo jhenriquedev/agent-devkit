@@ -53,10 +53,11 @@ def add_secret_reference(provider: str, key: str, *, env: str | None) -> dict[st
         raise DevKitError("secrets reference add requires --env VAR_NAME")
     data = load_secret_references()
     refs = [item for item in data["references"] if not (item["provider"] == provider and item["key"] == key)]
-    refs.append({"provider": provider, "key": key, "backend": "env", "env": env, "value_stored": False})
+    reference = {"provider": provider, "key": key, "backend": "env", "env": env, "value_stored": False}
+    refs.append(reference)
     data["references"] = sorted(refs, key=lambda item: (item["provider"], item["key"]))
     save_secret_references(data)
-    return {"kind": "secret-reference", "status": "saved", "reference": refs[-1], "value_stored": False}
+    return {"kind": "secret-reference", "status": "saved", "reference": reference, "value_stored": False}
 
 
 def list_secret_references() -> dict[str, Any]:

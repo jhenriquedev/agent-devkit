@@ -14,11 +14,13 @@ SESSION_SHORTCUTS = {"-s", "--sessions"}
 AGENT_PROMPT_FLAGS = {"--llm", "--no-llm-fallback", "--session", "--new-session"}
 EXPLAIN_FLAGS = {"--explain"}
 GLOBAL_PROMPT_FLAGS = {"--json", "--dry-run"}
+RENAME_FLAGS = {"--rename"}
+AGENTIC_PROMPT_COMMANDS = {"plan", "execute", "orchestrate"}
 
 
 def normalize_args(argv: list[str]) -> list[str]:
     if not argv:
-        return ["agent"]
+        return ["onboard"]
     commands = set(DETERMINISTIC_COMMANDS) | set(LLM_COMMANDS)
     leading: list[str] = []
     remaining = list(argv)
@@ -26,14 +28,20 @@ def normalize_args(argv: list[str]) -> list[str]:
         leading.append(remaining.pop(0))
     if leading:
         if not remaining:
-            return [*leading, "agent"]
+            return [*leading, "onboard"]
         if remaining[0] in SESSION_SHORTCUTS:
             return [*leading, *remaining]
         if remaining[0] in EXPLAIN_FLAGS:
             return [*leading, "route", "explain", *remaining[1:]]
+        if remaining[0] in RENAME_FLAGS:
+            return [*leading, "personality", "edit", *remaining]
+        if remaining[0] in AGENTIC_PROMPT_COMMANDS:
+            prompt_flags, prompt_args = split_global_prompt_flags(remaining[1:])
+            return [*leading, remaining[0], *prompt_flags, *prompt_args]
         if remaining[0] in commands:
             return [*leading, *remaining]
-        return [*leading, "agent", *remaining]
+        prompt_flags, prompt_args = split_global_prompt_flags(remaining)
+        return [*leading, *prompt_flags, "agent", *prompt_args]
     first = remaining[0]
     if first in {"--help", "-h", "--version", "-v"}:
         return remaining
@@ -41,11 +49,29 @@ def normalize_args(argv: list[str]) -> list[str]:
         return remaining
     if first in EXPLAIN_FLAGS:
         return ["route", "explain", *remaining[1:]]
+    if first in RENAME_FLAGS:
+        return ["personality", "edit", *remaining]
     if first in AGENT_PROMPT_FLAGS:
-        return ["agent", *remaining]
+        prompt_flags, prompt_args = split_global_prompt_flags(remaining)
+        return [*prompt_flags, "agent", *prompt_args]
+    if first in AGENTIC_PROMPT_COMMANDS:
+        prompt_flags, prompt_args = split_global_prompt_flags(remaining[1:])
+        return [first, *prompt_flags, *prompt_args]
     if first in commands:
         return remaining
-    return ["agent", *remaining]
+    prompt_flags, prompt_args = split_global_prompt_flags(remaining)
+    return [*prompt_flags, "agent", *prompt_args]
+
+
+def split_global_prompt_flags(argv: list[str]) -> tuple[list[str], list[str]]:
+    leading: list[str] = []
+    remaining: list[str] = []
+    for item in argv:
+        if item in GLOBAL_PROMPT_FLAGS:
+            leading.append(item)
+        else:
+            remaining.append(item)
+    return leading, remaining
 
 
 if __name__ == "__main__":

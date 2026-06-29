@@ -1,0 +1,33 @@
+id: incident-analysis
+title: Incident analysis
+description: Plan an incident analysis using available cards, logs and source context.
+schedule:
+  type: manual
+providers:
+  - azure-devops
+  - github
+  - elasticsearch
+  - aws
+permissions:
+  mode: report-only
+write_policy: local_config_write
+task:
+  title: Incident analysis
+  prompt: Analise o incidente informado usando fontes configuradas e gere um resumo com evidencias.
+  action:
+    type: prompt
+    prompt: Analise o incidente informado usando fontes configuradas e gere um resumo com evidencias.
+    external_writes: false
+  permissions:
+    mode: report-only
+  notifications:
+    - type: desktop
+      events:
+        - task.completed
+        - task.blocked
+outputs:
+  - incident-report
+risks:
+  - External logs and tickets may contain sensitive data and must be summarized.
+examples:
+  - analise esse incidente

@@ -1,0 +1,39 @@
+id: knowledge-vector
+name: Knowledge Vector Index
+kind: knowledge-index-provider
+status: draft
+description: Provider de indice vetorial derivado; nunca e fonte canonica da knowledge base.
+auth_methods:
+  - id: local-vector
+    label: Local vector index
+    native: true
+    secret_fields: []
+  - id: external-vector
+    label: External vector service
+    secret_fields:
+      - VECTOR_DB_API_KEY
+      - VECTOR_DB_URL
+config_fields:
+  - name: VECTOR_DB_URL
+    required: false
+    secret: true
+  - name: VECTOR_DB_API_KEY
+    required: false
+    secret: true
+  - name: AGENT_DEVKIT_KNOWLEDGE_VECTOR_PROVIDER
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge.search
+  write:
+    - knowledge.reindex
+health_check:
+  command: agent knowledge doctor
+risk:
+  default: derived-index
+  writes: true
+fallbacks:
+  - skip_provider
+  - plan_only
+  - manual_steps

@@ -1,0 +1,38 @@
+id: local-memory-manager
+kind: specialist-agent
+name: Local Memory Manager
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Gerenciar memoria local do usuario, sessoes, preferencias, personalidade,
+  rotinas e artefatos criados pelo Agent DevKit dentro do home local.
+
+routing:
+  anchors:
+    - memoria local
+    - preferences
+    - personality
+    - sessions
+  keywords:
+    - memory
+    - profile
+    - routines
+    - preferences
+  intents:
+    - memory.local.manage
+    - memory.local.review
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - inspect-local-memory
+  - curate-local-memory
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: local_config_write
+  blocks_on_high_risk: confirm

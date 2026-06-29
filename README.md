@@ -22,13 +22,19 @@ npm install -g agent-devkit
 Valide a instalacao:
 
 ```bash
+agent
 agent --version
 agent -v
 agent doctor
 ```
 
 O pacote instala o comando canonico `agent`. O nome do pacote npm e
-`agent-devkit`.
+`agent-devkit`. Na primeira execucao, o wrapper npm prepara um ambiente Python
+local em `~/.agent-devkit/python` (ou no `AGENT_DEVKIT_HOME`) e instala as
+dependencias de `requirements.txt`, para evitar setup manual de bibliotecas
+Python. Ao executar apenas `agent`, o CLI entra no onboarding local: verifica
+memoria, personalidade, backends LLM, Ollama, toolchain, sources, tasks e
+proximas acoes sem exigir prompt manual.
 
 ## Primeiro uso
 
@@ -44,17 +50,26 @@ agent commands list
 agent doctor
 ```
 
-Na `v0.2.0`, o runtime tambem expoe superficies deterministicas para
+Na `v0.3.0`, o runtime tambem expoe superficies deterministicas para
 descoberta, avaliacao e integracao por hosts:
 
 ```bash
+agent onboard minimal
+agent onboard complete
 agent roadmap
 agent catalog search pr
+agent plan "analise o card 7914 do azure"
 agent route explain "revise as prs que recebi hoje"
 agent eval run routing
 agent secrets doctor
 agent mcp tools
 ```
+
+`agent onboard minimal` planeja o setup essencial: identidade, coordenador LLM,
+mini-cerebro Qwen3-0.6B via Ollama e memoria local. `agent onboard complete`
+inclui tambem toolchain, providers/sources, catalogo de agentes, automacoes
+locais, tarefas, notificacoes, knowledge e memoria compartilhada. Ambos
+retornam plano deterministico; instalacoes externas continuam exigindo opt-in.
 
 Instale os artefatos locais do Agent DevKit no projeto em que voce trabalha:
 
@@ -77,6 +92,24 @@ agent "analise o problema relatado no card 9900"
 Esse modo usa backend LLM. Se nenhum backend estiver configurado, a CLI informa
 como configurar uma LLM ou como executar uma capability deterministica com
 `agent run`.
+
+O nome publico do agente e configuravel localmente sem mudar o comando
+canonico. O comando continua sendo `agent`, mas a identidade pode ser alterada
+no onboarding, por flag ou por linguagem natural:
+
+```bash
+agent --rename Ianota
+agent personality edit --rename Ianota
+agent "mude seu nome para ianota10"
+agent "qual seu nome?"
+```
+
+Se voce quiser tambem chamar o executavel por outro nome, crie um alias local:
+
+```bash
+agent alias add jarvis
+~/.agent-devkit/bin/jarvis "qual seu nome?"
+```
 
 ## Tutorial completo de configuracao
 
@@ -224,10 +257,10 @@ final.
 ```bash
 agent ollama status
 agent ollama models
-agent ollama pull qwen2.5-coder --dry-run
-agent ollama pull qwen2.5-coder --yes
+agent ollama pull qwen3:0.6b --dry-run
+agent ollama pull qwen3:0.6b --yes
 ollama serve
-agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.6b --set-default
 agent llm doctor ollama
 ```
 
@@ -270,6 +303,11 @@ Existem dois modos de execucao:
 - `agent "<prompt>"`: entrada em linguagem natural; monta um plano multiagente,
   usa capabilities deterministicas quando possivel e exige backend LLM apenas
   quando nenhuma rota local atende a tarefa.
+- `agent plan "<prompt>"`: gera o plano multiagente explicito sem executar LLM,
+  automacao ou escrita externa.
+- `agent execute "<prompt>"` e `agent orchestrate "<prompt>"`: executam pelo
+  runtime agentico com roteamento, wizard de provider/source, modelo local
+  quando permitido e review gate.
 - `agent run <agent> <capability>`: execucao deterministica; nao exige LLM.
 
 Exemplo em linguagem natural:
@@ -308,6 +346,123 @@ saidas:
 ```bash
 agent inspect azure-devops-orchestrator read-card
 ```
+
+Comandos operacionais da `v0.2.1`:
+
+```bash
+agent catalog list --type workflow
+agent catalog rebuild-index
+agent workflow show daily-pr-review
+agent workflow install daily-pr-review --dry-run
+agent local-llm doctor
+agent local-llm install qwen3:0.6b --dry-run
+agent skill create minha-skill --description "Skill local"
+agent script create hello --command "echo hello"
+agent agents create meu-agente --description "Agente local"
+agent team init
+agent team doctor
+agent contribute pr minha-extensao --dry-run
+```
+
+O MCP stdio embutido fica disponivel sempre que o CLI esta instalado:
+
+```bash
+agent mcp manifest
+agent mcp tools
+agent mcp serve
+```
+
+As ferramentas MCP expõem catalogo, onboarding, doctor, route explain, plano
+agentico, evals, workflows, LLM local, artefatos locais, sources, wizards,
+memoria local e memoria compartilhada. As operacoes com risco de escrita
+externa continuam bloqueadas ou em dry-run por padrao.
+
+## Memoria compartilhada
+
+Memorias compartilhadas sao workspaces locais em `.agent-devkit/shared-memory`.
+O criador e o dono da memoria; outros agentes recebem uma URL local e uma chave
+de contribuidor, enviam novidades para `incoming`, e o dono revisa antes de
+publicar em `accepted`.
+
+```bash
+agent shared-memory create --title "Runbooks de suporte"
+agent shared-memory submit <memory-id> --title "Novo runbook" --content "..." --key <contributor-key>
+agent shared-memory review <memory-id> <submission-id>
+agent shared-memory publish <memory-id> <submission-id> --yes --owner-key <owner-key>
+```
+
+## Modo equipe
+
+O modo equipe cria uma configuracao versionavel de projeto em
+`.agent-devkit/team.yaml`. Esse arquivo pode guardar defaults de providers,
+sources, workflows, permissoes, limites de LLM local e politica de prompt
+injection, mas nunca valores de credenciais.
+
+```bash
+agent team init
+agent team status
+agent team doctor
+agent team onboard
+agent team profile list
+agent team profile show default
+agent team profile export default --path ./team-profile.yaml
+agent team profile import ./team-profile.yaml
+```
+
+Segredos continuam pessoais, em `~/.agent-devkit`, por referencia segura:
+
+```bash
+agent secret set azure-devops pat --env AZURE_DEVOPS_PAT
+```
+
+## Knowledge fabric local
+
+A `v0.3.0` introduz uma base de conhecimento compartilhada file-first. A fonte
+canonica e um diretorio `knowledge-base/` com Markdown, JSON e YAML; indices
+lexicais ou semanticos sao derivados e podem ser recriados.
+
+```bash
+agent knowledge init
+agent knowledge doctor
+agent knowledge snapshot create --title "Runbook" --content "# Runbook..."
+agent knowledge review runbook
+agent knowledge publish runbook --yes --owner-agent knowledge-owner
+agent knowledge snapshot list
+agent knowledge snapshot show runbook
+agent knowledge snapshot score runbook
+agent knowledge snapshot submit runbook
+agent knowledge review list
+agent knowledge curate
+agent knowledge sync
+agent knowledge reindex
+agent knowledge search "runbook procedimento"
+agent knowledge index
+agent knowledge-base create --provider github
+agent knowledge-base join kb_01JZ... --provider s3
+```
+
+Snapshots sao tratados como conteudo externo nao confiavel. A revisao bloqueia
+segredos, PII obvia e sinais de prompt injection antes de publicar localmente.
+
+Os providers `knowledge-*` documentam o storage previsto para GitHub, S3,
+Supabase Storage, Google Drive, SharePoint, OneDrive, Notion, Obsidian,
+filesystem local e indice vetorial derivado. Providers remotos ficam em
+`draft`, exigem opt-in e fallback para plano/manual enquanto nao houver
+credencial e implementacao ativa.
+
+## QA destrutivo em Docker
+
+Para validar instalacao limpa, bootstrap de dependencias, onboarding, memoria,
+knowledge-base, MCP, desinstalacao e remocao da `.agent-devkit` sem tocar no
+host:
+
+```bash
+npm run docker:qa
+```
+
+O script empacota o runtime local, instala o tarball em um container
+`node:20-bookworm`, executa os fluxos criticos e remove o home local criado no
+container.
 
 ## Configurar providers
 
@@ -430,6 +585,10 @@ Comandos uteis:
 agent commands list
 agent inspect azure-devops-orchestrator read-card
 agent memory show
+agent memory backup create --title "Antes da migracao"
+export AGENT_DEVKIT_BACKUP_PASSPHRASE="frase longa"
+agent memory backup create --title "Antes da migracao" --encrypted --passphrase-env AGENT_DEVKIT_BACKUP_PASSPHRASE
+agent memory backup restore <backup-id> --yes
 agent memory reset --all
 ```
 
@@ -699,6 +858,9 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   rastreio de requests, padroes de erro e relatorios de logs.
 - [`execution-reviewer`](agents/execution-reviewer/): agente runtime de
   revisao final, revisao de planos e revisao de resultados antes da conclusao.
+- [`contribution-reviewer`](agents/contribution-reviewer/): agente runtime para
+  validar extensoes locais, revisar riscos de contribuicao upstream e planejar
+  PRs em modo report-only.
 - [`excel-workbook-builder`](agents/excel-workbook-builder/): especialista em
   templates, preenchimento, conciliacao, revisao e exportacao de planilhas
   Excel.
@@ -708,10 +870,27 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
 - [`github-pr-reviewer`](agents/github-pr-reviewer/): especialista em Pull
   Requests GitHub para listar revisoes pendentes, inspecionar PRs, revisar diffs
   em modo report-only e criar automacoes locais conservadoras.
+- [`knowledge-infra-builder`](agents/knowledge-infra-builder/): especialista em
+  criar e diagnosticar a infraestrutura file-first da knowledge base
+  compartilhada.
+- [`knowledge-author`](agents/knowledge-author/): especialista em criar
+  snapshots de conhecimento reutilizavel, sanitizado e revisavel.
 - [`knowledge-generator`](agents/knowledge-generator/): especialista em gerar
   knowledge versionavel a partir de arquivos, pastas, projetos e documentacoes.
+- [`knowledge-reviewer`](agents/knowledge-reviewer/): especialista em revisar
+  snapshots, bloqueando segredo, PII indevida, duplicidade e prompt injection.
+- [`knowledge-curator`](agents/knowledge-curator/): especialista em curadoria
+  continua, deduplicacao, arquivamento e reindexacao derivada da knowledge base.
+- [`knowledge-owner`](agents/knowledge-owner/): autoridade de publicacao
+  controlada da knowledge base principal apos revisao.
 - [`local-llm-operator`](agents/local-llm-operator/): agente runtime para
   diagnosticar, selecionar e delegar tarefas operacionais a LLMs locais.
+- [`local-memory-manager`](agents/local-memory-manager/): agente runtime para
+  inspecionar e curar memoria local, preferencias, sessoes e identidade sem
+  expor segredos.
+- [`memory-sync-manager`](agents/memory-sync-manager/): especialista em
+  planejar backup, restore e sincronizacao seletiva da memoria local e
+  personalidade.
 - [`notification-operator`](agents/notification-operator/): agente runtime para
   formatar, enviar e configurar notificacoes locais de tarefas com payload
   canonico.
@@ -728,6 +907,9 @@ e ignorado pelo Git. Para Azure DevOps, `AZURE_DEVOPS_ORG` e
   especialista em inspecao local e auditoria report-only de projetos Supabase,
   cobrindo RLS, Auth, Storage, migrations, Edge Functions e planos de correcao
   sem aplicar mudancas reais.
+- [`shared-memory-curator`](agents/shared-memory-curator/): agente runtime para
+  criar memorias compartilhadas, revisar contribuicoes externas e publicar
+  apenas conteudo aprovado pelo dono.
 - [`provider-configurator`](agents/provider-configurator/): agente runtime que
   conduz wizard de providers, sources e referencias seguras de credenciais.
 - [`presentation-deck-builder`](agents/presentation-deck-builder/):

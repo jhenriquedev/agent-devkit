@@ -199,6 +199,37 @@ O comando retorna erro apenas para problemas estruturais do runtime, como raiz
 inexistente. Provider opcional ausente, LLM sem chave ou CLI de host nao
 instalada aparecem no bloco de diagnostico e podem ser resolvidos sob demanda.
 
+## Onboarding
+
+Executar apenas `agent` inicia o status/wizard local. Para planejar setup sem
+executar instalacoes externas:
+
+```bash
+agent onboard minimal
+agent onboard complete
+```
+
+`minimal` cobre identidade, coordenador LLM, mini-cerebro Qwen3-0.6B via
+Ollama e memoria local. `complete` inclui tambem toolchain, providers/sources,
+catalogo de agentes, automacoes locais, tarefas, notificacoes, knowledge e
+memoria compartilhada. Instalacoes externas continuam exigindo opt-in.
+
+Backups locais de memoria e personalidade sao gerenciados por:
+
+```bash
+agent memory backup create --title "Antes da migracao"
+export AGENT_DEVKIT_BACKUP_PASSPHRASE="frase longa"
+agent memory backup create --title "Antes da migracao" --encrypted --passphrase-env AGENT_DEVKIT_BACKUP_PASSPHRASE
+agent memory backup list
+agent memory backup restore <backup-id> --yes
+agent memory backup restore --file ./backup.adkmb --passphrase-env AGENT_DEVKIT_BACKUP_PASSPHRASE --yes
+agent memory backup delete <backup-id> --yes
+```
+
+O backup criptografado gera um pacote portatil `.adkmb` e remove a copia local
+em claro dentro da pasta do backup. Esse fluxo nao executa upload remoto. Sync
+remoto continua exigindo provider, criptografia e opt-in explicito.
+
 ## Backends LLM
 
 O modo `agent "<prompt>"` exige um backend LLM. O Agent DevKit suporta tres
@@ -292,10 +323,10 @@ agent llm doctor openrouter
 ```bash
 agent ollama status
 agent ollama models
-agent ollama pull qwen2.5-coder --dry-run
-agent ollama pull qwen2.5-coder --yes
+agent ollama pull qwen3:0.6b --dry-run
+agent ollama pull qwen3:0.6b --yes
 ollama serve
-agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.6b --set-default
 agent llm doctor ollama
 ```
 
@@ -319,7 +350,7 @@ agent llm list
 agent llm configure openai --api-key-env OPENAI_API_KEY --set-default
 agent llm configure anthropic --api-key-env ANTHROPIC_API_KEY --set-default
 agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --set-default
-agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.6b --set-default
 agent llm configure codex-cli --set-default
 agent llm configure claude-code --set-default
 agent llm set-default codex-cli

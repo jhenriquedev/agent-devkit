@@ -1,0 +1,19 @@
+id: shared-memory-curator.review-shared-submission
+kind: capability
+name: Review shared submission
+version: 0.3.0
+status: draft
+purpose: Revisar envio pendente de memoria compartilhada.
+entrypoint:
+  workflow: workflow.md
+write_policy: read_only
+inputs:
+  type: object
+outputs:
+  type: object
+routing:
+  anchors:
+    - revisar envio memoria
+    - shared-memory review
+  intents:
+    - memory.shared.review

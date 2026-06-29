@@ -1,0 +1,30 @@
+id: release-prep
+title: Release prep
+description: Prepare a release checklist, focused tests and package verification.
+schedule:
+  type: manual
+providers:
+  - github
+permissions:
+  mode: report-only
+write_policy: local_config_write
+task:
+  title: Release prep
+  prompt: Prepare o corte de versao com checklist, testes focados e verificacao de pacote.
+  action:
+    type: prompt
+    prompt: Prepare o corte de versao com checklist, testes focados e verificacao de pacote.
+    external_writes: false
+  permissions:
+    mode: report-only
+  notifications:
+    - type: desktop
+      events:
+        - task.completed
+        - task.blocked
+outputs:
+  - release-checklist
+risks:
+  - Publishing, tagging and pushing still require explicit confirmation.
+examples:
+  - prepare o corte da proxima versao

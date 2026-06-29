@@ -25,12 +25,16 @@ def print_human(result: dict[str, Any]) -> None:
         print_doctor(result)
     elif kind == "commands":
         print_command_modes(result)
+    elif kind in {"onboarding", "onboarding-plan"}:
+        print_onboarding(result)
     elif kind == "architecture":
         print_architecture(result)
     elif kind == "roadmap":
         print_roadmap(result)
-    elif kind in {"catalog", "catalog-item"}:
+    elif kind in {"catalog", "catalog-item", "catalog-index"}:
         print_catalog(result)
+    elif kind == "agentic-plan":
+        print_agentic_plan(result)
     elif kind == "route-explain":
         print_route_explain(result)
     elif kind in {"eval-suites", "eval-run", "eval-report"}:
@@ -39,9 +43,27 @@ def print_human(result: dict[str, Any]) -> None:
         print_secrets(result)
     elif kind in {"local-extensions", "local-extension", "local-extension-remove", "local-extension-validation"}:
         print_local_extensions(result)
+    elif kind in {
+        "local-skills",
+        "local-skill",
+        "local-scripts",
+        "local-script",
+        "local-script-run",
+        "local-agents",
+        "local-agent",
+        "local-agent-validation",
+        "local-automations",
+        "local-automation",
+        "local-automation-validation",
+    }:
+        print_local_artifacts(result)
     elif kind in {"workflows", "workflow", "workflow-install", "workflow-run"}:
         print_workflows(result)
-    elif kind in {"contributions", "contribution-checklist", "contribution-validation", "contribution-prepare", "contribution-review"}:
+    elif kind in {"team", "team-doctor", "team-onboarding", "team-profiles", "team-profile", "team-profile-export", "team-profile-import"}:
+        print_team(result)
+    elif kind in {"knowledge", "knowledge-doctor", "knowledge-search", "knowledge-index", "knowledge-snapshot", "knowledge-review", "knowledge-publish", "knowledge-base", "knowledge-base-tokens", "knowledge-base-token"}:
+        print_knowledge(result)
+    elif kind in {"contributions", "contribution-checklist", "contribution-validation", "contribution-prepare", "contribution-review", "contribution-pr"}:
         print_contribution(result)
     elif kind == "agent":
         print_agent_response(result)
@@ -77,8 +99,12 @@ def print_human(result: dict[str, Any]) -> None:
         print_source_remove(result)
     elif kind in {"wizards", "wizard"}:
         print_wizard(result)
+    elif kind in {"shared-memory", "shared-memories", "shared-memory-read", "shared-memory-submission", "shared-memory-review", "shared-memory-publish"}:
+        print_shared_memory(result)
     elif kind == "memory":
         print_memory(result)
+    elif kind in {"memory-backup", "memory-backups", "memory-backup-restore", "memory-backup-delete"}:
+        print_memory_backup(result)
     elif kind == "memory-path":
         print_memory_path(result)
     elif kind == "memory-reset":
@@ -93,7 +119,7 @@ def print_human(result: dict[str, Any]) -> None:
         print_sessions(result)
     elif kind == "session":
         print_session(result)
-    elif kind == "setup":
+    elif kind in {"setup", "mini-brain-setup"}:
         print_setup(result)
     elif kind == "toolchain":
         print_toolchain(result)
@@ -131,6 +157,8 @@ def print_human(result: dict[str, Any]) -> None:
         print_control(result)
     elif kind in {"ollama-status", "ollama-models", "ollama-pull", "ollama-update"}:
         print_ollama(result)
+    elif kind in {"local-llm", "local-llm-doctor", "local-llm-models", "local-llm-install", "local-llm-remove", "local-llm-benchmark"}:
+        print_local_llm(result)
     elif kind in {"mcp-manifest", "mcp-tools", "mcp-doctor"}:
         print_mcp(result)
     elif kind == "install":
@@ -162,6 +190,10 @@ def print_roadmap(result: dict[str, Any]) -> None:
 
 
 def print_catalog(result: dict[str, Any]) -> None:
+    if result["kind"] == "catalog-index":
+        print(f"Catalog index {result.get('status')}: {result.get('count', 0)} item(s)")
+        print(f"Path: {result.get('path')}")
+        return
     if result["kind"] == "catalog-item":
         item = result["item"]
         print(f"{item.get('type')} {item.get('id')}")
@@ -184,6 +216,19 @@ def print_route_explain(result: dict[str, Any]) -> None:
         print(result["reason"])
     if result.get("next_step"):
         print(f"Next: {result['next_step']}")
+
+
+def print_agentic_plan(result: dict[str, Any]) -> None:
+    summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
+    print(f"Agentic plan: {result.get('status')}")
+    print(f"Routing: {summary.get('routing_status') or '-'}")
+    print(f"Selected: {summary.get('selected_agent_id') or '-'} / {summary.get('selected_capability_id') or '-'}")
+    print(f"Model: {summary.get('model_strategy') or '-'}")
+    print(f"Tasks: {summary.get('specialist_tasks', 0)} specialist, {summary.get('configuration_tasks', 0)} configuration")
+    if summary.get("review_required"):
+        print("Review: required")
+    if summary.get("needs_input"):
+        print("Next: provide the missing configuration, route confirmation, or model permission.")
 
 
 def print_eval(result: dict[str, Any]) -> None:
@@ -216,6 +261,42 @@ def print_local_extensions(result: dict[str, Any]) -> None:
         print(f"- {item.get('id')} {state} {item.get('path')}")
 
 
+def print_local_artifacts(result: dict[str, Any]) -> None:
+    kind = result.get("kind")
+    print(f"{kind}: {result.get('status')}")
+    if "items" in result:
+        for item in result.get("items") or []:
+            state = "enabled" if item.get("enabled") else "disabled"
+            schedule = item.get("schedule") if isinstance(item.get("schedule"), dict) else {}
+            schedule_label = schedule.get("type") or ""
+            if schedule.get("every"):
+                schedule_label = f"{schedule_label}:{schedule.get('every')}"
+            if schedule.get("cron"):
+                schedule_label = f"{schedule_label}:{schedule.get('cron')}"
+            suffix = f" [{schedule_label}]" if schedule_label else ""
+            title = f" - {item.get('title')}" if item.get("title") else ""
+            print(f"- {item.get('id')} {state}{suffix}{title} {item.get('path')}")
+        if not result.get("items"):
+            print("- none")
+        return
+    automation = result.get("automation") if isinstance(result.get("automation"), dict) else None
+    if automation:
+        print(f"Automation: {automation.get('id')}")
+        print(f"Title: {automation.get('title') or '-'}")
+        schedule = automation.get("schedule") if isinstance(automation.get("schedule"), dict) else {}
+        print(f"Schedule: {schedule.get('type') or 'manual'}")
+        print(f"Enabled: {'yes' if automation.get('enabled') is not False else 'no'}")
+    if result.get("id"):
+        print(f"Id: {result.get('id')}")
+    if result.get("path"):
+        print(f"Path: {result.get('path')}")
+    if result.get("checks"):
+        for check in result.get("checks") or []:
+            print(f"- {check.get('id')}: {check.get('status')}")
+    if result.get("message"):
+        print(result["message"])
+
+
 def print_workflows(result: dict[str, Any]) -> None:
     print(f"{result['kind']}: {result.get('status')}")
     for item in result.get("items") or []:
@@ -223,6 +304,46 @@ def print_workflows(result: dict[str, Any]) -> None:
     if result.get("workflow"):
         workflow = result["workflow"]
         print(f"{workflow.get('id')}: {workflow.get('description')}")
+
+
+def print_team(result: dict[str, Any]) -> None:
+    print(f"{result['kind']}: {result.get('status')}")
+    if result.get("path"):
+        print(f"Path: {result.get('path')}")
+    if result.get("active_profile"):
+        print(f"Active: {result.get('active_profile')}")
+    if result.get("profiles"):
+        print(f"Profiles: {', '.join(str(item) for item in result.get('profiles') or [])}")
+    if result.get("items"):
+        for item in result.get("items") or []:
+            print(f"- {item.get('id')}: {item.get('description') or '-'}")
+    if result.get("profile"):
+        profile = result["profile"]
+        print(f"Profile: {profile.get('id')}")
+        print(f"Workflows: {', '.join(str(item) for item in profile.get('workflows') or []) or '-'}")
+    for check in result.get("checks") or []:
+        print(f"- {check.get('id')}: {check.get('status')}")
+    for step in result.get("next_steps") or []:
+        print(f"Next: {step}")
+
+
+def print_knowledge(result: dict[str, Any]) -> None:
+    print(f"{result['kind']}: {result.get('status')}")
+    if result.get("path"):
+        print(f"Path: {result.get('path')}")
+    if result.get("snapshot_id"):
+        print(f"Snapshot: {result.get('snapshot_id')}")
+    if result.get("count") is not None:
+        print(f"Count: {result.get('count')}")
+    for item in result.get("items") or []:
+        suffix = f" ({item.get('score')})" if item.get("score") is not None else ""
+        print(f"- {item.get('path')}{suffix}")
+    for check in result.get("checks") or []:
+        print(f"- {check.get('id')}: {check.get('status')}")
+    for finding in result.get("findings") or []:
+        print(f"Finding: {finding.get('reason')} {finding.get('path') or ''}".rstrip())
+    for step in result.get("next_steps") or []:
+        print(f"Next: {step}")
 
 
 def print_contribution(result: dict[str, Any]) -> None:
@@ -352,6 +473,13 @@ def print_doctor(result: dict[str, Any]) -> None:
         print(f"- Plugins: {plugins.get('status', '-')}")
         print(f"- Providers: {providers.get('status', '-')} ({providers.get('ok', 0)} ok, {providers.get('missing', 0)} missing)")
         print(f"- LLM: {llm.get('status', '-')} ({llm.get('ok', 0)} ok, {llm.get('missing', 0)} missing)")
+    operational = result.get("operational") or {}
+    if operational:
+        print("\nOperational:")
+        for key, value in operational.items():
+            if isinstance(value, dict):
+                suffix = f" ({value.get('count')})" if value.get("count") is not None else ""
+                print(f"- {key}: {value.get('status', '-')}{suffix}")
     if result["warnings"]:
         print("\nWarnings:")
         for warning in result["warnings"]:
@@ -369,6 +497,98 @@ def print_command_modes(result: dict[str, Any]) -> None:
     print("\nLLM commands:")
     for item in result["llm"]:
         print(f"- {item['command']}")
+
+
+def print_onboarding(result: dict[str, Any]) -> None:
+    if result.get("kind") == "onboarding-plan":
+        print_onboarding_plan(result)
+        return
+    agent = result.get("agent") or {}
+    print(f"{agent.get('name') or 'Agent DevKit'}")
+    print(f"Status: {result.get('status')}")
+
+    home = result.get("home") or {}
+    print(f"Home: {home.get('home')}")
+
+    memory = result.get("memory") or {}
+    created = memory.get("created") or []
+    memory_suffix = f" ({len(created)} file(s) created)" if created else ""
+    print(f"Memoria local: {memory.get('status')}{memory_suffix}")
+
+    sessions = result.get("sessions") or {}
+    active = sessions.get("active_session_id") or "-"
+    print(f"Sessao ativa: {active} ({sessions.get('count', 0)} total)")
+
+    llm = result.get("llm") or {}
+    print(f"LLMs: {llm.get('usable_count', 0)} usable / {llm.get('configured_count', 0)} configured")
+
+    ollama = result.get("ollama") or {}
+    print(f"Ollama: {ollama.get('status')} ({ollama.get('model_count', 0)} model(s))")
+
+    toolchain = result.get("toolchain") or {}
+    print(
+        "Toolchain: "
+        f"{toolchain.get('status')} "
+        f"({toolchain.get('ok_count', 0)} ok, {toolchain.get('missing_count', 0)} missing)"
+    )
+
+    sources = result.get("sources") or {}
+    tasks = result.get("tasks") or {}
+    specialists = result.get("specialists") or {}
+    print(f"Sources: {sources.get('count', 0)} configured")
+    if specialists:
+        missing = specialists.get("missing_providers") or []
+        missing_label = ""
+        if missing:
+            first_missing = missing[0] if isinstance(missing[0], dict) else {}
+            if first_missing.get("id"):
+                missing_label = f", first missing: {first_missing['id']}"
+        print(
+            "Especialistas: "
+            f"{specialists.get('ready_agents', 0)} ready / "
+            f"{specialists.get('agents_with_provider_requirements', 0)} provider-bound"
+            f"{missing_label}"
+        )
+    print(f"Tasks: {tasks.get('enabled_count', 0)} enabled / {tasks.get('count', 0)} total")
+    if tasks.get("due_count"):
+        print(f"Due tasks: {tasks.get('due_count')}")
+
+    if result.get("assistant_prompt"):
+        print(f"\n{result['assistant_prompt']}")
+
+    blockers = result.get("blockers") or []
+    if blockers:
+        print("\nNeeds setup:")
+        for blocker in blockers:
+            print(f"- {blocker.get('message')}")
+            if blocker.get("command"):
+                print(f"  {blocker['command']}")
+
+    actions = result.get("suggested_actions") or []
+    if actions:
+        print("\nNext:")
+        for action in actions[:8]:
+            label = action.get("label") or action.get("id")
+            command = action.get("command")
+            print(f"- {label}: {command}")
+
+    modes = result.get("onboarding_modes") or []
+    if modes:
+        print("\nOnboarding:")
+        for mode in modes:
+            print(f"- {mode.get('label')}: {mode.get('command')}")
+
+
+def print_onboarding_plan(result: dict[str, Any]) -> None:
+    print(f"Onboarding {result.get('mode')}: {result.get('status')}")
+    print("External actions executed: no")
+    catalog = result.get("agent_catalog") or {}
+    print(f"Catalog: {catalog.get('agents', 0)} agents / {catalog.get('capabilities', 0)} capabilities")
+    steps = result.get("steps") or []
+    if steps:
+        print("\nSteps:")
+        for step in steps:
+            print(f"- {step.get('id')}: {step.get('command')}")
 
 
 def print_architecture(result: dict[str, Any]) -> None:
@@ -535,6 +755,52 @@ def print_memory_path(result: dict[str, Any]) -> None:
         print(f"- {item['name']}: {item['path']}")
 
 
+def print_memory_backup(result: dict[str, Any]) -> None:
+    print(f"Memory backup: {result.get('status')}")
+    if result.get("home"):
+        print(f"Home: {result.get('home')}")
+    backup = result.get("backup") if isinstance(result.get("backup"), dict) else {}
+    if backup:
+        print(f"ID: {backup.get('id')}")
+        print(f"Path: {backup.get('path')}")
+        print(f"Files: {backup.get('file_count', 0)}")
+        print(f"Remote upload: {'yes' if backup.get('remote_upload') else 'no'}")
+        print(f"Encrypted: {'yes' if backup.get('encrypted') else 'no'}")
+    if result.get("items"):
+        for item in result["items"]:
+            print(f"- {item.get('id')}: {item.get('file_count', 0)} file(s)")
+    if result.get("next_steps"):
+        print("Next steps:")
+        for step in result["next_steps"]:
+            print(f"- {step}")
+
+
+def print_shared_memory(result: dict[str, Any]) -> None:
+    print(f"Shared memory: {result.get('status')}")
+    memory = result.get("memory") if isinstance(result.get("memory"), dict) else {}
+    if memory:
+        print(f"ID: {memory.get('id')}")
+        print(f"URL: {memory.get('share_url')}")
+    if result.get("submission_id"):
+        print(f"Submission: {result.get('submission_id')}")
+    if result.get("path"):
+        print(f"Path: {result.get('path')}")
+    if result.get("content"):
+        print(result["content"])
+    if result.get("items"):
+        for item in result["items"]:
+            print(f"- {item.get('id')}: {item.get('title')}")
+    access = result.get("contributor_access") if isinstance(result.get("contributor_access"), dict) else {}
+    if access:
+        print("Contributor access:")
+        print(f"- URL: {access.get('url')}")
+        print(f"- Key: {access.get('key')}")
+    owner_access = result.get("owner_access") if isinstance(result.get("owner_access"), dict) else {}
+    if owner_access:
+        print("Owner access:")
+        print(f"- Key: {owner_access.get('key')}")
+
+
 def print_personality(result: dict[str, Any]) -> None:
     print(f"Personality: {result.get('status', 'ok')}")
     print(f"Path: {result['path']}")
@@ -545,7 +811,7 @@ def print_personality(result: dict[str, Any]) -> None:
     print(f"Detail level: {result.get('detail_level') or '-'}")
     if result.get("message"):
         print(result["message"])
-    if result.get("questions"):
+    if result.get("status") == "needs-input" and result.get("questions"):
         print("Setup questions:")
         for question in result["questions"]:
             print(f"- {question}")
@@ -985,6 +1251,46 @@ def print_ollama(result: dict[str, Any]) -> None:
             print("- none")
         return
     print(f"{kind}: {result.get('status')}")
+    if result.get("command"):
+        command = result["command"]
+        print("Command: " + (" ".join(command) if isinstance(command, list) else str(command)))
+    if result.get("message"):
+        print(result["message"])
+
+
+def print_local_llm(result: dict[str, Any]) -> None:
+    kind = result.get("kind")
+    print(f"Local LLM: {result.get('status')}")
+    if kind == "local-llm":
+        mini = result.get("mini_brain") or {}
+        print(f"Mini-brain: {mini.get('status')} enabled={mini.get('enabled')}")
+        print(f"Workers: {len(result.get('workers') or [])}")
+        return
+    if kind == "local-llm-doctor":
+        ollama = result.get("ollama") or {}
+        mini = result.get("mini_brain") or {}
+        print(f"Ollama: {ollama.get('status')}")
+        print(f"Mini-brain: {mini.get('status')} enabled={mini.get('enabled')}")
+        for step in result.get("next_steps") or []:
+            print(f"- {step}")
+        return
+    if kind == "local-llm-models":
+        print(f"Binary: {result.get('binary') or '-'}")
+        for item in result.get("items") or []:
+            print(f"- {item.get('name')}  {item.get('size') or '-'}")
+        recommended = [item for item in result.get("recommended") or [] if not item.get("installed")]
+        if recommended:
+            print("Recommended:")
+            for item in recommended[:5]:
+                print(f"- {item.get('name')}: {item.get('recommended_for')}")
+        return
+    if kind == "local-llm-benchmark":
+        print(f"Model: {result.get('model')}")
+        for check in result.get("checks") or []:
+            print(f"- {check.get('id')}: {check.get('status')}")
+        for step in result.get("next_steps") or []:
+            print(f"Next: {step}")
+        return
     if result.get("command"):
         command = result["command"]
         print("Command: " + (" ".join(command) if isinstance(command, list) else str(command)))

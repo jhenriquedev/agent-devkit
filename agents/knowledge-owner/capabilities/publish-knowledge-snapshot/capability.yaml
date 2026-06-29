@@ -1,0 +1,28 @@
+id: knowledge-owner.publish-knowledge-snapshot
+kind: capability
+name: Publish knowledge snapshot
+version: 0.3.0
+status: draft
+purpose: Publicar snapshot aprovado na base principal com auditoria.
+entrypoint:
+  workflow: workflow.md
+write_policy: confirm
+inputs:
+  type: object
+  properties:
+    snapshot_id:
+      type: string
+    yes:
+      type: boolean
+outputs:
+  type: object
+  artifacts:
+    - path: knowledge-base/entries
+      kind: markdown
+      sensitive: false
+routing:
+  anchors:
+    - knowledge publish
+    - publicar snapshot
+  intents:
+    - knowledge.snapshot.publish

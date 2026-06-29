@@ -1,0 +1,37 @@
+id: memory-sync-manager
+kind: specialist-agent
+name: Memory Sync Manager
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Gerenciar planos de backup, restore e sincronizacao seletiva da memoria
+  pessoal local, mantendo personalidade separada da knowledge base
+  compartilhada e exigindo opt-in para provider remoto.
+
+routing:
+  anchors:
+    - memory backup
+    - backup de memoria
+    - restore de personalidade
+  keywords:
+    - backup
+    - restore
+    - sync
+    - personalidade
+  intents:
+    - memory.backup.plan
+    - memory.restore.plan
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - plan-memory-backup
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: output_only
+  blocks_on_high_risk: confirm

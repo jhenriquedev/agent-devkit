@@ -100,7 +100,7 @@ def create_task(
         "created_at": created_at,
         "updated_at": created_at,
         "schedule": schedule or {"type": "manual"},
-        "action": action or {"type": "prompt", "prompt": redact_secrets(prompt or "")},
+        "action": action or ({"type": "prompt", "prompt": redact_secrets(prompt)} if prompt else {"type": "noop"}),
         "permissions": permissions or {"mode": "report-only"},
         "notifications": notifications or [{"type": "terminal"}],
         "run_count": 0,
@@ -231,6 +231,41 @@ def run_task(
                 payload["events"] = scheduler_events + [scheduler_event_summary(payload)]
                 payload["events_path"] = str(scheduler_events_path())
             return payload
+        action_result = execute_task_action(task, origin=origin)
+        action_ok = bool(action_result.get("ok")) or action_result.get("status") == "ok"
+        if not action_ok:
+            append_history(str(task["id"]), f"Task `{task['id']}` failed: {action_result.get('message') or action_result.get('status')}")
+            payload = {
+                "kind": "task-run",
+                "status": "failed",
+                "ok": False,
+                "dry_run": False,
+                "task": public_task(task),
+                "preview": preview,
+                "autonomy_contract": preview["autonomy_contract"],
+                "result": action_result,
+                "message": action_result.get("message") or "Task action failed.",
+                "exit_code": int(action_result.get("exit_code") or 1),
+            }
+            if scheduler_origin:
+                finished_at = now_iso()
+                attach_scheduler_metadata(
+                    payload,
+                    task,
+                    event="scheduled_task.failed",
+                    run_id=run_id,
+                    scheduled_for=scheduled_for,
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    summary="Scheduled task action failed.",
+                )
+                attach_scheduler_audit(payload, task)
+            attach_task_notification(payload, task, event_name(origin, "failed"), origin=origin)
+            if scheduler_origin:
+                record_scheduler_event(payload)
+                payload["events"] = scheduler_events + [scheduler_event_summary(payload)]
+                payload["events_path"] = str(scheduler_events_path())
+            return payload
         task["run_count"] = int(task.get("run_count") or 0) + 1
         task["last_run_at"] = now_iso()
         task["updated_at"] = task["last_run_at"]
@@ -244,6 +279,8 @@ def run_task(
             "task": public_task(task),
             "preview": preview,
             "autonomy_contract": preview["autonomy_contract"],
+            "result": action_result,
+            "response": action_result.get("response"),
         }
         if scheduler_origin:
             finished_at = now_iso()
@@ -366,6 +403,72 @@ def reset_tasks() -> list[str]:
 def event_name(origin: str, outcome: str) -> str:
     namespace = "scheduled_task" if origin == "scheduler" else "task"
     return f"{namespace}.{outcome}"
+
+
+def execute_task_action(task: dict[str, Any], *, origin: str) -> dict[str, Any]:
+    action = task.get("action") if isinstance(task.get("action"), dict) else {}
+    action_type = str(action.get("type") or "prompt")
+    if action_type == "noop":
+        return {
+            "kind": "task-action",
+            "status": "ok",
+            "ok": True,
+            "message": "No-op local task completed.",
+        }
+    if action_type == "prompt":
+        prompt = str(action.get("prompt") or "").strip()
+        if not prompt:
+            return {
+                "kind": "task-action",
+                "status": "failed",
+                "ok": False,
+                "message": "Task prompt is empty.",
+                "exit_code": 2,
+            }
+        from cli.aikit.core.requests import AgentPromptRequest
+        from cli.aikit.natural_prompt_runtime import run_agent_prompt_request
+
+        return run_agent_prompt_request(
+            AgentPromptRequest(
+                prompt=prompt,
+                prog_name="agent",
+                project=None,
+                new_session=False,
+            )
+        )
+    if action_type == "capability":
+        agent_id = str(action.get("agent") or "").strip()
+        capability_id = str(action.get("capability") or "").strip()
+        if not agent_id or not capability_id:
+            return {
+                "kind": "task-action",
+                "status": "failed",
+                "ok": False,
+                "message": "Capability task requires agent and capability.",
+                "exit_code": 2,
+            }
+        args = action.get("args") if isinstance(action.get("args"), list) else []
+        inputs = action.get("inputs") if isinstance(action.get("inputs"), dict) else {}
+        if action.get("external_writes") is True and not args and not inputs:
+            return {
+                "kind": "task-action",
+                "status": "ok",
+                "ok": True,
+                "agent": agent_id,
+                "capability": capability_id,
+                "message": "External-write task permission was granted; no capability args were supplied, so no external action was executed.",
+                "external_action_executed": False,
+            }
+        from cli.aikit.capability_runtime import load_agent, run_capability
+
+        return run_capability(load_agent(agent_id), capability_id, [str(item) for item in args], capture_output=True, origin=origin)
+    return {
+        "kind": "task-action",
+        "status": "failed",
+        "ok": False,
+        "message": f"Unsupported task action type: {action_type}",
+        "exit_code": 2,
+    }
 
 
 def new_run_id() -> str:

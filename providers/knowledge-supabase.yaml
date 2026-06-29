@@ -1,0 +1,43 @@
+id: knowledge-supabase
+name: Knowledge Supabase Storage
+kind: knowledge-storage-provider
+status: draft
+description: Provider Supabase Storage para sincronizar knowledge bases file-first com buckets do projeto.
+auth_methods:
+  - id: supabase-cli
+    label: Supabase CLI auth
+    native: true
+    secret_fields: []
+  - id: access-token
+    label: Supabase access token
+    secret_fields:
+      - SUPABASE_ACCESS_TOKEN
+      - SUPABASE_SERVICE_ROLE_KEY
+config_fields:
+  - name: SUPABASE_PROJECT_REF
+    required: false
+    secret: false
+  - name: SUPABASE_ACCESS_TOKEN
+    required: false
+    secret: true
+  - name: SUPABASE_SERVICE_ROLE_KEY
+    required: false
+    secret: true
+  - name: AGENT_DEVKIT_KNOWLEDGE_BUCKET
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge.snapshot.submit
+health_check:
+  command: supabase projects list
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

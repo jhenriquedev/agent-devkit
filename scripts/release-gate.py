@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,8 @@ CATALOG_SNAPSHOT = ROOT / "scripts" / "release-catalog-snapshot.json"
 CLAUDE_SKILL = ROOT / "plugins" / "claude-skill-ai-devkit" / "ai-devkit"
 CODEX_HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
 SKILL_VALIDATOR = CODEX_HOME / "skills" / ".system" / "skill-creator" / "scripts" / "quick_validate.py"
+RELEASE_GATE_HOME = ROOT / "tmp" / "release-gate-home"
+COMMAND_TIMEOUT_SECONDS = 900
 
 
 def main() -> int:
@@ -39,18 +42,19 @@ def main() -> int:
 
 
 def run_gate(*, quick: bool = False) -> dict[str, Any]:
+    prepare_release_gate_home()
     checks = [
         check_command("agent version", [sys.executable, str(AGENT), "--version"], validate_agent_version),
         check_json("repo strict validation", [sys.executable, str(VALIDATE_REPO), "--strict", "--json"], validate_repo),
         catalog_snapshot_check(),
         check_json("mvp readiness", [sys.executable, str(MVP_READINESS), "--json"], validate_mvp_readiness),
-        check_json("v0.2.0 runtime evals", [sys.executable, str(AGENT), "eval", "run", "all", "--json"], validate_v020_evals),
+        check_json("v0.2.1 runtime evals", [sys.executable, str(AGENT), "eval", "run", "all", "--json"], validate_v021_evals),
         skill_validation_check(),
     ]
     if quick:
         checks.append(skipped_check("full unittest suite", "skipped by --quick"))
     else:
-        checks.append(check_command("full unittest suite", unittest_command(), validate_unittest))
+        checks.append(check_command("full unittest suite", unittest_command(), validate_unittest, use_release_home=False))
 
     errors = [check["message"] for check in checks if check["status"] == "failed"]
     return {
@@ -60,6 +64,11 @@ def run_gate(*, quick: bool = False) -> dict[str, Any]:
         "checks": checks,
         "errors": errors,
     }
+
+
+def prepare_release_gate_home() -> None:
+    shutil.rmtree(RELEASE_GATE_HOME, ignore_errors=True)
+    RELEASE_GATE_HOME.mkdir(parents=True, exist_ok=True)
 
 
 def skill_validation_check() -> dict[str, Any]:
@@ -97,8 +106,8 @@ def unittest_path_sort_key(path: Path) -> tuple[int, str]:
     return (0 if first == "tests" else 1, str(relative))
 
 
-def check_json(name: str, command: list[str], validator) -> dict[str, Any]:
-    result = run(command)
+def check_json(name: str, command: list[str], validator, *, use_release_home: bool = True) -> dict[str, Any]:
+    result = run(command, use_release_home=use_release_home)
     if result.returncode != 0:
         return failed_check(name, f"returncode {result.returncode}", result)
     try:
@@ -113,8 +122,8 @@ def check_json(name: str, command: list[str], validator) -> dict[str, Any]:
     return check
 
 
-def check_command(name: str, command: list[str], validator) -> dict[str, Any]:
-    result = run(command)
+def check_command(name: str, command: list[str], validator, *, use_release_home: bool = True) -> dict[str, Any]:
+    result = run(command, use_release_home=use_release_home)
     if result.returncode != 0:
         return failed_check(name, f"returncode {result.returncode}", result)
     message = validator(result)
@@ -123,16 +132,28 @@ def check_command(name: str, command: list[str], validator) -> dict[str, Any]:
     return ok_check(name, result)
 
 
-def run(command: list[str]) -> subprocess.CompletedProcess[str]:
+def run(command: list[str], *, use_release_home: bool = True) -> subprocess.CompletedProcess[str]:
+    env = command_env(use_release_home=use_release_home)
     return subprocess.run(
         command,
         cwd=ROOT,
         check=False,
+        env=env,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        timeout=360,
+        timeout=COMMAND_TIMEOUT_SECONDS,
     )
+
+
+def command_env(*, use_release_home: bool) -> dict[str, str]:
+    env = os.environ.copy()
+    if use_release_home:
+        env["AGENT_DEVKIT_HOME"] = str(RELEASE_GATE_HOME)
+        return env
+    for name in ("AGENT_DEVKIT_HOME", "AI_DEVKIT_CONFIG_HOME", "AIKIT_CONFIG_HOME"):
+        env.pop(name, None)
+    return env
 
 
 def validate_agent_version(result: subprocess.CompletedProcess[str]) -> str | None:
@@ -260,14 +281,34 @@ def validate_mvp_readiness(payload: dict[str, Any]) -> str | None:
     return None
 
 
-def validate_v020_evals(payload: dict[str, Any]) -> str | None:
+def validate_v021_evals(payload: dict[str, Any]) -> str | None:
     if payload.get("kind") != "eval-run" or payload.get("suite") != "all":
-        return "v0.2.0 eval command returned an unexpected payload"
+        return "v0.2.1 eval command returned an unexpected payload"
     if payload.get("status") != "passed":
-        return "v0.2.0 runtime evals did not pass"
+        return "v0.2.1 runtime evals did not pass"
     checks = payload.get("checks") or []
-    if not isinstance(checks, list) or len(checks) < 5:
-        return "v0.2.0 runtime evals returned too few suites"
+    required = {
+        "routing",
+        "catalog",
+        "wizard",
+        "source_config",
+        "identity_enforcement",
+        "review_gate",
+        "model_router",
+        "agentic_plan",
+        "mcp",
+        "workflow_contract",
+        "extension_contract",
+        "contribution_contract",
+        "team_contract",
+        "knowledge_contract",
+        "secret_refs",
+        "prompt-injection",
+    }
+    suites = {item.get("suite") for item in checks if isinstance(item, dict)}
+    missing = sorted(required - suites)
+    if missing:
+        return f"v0.2.1 runtime evals missing suites: {', '.join(missing)}"
     return None
 
 

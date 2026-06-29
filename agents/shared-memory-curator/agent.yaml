@@ -1,0 +1,38 @@
+id: shared-memory-curator
+kind: specialist-agent
+name: Shared Memory Curator
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Gerenciar memoria compartilhada com URL e chave de contribuidor, revisando
+  envios antes de publicar na memoria principal do dono.
+
+routing:
+  anchors:
+    - memoria compartilhada
+    - shared memory
+    - curadoria
+  keywords:
+    - contribution
+    - publish
+    - review
+    - contributor
+  intents:
+    - memory.shared.manage
+    - memory.shared.curate
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - create-shared-memory
+  - review-shared-submission
+  - publish-shared-submission
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: local_config_write
+  blocks_on_high_risk: confirm

@@ -1,0 +1,30 @@
+id: azure-card-analysis
+title: Azure card analysis
+description: Analyze an Azure DevOps card and prepare an operational response plan.
+schedule:
+  type: manual
+providers:
+  - azure-devops
+permissions:
+  mode: report-only
+write_policy: local_config_write
+task:
+  title: Azure card analysis
+  prompt: Analise o card do Azure DevOps informado e prepare um plano de acao.
+  action:
+    type: prompt
+    prompt: Analise o card do Azure DevOps informado e prepare um plano de acao.
+    external_writes: false
+  permissions:
+    mode: report-only
+  notifications:
+    - type: desktop
+      events:
+        - task.completed
+        - task.blocked
+outputs:
+  - card-analysis
+risks:
+  - Requires Azure DevOps source configuration before reading real cards.
+examples:
+  - analise o card 7914 do projeto sustentacao no azure

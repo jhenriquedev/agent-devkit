@@ -1,0 +1,24 @@
+id: knowledge-obsidian
+name: Knowledge Obsidian
+kind: knowledge-storage-provider
+status: draft
+description: Provider Obsidian para usar um vault local ou sincronizado como storage file-first.
+auth_methods: []
+config_fields:
+  - name: AGENT_DEVKIT_KNOWLEDGE_OBSIDIAN_VAULT
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge.snapshot.submit
+health_check:
+  command: agent provider doctor knowledge-obsidian
+risk:
+  default: local
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps

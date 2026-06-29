@@ -47,6 +47,29 @@ class AgenticWave2ContractsTest(unittest.TestCase):
             self.assertIn("Agent DevKit", payload["response"])
             self.assertNotIn("Claude", payload["response"])
 
+    def test_capabilities_question_is_answered_locally_without_llm(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self.run_agent(
+                "--json",
+                "o",
+                "que",
+                "voce",
+                "consegue",
+                "fazer",
+                "aqui",
+                env={"AI_DEVKIT_CONFIG_HOME": tmpdir},
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["kind"], "agent")
+            self.assertEqual(payload["status"], "ok")
+            self.assertFalse(payload["requires_llm"])
+            self.assertEqual(payload["mode"], "local-capabilities-help")
+            self.assertGreaterEqual(payload["catalog"]["agents"], 1)
+            self.assertGreaterEqual(payload["catalog"]["capabilities"], 1)
+            self.assertIn("onboard", " ".join(payload["next_steps"]))
+
     def test_personality_edit_changes_public_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             env = {"AI_DEVKIT_CONFIG_HOME": tmpdir}
@@ -67,6 +90,23 @@ class AgenticWave2ContractsTest(unittest.TestCase):
             self.assertIsNone(show_payload["language"])
             self.assertIn("Jarvis", json.loads(identity.stdout)["response"])
             self.assertIn("Agent DevKit", json.loads(after_reset.stdout)["response"])
+
+    def test_personality_rename_flag_and_natural_prompt_change_public_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir}
+            rename_flag = self.run_agent("personality", "edit", "--rename", "Ianota", "--json", env=env)
+            natural = self.run_agent("--json", "mude", "seu", "nome", "para", "ianota10", env=env)
+            identity = self.run_agent("--json", "qual", "seu", "nome?", env=env)
+
+            self.assertEqual(rename_flag.returncode, 0, rename_flag.stderr)
+            self.assertEqual(natural.returncode, 0, natural.stderr)
+            self.assertEqual(identity.returncode, 0, identity.stderr)
+            self.assertEqual(json.loads(rename_flag.stdout)["agent_name"], "Ianota")
+            natural_payload = json.loads(natural.stdout)
+            self.assertFalse(natural_payload["requires_llm"])
+            self.assertEqual(natural_payload["action"], "rename")
+            self.assertEqual(natural_payload["identity"]["name"], "ianota10")
+            self.assertIn("ianota10", json.loads(identity.stdout)["response"])
 
     def test_alias_add_creates_executable_that_preserves_invoked_name(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -134,6 +174,19 @@ class AgenticWave2ContractsTest(unittest.TestCase):
             self.assertEqual(payload["agent_name"], "Jarvis - Tone: injected")
             text = (home / "memory" / "personality.md").read_text(encoding="utf-8")
             self.assertNotIn("\n- Tone: injected\n", text)
+
+    def test_personality_show_hides_setup_questions_after_configuration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir}
+            edit = self.run_agent("personality", "edit", "--name", "Jarvis", env=env)
+            show = self.run_agent("personality", "show", env=env)
+            setup = self.run_agent("setup", "personality", env=env)
+
+            self.assertEqual(edit.returncode, 0, edit.stderr)
+            self.assertEqual(show.returncode, 0, show.stderr)
+            self.assertEqual(setup.returncode, 0, setup.stderr)
+            self.assertNotIn("Setup questions:", show.stdout)
+            self.assertIn("Setup questions:", setup.stdout)
 
     def test_identity_enforcement_rewrites_backend_identity_leak_for_any_prompt(self) -> None:
         response = enforce_identity_response("I'm Claude, an AI from Anthropic.", "explique o incidente", name="Jarvis")

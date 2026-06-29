@@ -1,0 +1,36 @@
+id: knowledge-reviewer
+kind: specialist-agent
+name: Knowledge Reviewer
+version: 0.3.0
+status: draft
+owner: agent-devkit
+
+purpose: >
+  Revisar snapshots de conhecimento antes da publicacao, bloqueando segredos,
+  PII desnecessaria, duplicidade, referencias locais indevidas e prompt
+  injection.
+
+routing:
+  anchors:
+    - knowledge review
+    - revisar snapshot
+    - review de knowledge
+  keywords:
+    - review
+    - seguranca
+    - duplicidade
+    - prompt injection
+  intents:
+    - knowledge.snapshot.review
+
+default_context:
+  - knowledge/system.md
+  - knowledge/context.md
+
+capabilities:
+  - review-knowledge-snapshot
+
+write_policy:
+  external_writes: blocked_by_default
+  default_mode: local_config_write
+  blocks_on_high_risk: confirm

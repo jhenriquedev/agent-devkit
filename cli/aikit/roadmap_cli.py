@@ -29,7 +29,7 @@ def roadmap_payload(root: Path | None = None, *, phase: int | None = None, probl
         "kind": "roadmap",
         "schema_version": ROADMAP_SCHEMA_VERSION,
         "status": "ok",
-        "version_scope": "v0.2.0",
+        "version_scope": "v0.3.0",
         "source": "cli.aikit.roadmap",
         "active_problems": active,
         "preteridos": sorted(preteridos),

@@ -1,0 +1,26 @@
+id: validate-local-contribution
+kind: capability
+name: Validate Local Contribution
+version: 0.2.1
+status: draft
+purpose: >
+  Validar estruturalmente uma extensao local antes de contribuicao upstream.
+runtime:
+  type: cli
+write_policy: read_only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  extension_id:
+    type: string
+    required: true
+outputs:
+  checklist:
+    type: object
+routing:
+  anchors:
+    - validate
+    - contribution
+    - extension
+  intents:
+    - contribution.validate

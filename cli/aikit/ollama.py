@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -10,17 +11,31 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from cli.aikit.app_home import config_path
+
 
 OLLAMA_TIMEOUT_SECONDS = 120
 DEFAULT_BASE_URL = "http://localhost:11434"
+DEFAULT_RECOMMENDED_MODELS = [
+    {"name": "qwen3:0.6b", "family": "mini-brain", "recommended_for": "setup help, short summaries and lightweight intent classification"},
+    {"name": "qwen2.5-coder", "family": "coding", "recommended_for": "operational code reading and generation"},
+    {"name": "deepseek-coder", "family": "coding", "recommended_for": "code analysis and mechanical refactors"},
+    {"name": "deepseek-r1", "family": "reasoning", "recommended_for": "local reasoning drafts with mandatory review"},
+    {"name": "llama3.2", "family": "general", "recommended_for": "general local summaries and classification"},
+    {"name": "mistral", "family": "general", "recommended_for": "lightweight operational summaries"},
+    {"name": "gemma", "family": "classification", "recommended_for": "small extraction and classification tasks"},
+]
 
 
 def ollama_status(*, base_url: str = DEFAULT_BASE_URL) -> dict[str, Any]:
+    base_url = os.environ.get("OLLAMA_BASE_URL") or base_url
     binary = shutil.which("ollama")
     version = command_output(["ollama", "--version"]) if binary else None
     daemon = daemon_status(base_url) if binary else {"status": "unknown", "message": "Ollama binary is not installed."}
     models = list_local_models(binary_available=bool(binary))
-    status = "ok" if binary else "missing"
+    status = "missing"
+    if binary:
+        status = "ok" if daemon.get("status") == "ok" else "partial"
     return {
         "kind": "ollama-status",
         "status": status,
@@ -52,10 +67,12 @@ def ollama_pull(model: str | None, *, yes: bool = False, dry_run: bool = False) 
     binary = shutil.which("ollama")
     command = ["ollama", "pull", model]
     if dry_run or not yes:
+        needs_confirmation = not dry_run and not yes
         return {
             "kind": "ollama-pull",
             "status": "planned" if dry_run else "needs-confirmation",
             "ok": bool(dry_run),
+            "exit_code": 2 if needs_confirmation else 0,
             "model": model,
             "binary": binary,
             "command": command,
@@ -91,10 +108,12 @@ def ollama_pull(model: str | None, *, yes: bool = False, dry_run: bool = False) 
 def ollama_update(*, yes: bool = False, dry_run: bool = False) -> dict[str, Any]:
     command = update_command()
     if dry_run or not yes:
+        needs_confirmation = not dry_run and not yes
         return {
             "kind": "ollama-update",
             "status": "planned" if dry_run else "needs-confirmation",
             "ok": bool(dry_run),
+            "exit_code": 2 if needs_confirmation else 0,
             "command": command,
             "dry_run": dry_run,
             "yes": yes,
@@ -142,24 +161,54 @@ def parse_ollama_list(output: str) -> list[dict[str, Any]]:
 
 
 def recommended_models(*, installed: set[str]) -> list[dict[str, Any]]:
-    catalog = [
-        ("qwen3:0.6b", "mini-brain", "setup help, short summaries and lightweight intent classification"),
-        ("qwen2.5-coder", "coding", "operational code reading and generation"),
-        ("deepseek-coder", "coding", "code analysis and mechanical refactors"),
-        ("deepseek-r1", "reasoning", "local reasoning drafts with mandatory review"),
-        ("llama3.2", "general", "general local summaries and classification"),
-        ("mistral", "general", "lightweight operational summaries"),
-        ("gemma", "classification", "small extraction and classification tasks"),
-    ]
+    catalog = model_catalog()
     return [
         {
-            "name": name,
-            "family": family,
-            "recommended_for": recommended_for,
-            "installed": any(item == name or item.startswith(f"{name}:") for item in installed),
+            "name": item["name"],
+            "family": item["family"],
+            "recommended_for": item["recommended_for"],
+            "installed": any(model == item["name"] or model.startswith(f"{item['name']}:") for model in installed),
+            "source": item["source"],
         }
-        for name, family, recommended_for in catalog
+        for item in catalog
     ]
+
+
+def model_catalog() -> list[dict[str, str]]:
+    items = {item["name"]: {**item, "source": "default"} for item in DEFAULT_RECOMMENDED_MODELS}
+    for item in configured_model_catalog():
+        name = str(item.get("name") or "").strip()
+        if not name:
+            continue
+        items[name] = {
+            "name": name,
+            "family": str(item.get("family") or "custom").strip() or "custom",
+            "recommended_for": str(item.get("recommended_for") or item.get("purpose") or "configured local model").strip(),
+            "source": "config",
+        }
+    return list(items.values())
+
+
+def configured_model_catalog() -> list[dict[str, Any]]:
+    path = config_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(payload, dict):
+        return []
+    local_llm = payload.get("local_llm") if isinstance(payload.get("local_llm"), dict) else {}
+    mini_brain = payload.get("mini_brain") if isinstance(payload.get("mini_brain"), dict) else {}
+    for value in (
+        local_llm.get("recommended_models"),
+        local_llm.get("models"),
+        mini_brain.get("recommended_models"),
+    ):
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return []
 
 
 def daemon_status(base_url: str) -> dict[str, Any]:

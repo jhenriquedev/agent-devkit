@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from cli.aikit.write_policy import normalize_write_policy, write_policy_public_fields
 
 
@@ -96,6 +94,10 @@ def find_capability(registry: dict[str, Any], agent_id: str, capability_id: str)
 
 
 def read_yaml(path: Path) -> dict[str, Any]:
+    try:
+        import yaml  # type: ignore
+    except ImportError as exc:
+        raise RuntimeError("PyYAML is required to read Agent DevKit manifests. Install requirements.txt.") from exc
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return data if isinstance(data, dict) else {}
 

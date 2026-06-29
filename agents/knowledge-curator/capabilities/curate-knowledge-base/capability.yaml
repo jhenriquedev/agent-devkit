@@ -1,0 +1,29 @@
+id: knowledge-curator.curate-knowledge-base
+kind: capability
+name: Curate knowledge base
+version: 0.3.0
+status: draft
+purpose: Planejar curadoria, deduplicacao, arquivamento e reindexacao da knowledge base.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+  properties:
+    scope:
+      type: string
+    dry_run:
+      type: boolean
+outputs:
+  type: object
+  artifacts:
+    - path: knowledge-base/reviews
+      kind: markdown
+      sensitive: false
+routing:
+  anchors:
+    - knowledge curate
+    - reindex knowledge
+  intents:
+    - knowledge.curate
+    - knowledge.reindex

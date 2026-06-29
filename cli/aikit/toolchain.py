@@ -162,12 +162,17 @@ def install_payload(
 
 def load_toolchain(root: Path | None = None) -> dict[str, dict[str, Any]]:
     path = toolchain_path(root)
+    if not path.exists():
+        return fallback_toolchain()
     try:
         import yaml  # type: ignore
     except ImportError:
         return fallback_toolchain()
-    with path.open(encoding="utf-8") as file:
-        data = yaml.safe_load(file) or {}
+    try:
+        with path.open(encoding="utf-8") as file:
+            data = yaml.safe_load(file) or {}
+    except OSError:
+        return fallback_toolchain()
     tools = data.get("tools") if isinstance(data, dict) else {}
     if not isinstance(tools, dict):
         return {}

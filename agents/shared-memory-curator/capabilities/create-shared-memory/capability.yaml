@@ -1,0 +1,19 @@
+id: shared-memory-curator.create-shared-memory
+kind: capability
+name: Create shared memory
+version: 0.3.0
+status: draft
+purpose: Criar memoria compartilhada local com URL e chave de contribuidor.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+outputs:
+  type: object
+routing:
+  anchors:
+    - criar memoria compartilhada
+    - shared-memory create
+  intents:
+    - memory.shared.create

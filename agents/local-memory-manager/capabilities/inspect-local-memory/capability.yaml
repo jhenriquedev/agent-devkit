@@ -1,0 +1,19 @@
+id: local-memory-manager.inspect-local-memory
+kind: capability
+name: Inspect local memory
+version: 0.3.0
+status: draft
+purpose: Inspecionar memoria local sem expor segredos.
+entrypoint:
+  workflow: workflow.md
+write_policy: read_only
+inputs:
+  type: object
+outputs:
+  type: object
+routing:
+  anchors:
+    - memoria local
+    - memory show
+  intents:
+    - memory.local.inspect

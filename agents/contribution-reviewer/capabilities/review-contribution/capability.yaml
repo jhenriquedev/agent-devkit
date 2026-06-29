@@ -1,0 +1,25 @@
+id: review-contribution
+kind: capability
+name: Review Contribution
+version: 0.2.1
+status: draft
+purpose: >
+  Revisar achados de uma contribuicao local e consolidar bloqueios antes de PR.
+runtime:
+  type: cli
+write_policy: read_only
+entrypoint:
+  workflow: workflow.md
+inputs:
+  extension_id:
+    type: string
+    required: true
+outputs:
+  findings:
+    type: array
+routing:
+  anchors:
+    - review
+    - contribution
+  intents:
+    - contribution.review

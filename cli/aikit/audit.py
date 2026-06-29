@@ -58,7 +58,7 @@ def record_audit(
     execution_id = f"exec_{now_utc().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}"
     prompt = extract_prompt(args)
     try:
-        safe_result = redact_value(result or {})
+        safe_result = redact_value(result or {}, redact_access_keys=True)
         safe_prompt = redact_secrets(prompt) if prompt else None
         safe_error = redact_secrets(error) if error else None
     except Exception as exc:  # noqa: BLE001 - never write an unredacted audit fallback.
@@ -227,23 +227,33 @@ def find_audit_json(execution_id: str) -> Path:
     return matches[0]
 
 
-def redact_value(value: Any) -> Any:
+def redact_value(value: Any, *, redact_access_keys: bool = False, parent_key: str | None = None) -> Any:
     if isinstance(value, str):
         return redact_secrets(value)
     if isinstance(value, list):
-        return [redact_value(item) for item in value]
+        return [redact_value(item, redact_access_keys=redact_access_keys, parent_key=parent_key) for item in value]
     if isinstance(value, tuple):
-        return [redact_value(item) for item in value]
+        return [redact_value(item, redact_access_keys=redact_access_keys, parent_key=parent_key) for item in value]
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
         for key, item in value.items():
             key_text = str(key)
-            if secret_key(key_text):
+            if secret_key(key_text) or access_key(key_text, parent_key=parent_key, enabled=redact_access_keys):
                 redacted[key_text] = "[REDACTED_SECRET]"
             else:
-                redacted[key_text] = redact_value(item)
+                redacted[key_text] = redact_value(item, redact_access_keys=redact_access_keys, parent_key=key_text)
         return redacted
     return value
+
+
+def access_key(key: str, *, parent_key: str | None, enabled: bool) -> bool:
+    if not enabled:
+        return False
+    normalized = key.lower().replace("-", "_")
+    if normalized in {"owner_key", "contributor_key", "shared_key"}:
+        return True
+    parent = (parent_key or "").lower().replace("-", "_")
+    return normalized == "key" and parent in {"owner_access", "contributor_access", "shared_access"}
 
 
 def secret_key(key: str) -> bool:

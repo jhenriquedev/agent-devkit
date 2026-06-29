@@ -1,6 +1,6 @@
 {
   "name": "agent-devkit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Agent DevKit CLI runtime for specialist AI agents, capabilities and provider-aware automations.",
   "type": "module",
   "license": "MIT",

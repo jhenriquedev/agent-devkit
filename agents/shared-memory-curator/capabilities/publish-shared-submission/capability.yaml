@@ -1,0 +1,19 @@
+id: shared-memory-curator.publish-shared-submission
+kind: capability
+name: Publish shared submission
+version: 0.3.0
+status: draft
+purpose: Publicar envio aprovado na memoria compartilhada principal.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+outputs:
+  type: object
+routing:
+  anchors:
+    - publicar memoria compartilhada
+    - shared-memory publish
+  intents:
+    - memory.shared.publish

@@ -16,6 +16,9 @@ def persist_setup_wizard_payload(
     wizard = payload.get("setup_wizard")
     if not isinstance(wizard, dict) or wizard.get("wizard_id"):
         return payload
+    if wizard.get("status") == "denied-by-user":
+        payload["next_question"] = wizard.get("next_question")
+        return payload
     persisted = create_provider_wizard(
         wizard,
         execution_plan=execution_plan or payload.get("execution_plan"),

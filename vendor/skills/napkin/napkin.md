@@ -7,11 +7,21 @@
 - Each item includes date + "Do instead".
 
 ## Execution & Validation (Highest Priority)
-1. **[2026-06-20] Validate agent capabilities through `agent`**
+1. **[2026-06-29] Nao paralelizar build e verify do pacote npm**
+   Do instead: rode `npm run package:build && npm run package:verify` sequencialmente; o build remove/recria `tooling/agent-devkit/runtime` e quebra verifies simultaneos.
+2. **[2026-06-29] QA destrutivo de instalacao roda em Docker**
+   Do instead: use `npm run docker:qa` para instalar tarball em container limpo, validar fluxos CLI criticos, desinstalar e remover `.agent-devkit` sem tocar no host.
+3. **[2026-06-29] Docker sem espaco causa falsos erros de apt/GPG**
+   Do instead: se `npm run docker:qa` falhar com assinatura invalida no `apt`, verificar `docker system df` e liberar artefatos regeneraveis antes de diagnosticar o CLI.
+4. **[2026-06-29] Release gate completo precisa de timeout folgado**
+   Do instead: manter timeout do `scripts/release-gate.py` acima da duracao real da suite completa; a suite isolada ja passa de 300s e o gate adiciona overhead.
+5. **[2026-06-29] Isolar home do Agent DevKit em testes**
+   Do instead: use `AGENT_DEVKIT_HOME=$(mktemp -d)` ou `AI_DEVKIT_CONFIG_HOME=$(mktemp -d)`; `AI_DEVKIT_HOME` nao e lido pelo runtime e pode gravar em `~/.agent-devkit`.
+6. **[2026-06-20] Validate agent capabilities through `agent`**
    Do instead: when testing a capability, execute it through `agent run <agent> <capability>` before using lower-level integration CLIs.
-2. **[2026-06-21] Excel artifact-tool Node scripts may keep handles alive**
+7. **[2026-06-21] Excel artifact-tool Node scripts may keep handles alive**
    Do instead: guard `run_node_script()` calls with timeouts and make successful JS runners call `process.exit(0)` after awaited saves.
-3. **[2026-06-21] `unittest discover` does not find repo tests**
+8. **[2026-06-21] `unittest discover` does not find repo tests**
    Do instead: run `python3 -m unittest $(rg --files -g 'test*.py' -g '!vendor/**')` for the project suite.
 
 ## Shell & Command Reliability
@@ -44,10 +54,14 @@
 
 ## User Directives
 1. **[2026-06-28] Rodar testes focados durante patches**
-   Do instead: para melhorias intermediarias, executar apenas testes necessarios para validar o patch; reservar suite completa para o fechamento do conjunto de melhorias.
-2. **[2026-06-22] Implement agentic specs individually**
+   Do instead: para melhorias intermediarias, executar apenas testes necessarios para validar o patch e no maximo `scripts/release-gate.py --quick`; reservar suite completa e gate completo apenas para fechamento de fase/versao.
+2. **[2026-06-29] Manter `.agent-devkit` como home local**
+   Do instead: persistir instalacao, memoria local, configs e artefatos locais em `.agent-devkit` quando o runtime ja usar esse caminho; nao migrar para `.ai-devkit`.
+3. **[2026-06-29] Comando canonico permanece `agent`**
+   Do instead: manter `agent` como comando default e validar que renomeacao/persona altera o nome publico do agente, nao o executavel canonico.
+4. **[2026-06-22] Implement agentic specs individually**
    Do instead: process one `docs/agentic/*_plan.md` spec at a time with agent-specific analysis, tests, implementation, and review; do not use broad multi-agent waves or mechanical generation.
-3. **[2026-06-22] Use Agent DevKit agents for work**
+5. **[2026-06-22] Use Agent DevKit agents for work**
    Do instead: route every current and future activity through the relevant Agent DevKit agent/capability before doing direct ad-hoc work.
-4. **[2026-06-20] Keep generated docs out of final project versioning**
+6. **[2026-06-20] Keep generated docs out of final project versioning**
    Do instead: treat `docs/` as local development/generated artifact space and keep it ignored.

@@ -1,0 +1,40 @@
+id: knowledge-github
+name: Knowledge GitHub
+kind: knowledge-storage-provider
+status: draft
+description: Provider GitHub para versionar knowledge bases file-first em repositorios remotos.
+auth_methods:
+  - id: gh-auth
+    label: GitHub CLI auth
+    native: true
+    secret_fields: []
+  - id: token
+    label: GitHub token
+    secret_fields:
+      - GITHUB_TOKEN
+config_fields:
+  - name: GITHUB_TOKEN
+    required: false
+    secret: true
+  - name: GITHUB_REPOSITORY
+    required: false
+    secret: false
+  - name: AGENT_DEVKIT_KNOWLEDGE_LOCATION
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge-base.create
+    - knowledge.snapshot.submit
+health_check:
+  command: gh auth status
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

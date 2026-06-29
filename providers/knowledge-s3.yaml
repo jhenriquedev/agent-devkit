@@ -1,0 +1,45 @@
+id: knowledge-s3
+name: Knowledge S3
+kind: knowledge-storage-provider
+status: draft
+description: Provider S3 para armazenar knowledge bases file-first em buckets autorizados.
+auth_methods:
+  - id: aws-profile
+    label: AWS profile
+    native: true
+    secret_fields: []
+  - id: access-key
+    label: AWS access key
+    secret_fields:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+config_fields:
+  - name: AWS_PROFILE
+    required: false
+    secret: false
+  - name: AWS_REGION
+    required: false
+    secret: false
+  - name: AGENT_DEVKIT_KNOWLEDGE_S3_BUCKET
+    required: false
+    secret: false
+  - name: AGENT_DEVKIT_KNOWLEDGE_S3_PREFIX
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge-base.create
+    - knowledge.snapshot.submit
+health_check:
+  command: aws sts get-caller-identity
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

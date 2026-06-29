@@ -1,0 +1,26 @@
+id: knowledge-reviewer.review-knowledge-snapshot
+kind: capability
+name: Review knowledge snapshot
+version: 0.3.0
+status: draft
+purpose: Revisar snapshot pendente e emitir parecer antes de publicacao.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+  properties:
+    snapshot_id:
+      type: string
+outputs:
+  type: object
+  artifacts:
+    - path: knowledge-base/reviews
+      kind: markdown
+      sensitive: false
+routing:
+  anchors:
+    - knowledge review
+    - revisar snapshot
+  intents:
+    - knowledge.snapshot.review

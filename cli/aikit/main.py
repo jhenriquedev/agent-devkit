@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
+import traceback
 
 from cli.aikit.cli_dispatch import dispatch, format_audit_warning, is_audit_warning, maybe_record_cli_audit
 from cli.aikit.cli_parser import DETERMINISTIC_COMMANDS, LLM_COMMANDS, build_parser
@@ -25,6 +27,19 @@ def main(argv: list[str] | None = None, *, prog: str | None = None) -> int:
         if is_audit_warning(audit_result):
             print(format_audit_warning(audit_result), file=sys.stderr)
         print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except Exception as exc:  # noqa: BLE001 - CLI boundary must not leak tracebacks by default.
+        if os.environ.get("AI_DEVKIT_DEBUG") == "1":
+            traceback.print_exc(file=sys.stderr)
+        else:
+            print(
+                f"error: internal error: {type(exc).__name__}. "
+                "Run with AI_DEVKIT_DEBUG=1 for traceback.",
+                file=sys.stderr,
+            )
+        audit_result = maybe_record_cli_audit(args, result=None, error=f"{type(exc).__name__}: {exc}")
+        if is_audit_warning(audit_result):
+            print(format_audit_warning(audit_result), file=sys.stderr)
         return 1
 
     if result is None:

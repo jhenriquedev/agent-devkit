@@ -1,0 +1,32 @@
+id: knowledge-google-drive
+name: Knowledge Google Drive
+kind: knowledge-storage-provider
+status: draft
+description: Provider Google Drive para armazenar knowledge bases file-first em pastas compartilhadas.
+auth_methods:
+  - id: oauth
+    label: Google OAuth
+    native: true
+    secret_fields: []
+config_fields:
+  - name: GOOGLE_APPLICATION_CREDENTIALS
+    required: false
+    secret: true
+  - name: AGENT_DEVKIT_KNOWLEDGE_DRIVE_FOLDER_ID
+    required: false
+    secret: false
+capabilities:
+  read:
+    - knowledge-base.join
+    - knowledge.search
+  write:
+    - knowledge.snapshot.submit
+health_check:
+  command: agent provider doctor knowledge-google-drive
+risk:
+  default: read
+  writes: true
+fallbacks:
+  - plan_only
+  - manual_steps
+  - blocked

@@ -2,6 +2,9 @@
 
 Agent DevKit is a CLI runtime for specialist AI agents, capabilities,
 provider-aware automations and local host adapters for Codex and Claude.
+On first run, the npm wrapper creates a local Python environment under
+`~/.agent-devkit/python` (or `AGENT_DEVKIT_HOME`) and installs the bundled
+`requirements.txt` dependencies.
 
 The npm package installs the canonical command:
 
@@ -18,6 +21,7 @@ npm install -g agent-devkit
 Validate the installation:
 
 ```bash
+agent
 agent --version
 agent -v
 agent doctor
@@ -26,7 +30,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.2.0
+agent 0.3.0
 ```
 
 ## Quick Start
@@ -41,12 +45,13 @@ agent llm list
 agent commands list
 ```
 
-Agent DevKit `v0.2.0` also includes deterministic runtime discovery and
+Agent DevKit `v0.3.0` also includes deterministic runtime discovery and
 integration commands:
 
 ```bash
 agent roadmap
 agent catalog search pr
+agent plan "review this Azure card"
 agent route explain "review the PRs waiting for me"
 agent eval run routing
 agent secrets doctor
@@ -71,6 +76,43 @@ agent "analise o problema relatado no card 9900"
 Natural-language mode requires an LLM backend. Deterministic commands such as
 `agent agents list`, `agent capabilities list`, `agent doctor`, `agent provider`
 and `agent run` do not require an LLM.
+
+Running `agent` without arguments starts the local onboarding status and wizard:
+memory, personality, LLM backends, Ollama, toolchain, sources and next actions.
+Use `agent onboard minimal` for identity, coordinator LLM, Qwen3-0.6B via
+Ollama and local memory. Use `agent onboard complete` to include toolchain,
+providers/sources, specialist catalog, local automations, tasks, notifications,
+knowledge and shared memory. Both commands return plans; external installs
+still require explicit opt-in.
+
+The canonical executable remains `agent`, but the local public agent name can be
+changed during onboarding, with `agent --rename <name>`, with
+`agent personality edit --rename <name>`, or through a natural-language prompt
+such as `agent "mude seu nome para ianota10"`. To expose an executable alias,
+use `agent alias add <name>`.
+
+Useful operational commands:
+
+```bash
+agent plan "analyze Azure card 7914"
+agent execute --dry-run "summarize these logs"
+agent workflow install daily-pr-review --dry-run
+agent local-llm doctor
+agent local-llm install qwen3:0.6b --dry-run
+agent skill create my-skill --description "Local skill"
+agent script create hello --command "echo hello"
+agent team init
+agent team doctor
+agent knowledge init
+agent knowledge search "runbook procedure"
+agent shared-memory create --title "Support runbooks"
+agent shared-memory submit <memory-id> --title "New runbook" --content "..." --key <contributor-key>
+agent shared-memory review <memory-id> <submission-id>
+agent shared-memory publish <memory-id> <submission-id> --yes --owner-key <owner-key>
+agent contribute pr my-extension --dry-run
+agent mcp manifest
+agent mcp serve
+```
 
 ## Complete Configuration Tutorial
 
@@ -187,10 +229,10 @@ agent llm doctor openrouter
 ```bash
 agent ollama status
 agent ollama models
-agent ollama pull qwen2.5-coder --dry-run
-agent ollama pull qwen2.5-coder --yes
+agent ollama pull qwen3:0.6b --dry-run
+agent ollama pull qwen3:0.6b --yes
 ollama serve
-agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.6b --set-default
 agent llm doctor ollama
 ```
 
@@ -304,7 +346,7 @@ agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --model openai/g
 Local or host-authenticated backends:
 
 ```bash
-agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen2.5-coder --set-default
+agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.6b --set-default
 agent llm configure codex-cli --set-default
 agent llm configure claude-code --set-default
 ```

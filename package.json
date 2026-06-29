@@ -1,6 +1,6 @@
 {
   "name": "agent-devkit-repo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -9,7 +9,8 @@
     "release:verify": "node scripts/verify-release-alignment.mjs",
     "package:build": "node tooling/agent-devkit/scripts/build-package.mjs",
     "package:verify": "node tooling/agent-devkit/scripts/verify-package.mjs",
-    "package:pack": "npm pack ./tooling/agent-devkit"
+    "package:pack": "npm pack ./tooling/agent-devkit",
+    "docker:qa": "bash scripts/docker-cli-qa.sh"
   },
   "engines": {
     "node": ">=20"

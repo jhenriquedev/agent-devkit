@@ -103,6 +103,8 @@ class AgenticWave3ContractsTest(unittest.TestCase):
             home = Path(tmpdir)
             env = {"AI_DEVKIT_CONFIG_HOME": tmpdir}
             create = self.run_agent("--json", "qual", "seu", "nome?", env=env)
+            (home / "tasks").mkdir(parents=True, exist_ok=True)
+            (home / "cache").mkdir(parents=True, exist_ok=True)
             (home / "tasks" / "job.md").write_text("job", encoding="utf-8")
             (home / "cache" / "item.txt").write_text("cache", encoding="utf-8")
 

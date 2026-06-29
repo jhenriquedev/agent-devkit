@@ -20,6 +20,7 @@ APP_DIRS = (
     "memory",
     "sessions",
     "tasks",
+    "backups",
     "policies",
     "audit",
     "secrets",

@@ -1,0 +1,30 @@
+id: knowledge-author.create-knowledge-snapshot
+kind: capability
+name: Create knowledge snapshot
+version: 0.3.0
+status: draft
+purpose: Gerar snapshot revisavel, sanitizado e generalizavel a partir de conteudo operacional.
+entrypoint:
+  workflow: workflow.md
+write_policy: local_config_write
+inputs:
+  type: object
+  properties:
+    title:
+      type: string
+    content:
+      type: string
+    source:
+      type: string
+outputs:
+  type: object
+  artifacts:
+    - path: knowledge-base/snapshots/pending
+      kind: markdown
+      sensitive: false
+routing:
+  anchors:
+    - knowledge snapshot create
+    - criar snapshot
+  intents:
+    - knowledge.snapshot.create

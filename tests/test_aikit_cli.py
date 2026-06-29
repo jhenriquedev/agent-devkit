@@ -224,25 +224,68 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.2.0", result.stdout)
+        self.assertIn("aikit 0.3.0", result.stdout)
 
     def test_short_version_exits_successfully(self) -> None:
         result = self.run_cli("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.2.0", result.stdout)
+        self.assertIn("aikit 0.3.0", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.2.0", result.stdout)
+        self.assertIn("agent 0.3.0", result.stdout)
 
     def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.2.0", result.stdout)
+        self.assertIn("agent 0.3.0", result.stdout)
+
+    def test_agent_entrypoint_rename_shortcut_updates_public_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AGENT_DEVKIT_HOME": tmpdir}
+            renamed = self.run_agent("--rename", "Ianota", "--json", env=env)
+            identity = self.run_agent("--json", "qual", "seu", "nome?", env=env)
+
+        self.assertEqual(renamed.returncode, 0, renamed.stderr)
+        self.assertEqual(identity.returncode, 0, identity.stderr)
+        self.assertEqual(json.loads(renamed.stdout)["agent_name"], "Ianota")
+        self.assertIn("Ianota", json.loads(identity.stdout)["response"])
+
+    def test_agent_entrypoint_accepts_json_after_natural_prompt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AGENT_DEVKIT_HOME": tmpdir, "PATH": os.environ.get("PATH", "")}
+            renamed = self.run_agent("mude", "seu", "nome", "para", "ianota10", "--json", env=env)
+            identity = self.run_agent("qual", "seu", "nome?", "--json", env=env)
+
+        self.assertEqual(renamed.returncode, 0, renamed.stderr)
+        self.assertEqual(identity.returncode, 0, identity.stderr)
+        renamed_payload = json.loads(renamed.stdout)
+        identity_payload = json.loads(identity.stdout)
+        self.assertEqual(renamed_payload["action"], "rename")
+        self.assertEqual(renamed_payload["identity"]["name"], "ianota10")
+        self.assertEqual(identity_payload["identity"]["name"], "ianota10")
+        self.assertNotIn("--json", renamed_payload["identity"]["name"])
+        self.assertIn("ianota10", identity_payload["response"])
+
+    def test_agentic_entrypoints_accept_json_and_dry_run_after_prompt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AGENT_DEVKIT_HOME": tmpdir, "PATH": os.environ.get("PATH", "")}
+            plan = self.run_agent("plan", "analise", "o", "card", "9900", "--json", env=env)
+            execute = self.run_agent("execute", "analise", "o", "card", "9900", "--dry-run", "--json", env=env)
+            orchestrate = self.run_agent("orchestrate", "analise", "o", "card", "9900", "--dry-run", "--json", env=env)
+
+        for result in (plan, execute, orchestrate):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual(payload["kind"], "agentic-plan")
+            self.assertNotIn("--json", payload["execution_plan"]["prompt"])
+            self.assertNotIn("--dry-run", payload["execution_plan"]["prompt"])
+        self.assertEqual(json.loads(execute.stdout)["command_mode"], "execute")
+        self.assertEqual(json.loads(orchestrate.stdout)["command_mode"], "orchestrate")
 
     def test_agents_list_json(self) -> None:
         result = self.run_cli("agents", "list", "--json")
@@ -472,7 +515,34 @@ class AikitCliTest(unittest.TestCase):
         self.assertIn("install", deterministic)
         self.assertIn("agent", llm)
         self.assertTrue(all(not item["requires_llm"] for item in payload["deterministic"]))
-        self.assertTrue(all(item["requires_llm"] for item in payload["llm"]))
+        llm_modes = {item["command"]: item for item in payload["llm"]}
+        self.assertFalse(llm_modes["agent"]["requires_llm"])
+        self.assertEqual(llm_modes["agent"]["mode"], "adaptive")
+        self.assertIn("onboarding", llm_modes["agent"]["local_without_llm"])
+        self.assertTrue(all(item["requires_llm"] for item in payload["llm"] if item["command"] != "agent"))
+
+    def test_secret_set_returns_new_reference_after_sorting(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {
+                "AGENT_DEVKIT_HOME": tmpdir,
+                "Z_TOKEN": "z-secret",
+                "A_TOKEN": "a-secret",
+            }
+            first = self.run_agent("secret", "set", "zeta", "token", "--env", "Z_TOKEN", "--json", env=env)
+            second = self.run_agent("secret", "set", "alpha", "token", "--env", "A_TOKEN", "--json", env=env)
+            listed = self.run_agent("secret", "list", "--json", env=env)
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        second_payload = json.loads(second.stdout)
+        self.assertEqual(second_payload["reference"]["provider"], "alpha")
+        self.assertEqual(second_payload["reference"]["key"], "token")
+        self.assertEqual(second_payload["reference"]["env"], "A_TOKEN")
+        self.assertFalse(second_payload["reference"]["value_stored"])
+        self.assertNotIn("a-secret", second.stdout)
+        references = json.loads(listed.stdout)["references"]
+        self.assertEqual([item["provider"] for item in references], ["alpha", "zeta"])
 
     def test_providers_list_json(self) -> None:
         result = self.run_cli("providers", "list", "--json")
@@ -1034,6 +1104,15 @@ class AikitCliTest(unittest.TestCase):
         self.assertTrue(doctor_payload["items"][0]["api_key_present"])
         self.assertNotIn("secret-value-that-must-not-leak", doctor.stdout)
 
+    def test_llm_configure_ollama_defaults_to_qwen3_mini_brain(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            result = self.run_cli("llm", "configure", "ollama", "--json", env={"AIKIT_CONFIG_HOME": config_home})
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["backend"], "ollama")
+        self.assertEqual(payload["config"]["model"], "qwen3:0.6b")
+
     def test_llm_configure_rejects_raw_secret_as_api_key_env(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
             result = self.run_cli(
@@ -1059,6 +1138,20 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(payload["kind"], "llm-doctor")
         self.assertEqual(payload["status"], "missing")
         self.assertFalse(payload["items"][0]["api_key_present"])
+
+    def test_llm_doctor_missing_ollama_does_not_treat_default_url_as_available(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as bin_dir:
+            env = {
+                "AIKIT_CONFIG_HOME": config_home,
+                "PATH": bin_dir,
+            }
+            result = self.run_cli("llm", "doctor", "ollama", "--json", env=env)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "llm-doctor")
+        self.assertEqual(payload["status"], "missing")
+        self.assertEqual(payload["items"][0]["status"], "missing")
 
     def test_llm_doctor_codex_cli_does_not_require_installation(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
@@ -1711,11 +1804,60 @@ class AikitCliTest(unittest.TestCase):
         self.assertIn("requires a configured LLM backend", payload["message"])
         self.assertIn("agent run <agent> <capability>", payload["next_steps"][0])
 
-    def test_agent_requires_prompt(self) -> None:
-        result = self.run_cli("agent")
+    def test_agent_without_args_starts_onboarding(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            result = self.run_agent(
+                env={"AGENT_DEVKIT_HOME": config_home, "PATH": os.environ.get("PATH", "")},
+                replace_env=True,
+            )
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("agent requires a natural-language prompt", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertIn("Agent DevKit", result.stdout)
+        self.assertIn("Status:", result.stdout)
+        self.assertIn("Memoria local:", result.stdout)
+        self.assertNotIn("agent requires a natural-language prompt", result.stdout)
+
+    def test_agent_without_args_json_returns_onboarding(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            result = self.run_agent(
+                "--json",
+                env={"AGENT_DEVKIT_HOME": config_home, "PATH": os.environ.get("PATH", "")},
+                replace_env=True,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "onboarding")
+        self.assertEqual(payload["schema_version"], "agent-devkit.onboarding/v1")
+        self.assertIn(payload["status"], {"ready", "needs-setup", "needs-attention"})
+        self.assertEqual(payload["memory"]["status"], "ok")
+        self.assertGreaterEqual(payload["memory"]["file_count"], 1)
+        self.assertTrue(payload["suggested_actions"])
+        modes = {item["id"]: item for item in payload["onboarding_modes"]}
+        self.assertEqual(set(modes), {"minimal", "complete"})
+        self.assertEqual(modes["minimal"]["command"], "agent onboard minimal")
+        self.assertEqual(modes["complete"]["command"], "agent onboard complete")
+
+    def test_onboard_minimal_and_complete_return_non_executing_plans(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            env = {"AGENT_DEVKIT_HOME": config_home, "PATH": os.environ.get("PATH", "")}
+            minimal = self.run_agent("onboard", "minimal", "--json", env=env)
+            complete = self.run_agent("onboard", "complete", "--json", env=env)
+
+        self.assertEqual(minimal.returncode, 0, minimal.stderr)
+        self.assertEqual(complete.returncode, 0, complete.stderr)
+        minimal_payload = json.loads(minimal.stdout)
+        complete_payload = json.loads(complete.stdout)
+        self.assertEqual(minimal_payload["kind"], "onboarding-plan")
+        self.assertEqual(minimal_payload["mode"], "minimal")
+        self.assertFalse(minimal_payload["external_actions_executed"])
+        self.assertIn("qwen3:0.6b", json.dumps(minimal_payload))
+        self.assertEqual(complete_payload["kind"], "onboarding-plan")
+        self.assertEqual(complete_payload["mode"], "complete")
+        self.assertFalse(complete_payload["external_actions_executed"])
+        self.assertGreater(complete_payload["agent_catalog"]["agents"], 0)
+        self.assertGreater(len(complete_payload["steps"]), len(minimal_payload["steps"]))
 
     def test_run_applies_provider_fallback_when_required_provider_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
@@ -2333,7 +2475,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.2.0", installed_agent.stdout)
+            self.assertIn("agent 0.3.0", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2477,7 +2619,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.2.0", result.stdout)
+        self.assertIn("ai-devkit 0.3.0", result.stdout)
 
 
 if __name__ == "__main__":

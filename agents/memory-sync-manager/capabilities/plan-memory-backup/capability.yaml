@@ -1,0 +1,29 @@
+id: memory-sync-manager.plan-memory-backup
+kind: capability
+name: Plan memory backup
+version: 0.3.0
+status: draft
+purpose: Planejar backup, restore ou sincronizacao seletiva da memoria local sem executar upload.
+entrypoint:
+  workflow: workflow.md
+write_policy: output_only
+inputs:
+  type: object
+  properties:
+    action:
+      type: string
+    provider:
+      type: string
+outputs:
+  type: object
+  artifacts:
+    - path: memory-backup-plan.md
+      kind: markdown
+      sensitive: false
+routing:
+  anchors:
+    - memory backup
+    - backup de memoria
+  intents:
+    - memory.backup.plan
+    - memory.restore.plan

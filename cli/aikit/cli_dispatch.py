@@ -8,16 +8,18 @@ from typing import Any
 
 from cli.aikit import __version__
 from cli.aikit.aliases import add_alias, list_aliases, remove_alias, sync_aliases
+from cli.aikit.agentic_commands import agentic_execute, agentic_plan
 from cli.aikit.app_home import app_home_status, migrate_default_home
 from cli.aikit.architecture import architecture_contract
 from cli.aikit.audit import export_audit, list_audits, record_audit, show_audit, try_record_audit
 from cli.aikit.calendar import calendar_list, calendar_today, calendar_tomorrow, configure_calendar
-from cli.aikit.catalog import catalog_list, catalog_search, catalog_show
+from cli.aikit.catalog import catalog_list, catalog_rebuild_index, catalog_search, catalog_show
 from cli.aikit.cli_parser import DETERMINISTIC_COMMANDS, LLM_COMMANDS
 from cli.aikit.contribution import (
     contribution_checklist,
     contribution_list,
     contribution_prepare,
+    contribution_pr,
     contribution_review,
     contribution_validate,
 )
@@ -43,6 +45,27 @@ from cli.aikit.extensions import (
 )
 from cli.aikit.github_pr import planned_pr_commands, pr_create_automation, pr_inspect, pr_list_review_requests, pr_review
 from cli.aikit.install import InstallError, install_runtime
+from cli.aikit.knowledge_base import (
+    knowledge_base_create,
+    knowledge_base_join,
+    knowledge_base_rotate_token,
+    knowledge_base_status,
+    knowledge_base_tokens,
+    knowledge_curate,
+    knowledge_doctor,
+    knowledge_index,
+    knowledge_init,
+    knowledge_publish,
+    knowledge_review,
+    knowledge_review_list,
+    knowledge_search,
+    knowledge_snapshot_list,
+    knowledge_snapshot_score,
+    knowledge_snapshot_create,
+    knowledge_snapshot_show,
+    knowledge_snapshot_submit,
+    knowledge_sync,
+)
 from cli.aikit.llm import (
     configure_backend,
     doctor_backends,
@@ -51,8 +74,45 @@ from cli.aikit.llm import (
     set_default_backend,
     set_llm_preference,
 )
+from cli.aikit.local_llm import (
+    local_llm_benchmark,
+    local_llm_doctor,
+    local_llm_install,
+    local_llm_list,
+    local_llm_models,
+    local_llm_remove,
+)
+from cli.aikit.local_artifacts import (
+    local_agent_create,
+    local_agent_list,
+    local_agent_show,
+    local_agent_validate,
+    local_automation_create,
+    local_automation_enable,
+    local_automation_list,
+    local_automation_remove,
+    local_automation_show,
+    local_automation_update,
+    local_automation_validate,
+    script_create,
+    script_list,
+    script_run,
+    skill_create,
+    skill_delete,
+    skill_list,
+    skill_show,
+    skill_update,
+)
 from cli.aikit.lock import parse_profiles
-from cli.aikit.memory import memory_path_payload, reset_memory, show_memory
+from cli.aikit.memory import (
+    create_memory_backup,
+    delete_memory_backup,
+    list_memory_backups,
+    memory_path_payload,
+    reset_memory,
+    restore_memory_backup,
+    show_memory,
+)
 from cli.aikit.mcp_manifest import mcp_doctor, mcp_manifest, mcp_tools_payload
 from cli.aikit.mcp_server import serve_mcp_stdio
 from cli.aikit.mini_brain import setup_mini_brain
@@ -66,6 +126,7 @@ from cli.aikit.notifications import (
     send_notification_command,
 )
 from cli.aikit.ollama import ollama_models, ollama_pull, ollama_status, ollama_update
+from cli.aikit.onboarding import onboarding_plan, onboarding_status
 from cli.aikit.permissions import grant_permission, revoke_permission, show_permissions
 from cli.aikit.personality import load_personality, reset_personality, setup_personality, update_personality
 from cli.aikit.providers import (
@@ -89,6 +150,15 @@ from cli.aikit.secrets import (
     secret_backends,
     secrets_doctor,
 )
+from cli.aikit.shared_memory import (
+    shared_memory_create,
+    shared_memory_list,
+    shared_memory_publish,
+    shared_memory_read,
+    shared_memory_review,
+    shared_memory_status,
+    shared_memory_submit,
+)
 from cli.aikit.sources import SourceConfigBlockedError, SourceRegistryError, add_source, list_sources, remove_source, source_status
 from cli.aikit.tasks import (
     create_task,
@@ -99,6 +169,17 @@ from cli.aikit.tasks import (
     task_history,
     update_task_schedule,
     update_task_status,
+)
+from cli.aikit.team import (
+    team_doctor,
+    team_init,
+    team_onboard,
+    team_profile_export,
+    team_profile_import,
+    team_profile_list,
+    team_profile_show,
+    team_profile_use,
+    team_status,
 )
 from cli.aikit.toolchain import doctor_toolchain, install_toolchain, list_toolchain
 from cli.aikit.workflows import workflow_install, workflow_list, workflow_run, workflow_show
@@ -120,16 +201,24 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return run_agent_prompt(agent_prompt_request_from_args(args))
     if command == "commands":
         return list_command_modes()
+    if command == "onboard":
+        return dispatch_onboard(args)
     if command == "architecture":
         return architecture_contract(ROOT)
     if command == "roadmap":
         return dispatch_roadmap(args)
     if command == "catalog":
         return dispatch_catalog(args)
+    if command == "plan":
+        return dispatch_agentic_plan(args)
+    if command in {"execute", "orchestrate"}:
+        return dispatch_agentic_execute(command, args)
     if command == "route":
         return dispatch_route(args)
     if command == "eval":
         return dispatch_eval(args)
+    if command == "secret":
+        return dispatch_secret(args)
     if command == "secrets":
         return dispatch_secrets(args)
     if command == "providers":
@@ -144,6 +233,8 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return dispatch_wizard(args)
     if command == "memory":
         return dispatch_memory(args)
+    if command == "shared-memory":
+        return dispatch_shared_memory(args)
     if command == "personality":
         return dispatch_personality(args)
     if command == "setup":
@@ -172,16 +263,28 @@ def dispatch(args: argparse.Namespace) -> dict[str, Any] | None:
         return dispatch_config(args)
     if command in {"tools", "integrations", "skills"}:
         return dispatch_control_category(command, args)
+    if command == "skill":
+        return dispatch_skill(args)
+    if command == "script":
+        return dispatch_script(args)
     if command == "decisions":
         return dispatch_decisions(args)
     if command == "ollama":
         return dispatch_ollama(args)
+    if command == "local-llm":
+        return dispatch_local_llm(args)
     if command == "mcp":
         return dispatch_mcp(args)
     if command == "local":
         return dispatch_local(args)
     if command == "workflow":
         return dispatch_workflow(args)
+    if command == "team":
+        return dispatch_team(args)
+    if command == "knowledge":
+        return dispatch_knowledge(args)
+    if command == "knowledge-base":
+        return dispatch_knowledge_base(args)
     if command in {"contribute", "contribution"}:
         return dispatch_contribution(args)
     if command == "llm":
@@ -255,13 +358,45 @@ def list_command_modes() -> dict[str, Any]:
             for command in DETERMINISTIC_COMMANDS
         ],
         "llm": [
-            {
-                "command": command,
-                "requires_llm": True,
-            }
+            llm_command_mode(command)
             for command in LLM_COMMANDS
         ],
     }
+
+
+def llm_command_mode(command: str) -> dict[str, Any]:
+    if command == "agent":
+        return {
+            "command": command,
+            "requires_llm": False,
+            "mode": "adaptive",
+            "uses_llm_when_needed": True,
+            "local_without_llm": [
+                "onboarding",
+                "identity",
+                "rename",
+                "capabilities-help",
+                "deterministic-routing",
+            ],
+        }
+    return {
+        "command": command,
+        "requires_llm": True,
+        "mode": "llm",
+        "uses_llm_when_needed": True,
+    }
+
+
+def dispatch_onboard(args: argparse.Namespace) -> dict[str, Any]:
+    action = getattr(args, "action", "show")
+    if action in {"minimal", "complete"}:
+        try:
+            return onboarding_plan(ROOT, action)
+        except ValueError as exc:
+            raise DevKitError(str(exc)) from exc
+    if action != "show":
+        raise DevKitError(f"unsupported onboard action: {args.action}")
+    return onboarding_status(ROOT)
 
 
 def dispatch_roadmap(args: argparse.Namespace) -> dict[str, Any]:
@@ -278,15 +413,55 @@ def dispatch_roadmap(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def dispatch_catalog(args: argparse.Namespace) -> dict[str, Any]:
+    filters = catalog_filters_from_args(args)
     if args.action == "list":
-        if args.query:
+        if args.query or getattr(args, "target", None):
             raise DevKitError("catalog list does not accept a query")
-        return catalog_list(ROOT)
+        return catalog_list(ROOT, item_type=args.item_type, filters=filters)
     if args.action == "search":
-        return catalog_search(args.query or "", ROOT)
+        if getattr(args, "target", None):
+            raise DevKitError("catalog search does not accept a second query")
+        return catalog_search(args.query or "", ROOT, item_type=args.item_type, filters=filters)
     if args.action == "show":
-        return catalog_show(args.query or "", ROOT)
+        if getattr(args, "target", None):
+            raise DevKitError("catalog show accepts only one item id")
+        return catalog_show(args.query or "", ROOT, item_type=args.item_type)
+    if args.action == "inspect":
+        if not args.query or not args.target:
+            raise DevKitError("catalog inspect requires <type> <id>")
+        return catalog_show(args.target, ROOT, item_type=args.query)
+    if args.action == "rebuild-index":
+        if args.query or getattr(args, "target", None):
+            raise DevKitError("catalog rebuild-index does not accept arguments")
+        return catalog_rebuild_index(ROOT)
     raise DevKitError(f"unsupported catalog action: {args.action}")
+
+
+def dispatch_agentic_plan(args: argparse.Namespace) -> dict[str, Any]:
+    return agentic_plan(ROOT, list(getattr(args, "prompt", []) or []))
+
+
+def dispatch_agentic_execute(command: str, args: argparse.Namespace) -> dict[str, Any]:
+    return agentic_execute(
+        list(getattr(args, "prompt", []) or []),
+        llm=getattr(args, "llm", None),
+        dry_run=effective_dry_run(args),
+        session_id=getattr(args, "session_id", None),
+        new_session=bool(getattr(args, "new_session", False)),
+        no_llm_fallback=bool(getattr(args, "no_llm_fallback", False)),
+        prog_name=getattr(args, "prog_name", "agent"),
+        project=str(Path.cwd()),
+        mode=command,
+    )
+
+
+def catalog_filters_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "provider": getattr(args, "provider", None),
+        "status": getattr(args, "status", None),
+        "write_policy": getattr(args, "write_policy", None),
+        "readiness": getattr(args, "readiness", None),
+    }
 
 
 def dispatch_route(args: argparse.Namespace) -> dict[str, Any]:
@@ -305,9 +480,7 @@ def dispatch_eval(args: argparse.Namespace) -> dict[str, Any]:
         if args.action == "run":
             return eval_run(args.suite or "all", ROOT)
         if args.action == "report":
-            if args.suite:
-                raise DevKitError("eval report does not accept a suite")
-            return eval_report()
+            return eval_report(args.suite)
     except ValueError as exc:
         raise DevKitError(str(exc)) from exc
     raise DevKitError(f"unsupported eval action: {args.action}")
@@ -333,6 +506,40 @@ def dispatch_secrets(args: argparse.Namespace) -> dict[str, Any]:
     raise DevKitError(f"unsupported secrets action: {args.action}")
 
 
+def dispatch_secret(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "doctor":
+        return secrets_doctor()
+    if args.action == "list":
+        return list_secret_references()
+    if args.action == "set":
+        if not args.provider or not args.key:
+            raise DevKitError("secret set requires <provider> <key>")
+        return add_secret_reference(args.provider, args.key, env=args.env)
+    if args.action == "get":
+        provider, key = secret_ref_parts(args.secret_ref, args.provider, args.key)
+        payload = list_secret_references()
+        for item in payload.get("references") or []:
+            if item.get("provider") == provider and item.get("key") == key:
+                return {"kind": "secret-reference", "status": "found", "reference": item, "value_returned": False}
+        return {"kind": "secret-reference", "status": "not-found", "reference": {"provider": provider, "key": key}, "value_returned": False}
+    if args.action == "delete":
+        provider, key = secret_ref_parts(args.secret_ref, args.provider, args.key)
+        return remove_secret_reference(provider, key)
+    raise DevKitError(f"unsupported secret action: {args.action}")
+
+
+def secret_ref_parts(secret_ref: str | None, provider: str | None, key: str | None) -> tuple[str, str]:
+    if secret_ref:
+        normalized = secret_ref.removeprefix("secret:").replace("/", ".")
+        parts = [part for part in normalized.split(".") if part]
+        if len(parts) >= 2:
+            return parts[0], ".".join(parts[1:])
+        raise DevKitError("--ref must use provider.key or secret:provider.key")
+    if not provider or not key:
+        raise DevKitError("secret reference requires <provider> <key> or --ref provider.key")
+    return provider, key
+
+
 def dispatch_agents(args: argparse.Namespace) -> dict[str, Any]:
     if args.action == "list":
         if args.query:
@@ -342,6 +549,12 @@ def dispatch_agents(args: argparse.Namespace) -> dict[str, Any]:
         return catalog_search(args.query or "", ROOT, item_type="agent")
     if args.action == "show":
         return catalog_show(args.query or "", ROOT, item_type="agent")
+    if args.action == "create":
+        return local_agent_create(args.query, description=args.description, force=args.force)
+    if args.action == "validate":
+        return local_agent_validate(args.query)
+    if args.action == "local-list":
+        return local_agent_list()
     raise DevKitError(f"unsupported agents action: {args.action}")
 
 
@@ -365,6 +578,25 @@ def dispatch_capabilities(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def dispatch_local(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "automation":
+        return dispatch_local_automation(args)
+    if args.action == "agents":
+        if args.extension_id:
+            raise DevKitError("local agents does not accept an argument")
+        return local_agent_list()
+    if args.action == "agent":
+        action = args.extension_id or "list"
+        if action == "list":
+            if args.local_item_id:
+                raise DevKitError("local agent list does not accept an agent id")
+            return local_agent_list()
+        if action == "create":
+            return local_agent_create(args.local_item_id, description=args.title or args.prompt, force=args.force)
+        if action == "show":
+            return local_agent_show(args.local_item_id)
+        if action == "validate":
+            return local_agent_validate(args.local_item_id)
+        raise DevKitError(f"unsupported local agent action: {action}")
     if args.action == "list":
         if args.extension_id:
             raise DevKitError("local list does not accept an extension id")
@@ -386,6 +618,73 @@ def dispatch_local(args: argparse.Namespace) -> dict[str, Any]:
     raise DevKitError(f"unsupported local action: {args.action}")
 
 
+def dispatch_local_automation(args: argparse.Namespace) -> dict[str, Any]:
+    action = args.extension_id or "list"
+    automation_id = args.local_item_id
+    if action == "list":
+        if automation_id:
+            raise DevKitError("local automation list does not accept an automation id")
+        return local_automation_list()
+    if action == "create":
+        return local_automation_create(
+            automation_id,
+            title=args.title,
+            prompt=args.prompt,
+            command=args.local_command,
+            every=args.every,
+            cron=args.cron,
+            force=args.force,
+        )
+    if action == "show":
+        return local_automation_show(automation_id)
+    if action == "update":
+        return local_automation_update(
+            automation_id,
+            title=args.title,
+            prompt=args.prompt,
+            command=args.local_command,
+            every=args.every,
+            cron=args.cron,
+        )
+    if action == "enable":
+        return local_automation_enable(automation_id, True)
+    if action == "disable":
+        return local_automation_enable(automation_id, False)
+    if action in {"remove", "delete"}:
+        return local_automation_remove(automation_id, yes=args.yes)
+    if action == "validate":
+        return local_automation_validate(automation_id)
+    raise DevKitError(f"unsupported local automation action: {action}")
+
+
+def dispatch_skill(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "create":
+        return skill_create(args.skill_id, description=args.description, force=args.force)
+    if args.action == "list":
+        if args.skill_id:
+            raise DevKitError("skill list does not accept a skill id")
+        return skill_list()
+    if args.action == "show":
+        return skill_show(args.skill_id)
+    if args.action == "update":
+        return skill_update(args.skill_id, description=args.description)
+    if args.action == "delete":
+        return skill_delete(args.skill_id, yes=args.yes)
+    raise DevKitError(f"unsupported skill action: {args.action}")
+
+
+def dispatch_script(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "create":
+        return script_create(args.script_id, command=args.script_command, force=args.force)
+    if args.action == "list":
+        if args.script_id:
+            raise DevKitError("script list does not accept a script id")
+        return script_list()
+    if args.action == "run":
+        return script_run(args.script_id, dry_run=effective_dry_run(args), yes=args.yes)
+    raise DevKitError(f"unsupported script action: {args.action}")
+
+
 def dispatch_workflow(args: argparse.Namespace) -> dict[str, Any]:
     try:
         if args.action == "list":
@@ -404,6 +703,94 @@ def dispatch_workflow(args: argparse.Namespace) -> dict[str, Any]:
     raise DevKitError(f"unsupported workflow action: {args.action}")
 
 
+def dispatch_team(args: argparse.Namespace) -> dict[str, Any]:
+    project = Path.cwd()
+    if args.action == "init":
+        return team_init(project, force=args.force)
+    if args.action == "status":
+        return team_status(project)
+    if args.action == "doctor":
+        return team_doctor(project)
+    if args.action == "onboard":
+        return team_onboard(project)
+    if args.action == "profile":
+        action = args.profile_action or "list"
+        if action == "list":
+            return team_profile_list(project)
+        if action == "show":
+            return team_profile_show(args.profile_id, project)
+        if action == "use":
+            return team_profile_use(args.profile_id, project)
+        if action == "export":
+            return team_profile_export(args.profile_id, args.profile_path, project)
+        if action == "import":
+            return team_profile_import(args.profile_path or args.profile_id, project)
+        raise DevKitError(f"unsupported team profile action: {action}")
+    raise DevKitError(f"unsupported team action: {args.action}")
+
+
+def dispatch_knowledge(args: argparse.Namespace) -> dict[str, Any]:
+    project = Path.cwd()
+    if args.action == "init":
+        return knowledge_init(project, force=args.force)
+    if args.action == "doctor":
+        return knowledge_doctor(project)
+    if args.action == "search":
+        return knowledge_search(args.target, project)
+    if args.action in {"index", "reindex"}:
+        return knowledge_index(project)
+    if args.action == "snapshot":
+        snapshot_action = args.target or "list"
+        snapshot_target = args.snapshot_action
+        if not snapshot_action or snapshot_action == "list":
+            if snapshot_target:
+                raise DevKitError("knowledge snapshot list does not accept a snapshot id")
+            return knowledge_snapshot_list(project)
+        if snapshot_action == "create":
+            if snapshot_target:
+                raise DevKitError("knowledge snapshot create does not accept a positional snapshot id")
+            return knowledge_snapshot_create(
+                title=args.title,
+                content=args.content,
+                from_file=args.from_file,
+                entry_type=args.entry_type,
+                project=project,
+            )
+        if snapshot_action == "show":
+            return knowledge_snapshot_show(snapshot_target, project)
+        if snapshot_action == "score":
+            return knowledge_snapshot_score(snapshot_target, project)
+        if snapshot_action == "submit":
+            return knowledge_snapshot_submit(snapshot_target, project)
+        raise DevKitError("knowledge snapshot action must be create, list, show, score or submit")
+    if args.action == "review":
+        if args.target == "list" or not args.target:
+            return knowledge_review_list(project)
+        return knowledge_review(args.target, project)
+    if args.action == "curate":
+        return knowledge_curate(project)
+    if args.action == "publish":
+        return knowledge_publish(args.target, project, yes=args.yes, owner_agent=args.owner_agent)
+    if args.action == "sync":
+        return knowledge_sync(project)
+    raise DevKitError(f"unsupported knowledge action: {args.action}")
+
+
+def dispatch_knowledge_base(args: argparse.Namespace) -> dict[str, Any]:
+    project = Path.cwd()
+    if args.action == "create":
+        return knowledge_base_create(project, provider=args.provider, force=args.force)
+    if args.action == "join":
+        return knowledge_base_join(args.target, project, provider=args.provider, force=args.force)
+    if args.action == "status":
+        return knowledge_base_status(project)
+    if args.action == "tokens":
+        return knowledge_base_tokens(project)
+    if args.action == "rotate-token":
+        return knowledge_base_rotate_token(args.target, project)
+    raise DevKitError(f"unsupported knowledge-base action: {args.action}")
+
+
 def dispatch_contribution(args: argparse.Namespace) -> dict[str, Any]:
     if args.action == "list":
         if args.extension_id:
@@ -412,6 +799,8 @@ def dispatch_contribution(args: argparse.Namespace) -> dict[str, Any]:
     require_id(args.extension_id, f"{args.command} {args.action}")
     if args.action == "prepare":
         return contribution_prepare(args.extension_id)
+    if args.action == "pr":
+        return contribution_pr(args.extension_id, dry_run=effective_dry_run(args) or not args.yes, yes=args.yes)
     if args.action == "validate":
         return contribution_validate(args.extension_id)
     if args.action == "review":
@@ -609,6 +998,28 @@ def dispatch_ollama(args: argparse.Namespace) -> dict[str, Any]:
     raise DevKitError(f"unsupported ollama action: {args.action}")
 
 
+def dispatch_local_llm(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "list":
+        if args.model:
+            raise DevKitError("local-llm list does not accept a model")
+        return local_llm_list()
+    if args.action == "doctor":
+        if args.model:
+            raise DevKitError("local-llm doctor does not accept a model")
+        return local_llm_doctor()
+    if args.action == "models":
+        if args.model:
+            raise DevKitError("local-llm models does not accept a model")
+        return local_llm_models()
+    if args.action == "install":
+        return local_llm_install(args.model, dry_run=effective_dry_run(args), yes=args.yes)
+    if args.action == "remove":
+        return local_llm_remove(args.model, dry_run=effective_dry_run(args), yes=args.yes)
+    if args.action == "benchmark":
+        return local_llm_benchmark(args.model)
+    raise DevKitError(f"unsupported local-llm action: {args.action}")
+
+
 def dispatch_install(args: argparse.Namespace) -> dict[str, Any]:
     try:
         return install_runtime(
@@ -744,6 +1155,53 @@ def dispatch_memory(args: argparse.Namespace) -> dict[str, Any]:
         return show_memory(ROOT, agent_id=args.agent_id, source_id=args.source_id)
     if args.action == "path":
         return memory_path_payload()
+    if args.action == "backup":
+        backup_action = args.memory_id or "list"
+        if backup_action in {"list", "show"}:
+            if args.submission_id:
+                raise DevKitError("memory backup list does not accept a backup id")
+            return list_memory_backups()
+        if backup_action == "create":
+            if args.submission_id:
+                raise DevKitError("memory backup create does not accept a backup id")
+            try:
+                return create_memory_backup(
+                    title=args.title,
+                    encrypted=args.encrypted,
+                    passphrase_env=args.passphrase_env,
+                )
+            except ValueError as exc:
+                raise DevKitError(str(exc)) from exc
+        if backup_action == "restore":
+            try:
+                if not args.submission_id and not args.backup_file:
+                    raise ValueError("memory backup restore requires a backup id or --file")
+                return restore_memory_backup(
+                    args.submission_id,
+                    yes=args.yes,
+                    backup_file=args.backup_file,
+                    passphrase_env=args.passphrase_env,
+                )
+            except ValueError as exc:
+                raise DevKitError(str(exc)) from exc
+        if backup_action == "delete":
+            try:
+                return delete_memory_backup(args.submission_id, yes=args.yes)
+            except ValueError as exc:
+                raise DevKitError(str(exc)) from exc
+        raise DevKitError("memory backup action must be create, list, restore or delete")
+    if args.action in {"share", "shared"}:
+        if args.memory_id:
+            return shared_memory_status(args.memory_id)
+        return shared_memory_create(args.title)
+    if args.action == "read":
+        return shared_memory_read(args.memory_id, args.submission_id, contributor_key=args.contributor_key)
+    if args.action == "submit":
+        return shared_memory_submit(args.memory_id, title=args.title, content=args.content, contributor_key=args.contributor_key)
+    if args.action == "review":
+        return shared_memory_review(args.memory_id, args.submission_id)
+    if args.action == "publish":
+        return shared_memory_publish(args.memory_id, args.submission_id, yes=args.yes, owner_key=getattr(args, "owner_key", None))
     if args.action == "reset":
         return reset_memory(
             all_memory=args.all,
@@ -754,6 +1212,24 @@ def dispatch_memory(args: argparse.Namespace) -> dict[str, Any]:
             reset_cache=args.cache,
         )
     raise DevKitError(f"unsupported memory action: {args.action}")
+
+
+def dispatch_shared_memory(args: argparse.Namespace) -> dict[str, Any]:
+    if args.action == "create":
+        return shared_memory_create(args.title)
+    if args.action == "list":
+        return shared_memory_list()
+    if args.action == "status":
+        return shared_memory_status(args.memory_id)
+    if args.action == "read":
+        return shared_memory_read(args.memory_id, args.submission_id, contributor_key=args.contributor_key)
+    if args.action == "submit":
+        return shared_memory_submit(args.memory_id, title=args.title, content=args.content, contributor_key=args.contributor_key)
+    if args.action == "review":
+        return shared_memory_review(args.memory_id, args.submission_id)
+    if args.action == "publish":
+        return shared_memory_publish(args.memory_id, args.submission_id, yes=args.yes, owner_key=args.owner_key)
+    raise DevKitError(f"unsupported shared-memory action: {args.action}")
 
 
 def dispatch_personality(args: argparse.Namespace) -> dict[str, Any]:
