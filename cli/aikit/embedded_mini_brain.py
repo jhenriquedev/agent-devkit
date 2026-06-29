@@ -21,6 +21,7 @@ EMBEDDED_RUNTIME = "llama-cpp-python"
 EMBEDDED_MAX_RESPONSE_CHARS = 2000
 DEFAULT_MAX_TOKENS = 220
 DEFAULT_CONTEXT_TOKENS = 2048
+SMOKE_RESPONSE_ENV = "AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE"
 
 _LLAMA_CACHE: Any | None = None
 
@@ -62,6 +63,9 @@ def invoke_embedded_mini_brain(prompt: str, *, public_name: str = "Agent DevKit"
     status = embedded_mini_brain_status()
     if not status["available"]:
         raise EmbeddedMiniBrainError(status["message"])
+    smoke_response = os.environ.get(SMOKE_RESPONSE_ENV)
+    if smoke_response:
+        return f"{public_name}: {smoke_response}"[:EMBEDDED_MAX_RESPONSE_CHARS]
     llama = load_llama()
     payload = llama.create_chat_completion(
         messages=[
@@ -147,6 +151,13 @@ def load_llama() -> Any:
 
 
 def llama_cpp_dependency_status() -> dict[str, Any]:
+    if os.environ.get(SMOKE_RESPONSE_ENV):
+        return {
+            "status": "ok",
+            "module": "llama_cpp",
+            "package": "llama-cpp-python",
+            "mode": "smoke",
+        }
     try:
         import llama_cpp  # type: ignore
     except ImportError:

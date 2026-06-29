@@ -53,7 +53,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install Python dependencies
-        run: python3 -m pip install PyYAML
+        run: python3 -m pip install PyYAML jsonschema beautifulsoup4 pypdf reportlab
 
       - name: Install npm metadata
         run: npm ci
@@ -62,12 +62,17 @@ jobs:
         run: npm run release:verify -- "${{ steps.version.outputs.version }}"
 
       - name: Run release gate
+        env:
+          AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE: "resposta local de smoke do mini cerebro embarcado"
         run: python3 scripts/release-gate.py --quick --json
 
       - name: Build package runtime
         run: npm run package:build
 
       - name: Verify package runtime
+        env:
+          AGENT_DEVKIT_PYTHON: python3
+          AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE: "resposta local de smoke do mini cerebro embarcado"
         run: npm run package:verify
 
       - name: Check npm version availability
