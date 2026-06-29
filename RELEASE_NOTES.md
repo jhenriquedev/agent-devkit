@@ -1,3 +1,35 @@
+# v0.3.0
+
+Operational autonomy release.
+
+## Highlights
+
+- Expands the runtime into a more complete autonomous Agent DevKit surface with
+  no-argument onboarding, local memory, personality, sessions, tasks,
+  workflows, knowledge and MCP tools.
+- Adds local-first knowledge base commands, shared memory workspaces,
+  owner-reviewed submissions, knowledge snapshot review/curation/publish
+  flows and provider manifests for future remote sync.
+- Adds local artifact management for user-created agents, skills, scripts and
+  automations under the Agent DevKit home.
+- Extends MCP stdio to expose catalog, capabilities, memory, shared memory,
+  tasks, workflows, knowledge, local artifacts, local LLM diagnostics and
+  agentic planning.
+- Adds specialist agents for knowledge authoring, review, curation, ownership,
+  shared memory, local memory and contribution review.
+- Improves package verification so the npm artifact validates onboarding,
+  MCP, local artifacts, knowledge, shared memory and release metadata before
+  publish.
+- Documents remaining v0.3.0 gaps in `docs/v0.3.0_problems.md` for follow-up
+  stabilization work.
+
+## Validation
+
+- `npm run package:build` passes locally.
+- `npm run package:verify` passes locally.
+- `python3 scripts/release-gate.py --quick --json` passes locally.
+- Release alignment must pass in CI before npm publish.
+
 # v0.2.0
 
 Runtime consolidation release.
