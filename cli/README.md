@@ -209,8 +209,8 @@ agent onboard minimal
 agent onboard complete
 ```
 
-`minimal` cobre identidade, coordenador LLM, mini-cerebro Qwen3-0.6B via
-Ollama e memoria local. `complete` inclui tambem toolchain, providers/sources,
+`minimal` cobre identidade, coordenador LLM opcional, mini-cerebro
+Qwen2.5-0.5B embarcado e memoria local. `complete` inclui tambem toolchain, providers/sources,
 catalogo de agentes, automacoes locais, tarefas, notificacoes, knowledge e
 memoria compartilhada. Instalacoes externas continuam exigindo opt-in.
 
@@ -232,9 +232,12 @@ remoto continua exigindo provider, criptografia e opt-in explicito.
 
 ## Backends LLM
 
-O modo `agent "<prompt>"` exige um backend LLM. O Agent DevKit suporta tres
+O modo `agent "<prompt>"` consegue conversar e orientar setup com o mini cerebro
+embarcado. Para coordenacao/revisao mais forte, o Agent DevKit suporta estas
 familias de backend:
 
+- Mini cerebro local embarcado (`embedded-mini-brain`) para onboarding, setup e
+  conversa simples sem autenticacao externa.
 - CLIs oficiais autenticadas fora do Agent DevKit (`codex-cli` e
   `claude-code`).
 - APIs configuradas por referencia a variavel de ambiente (`openai`,
@@ -321,6 +324,8 @@ agent llm doctor openrouter
 ### Ollama local
 
 ```bash
+agent setup mini-brain --yes
+agent local-llm doctor
 agent ollama status
 agent ollama models
 agent ollama pull qwen3:0.6b --dry-run
@@ -330,12 +335,15 @@ agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.
 agent llm doctor ollama
 ```
 
-Ollama e tratado como executor operacional local. Codex e Claude continuam como
-coordenadores/revisores preferenciais para decisao, especificacao, codigo,
-documentos, automacoes e fechamento de entrega.
+O mini cerebro embarcado e a base inicial para conversa/setup sem dependencia
+externa. Ollama e tratado como executor operacional local opcional. Codex e
+Claude continuam como coordenadores/revisores preferenciais para decisao,
+especificacao, codigo, documentos, automacoes e fechamento de entrega.
 
 Backends suportados no MVP:
 
+- `embedded-mini-brain`: mini cerebro local embarcado para bootstrap e tarefas
+  simples.
 - `openai`: API OpenAI ou endpoint OpenAI-compatible.
 - `anthropic`: API Anthropic.
 - `openrouter`: API OpenRouter.

@@ -224,25 +224,25 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.3.0", result.stdout)
+        self.assertIn("aikit 0.3.1", result.stdout)
 
     def test_short_version_exits_successfully(self) -> None:
         result = self.run_cli("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.3.0", result.stdout)
+        self.assertIn("aikit 0.3.1", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.3.0", result.stdout)
+        self.assertIn("agent 0.3.1", result.stdout)
 
     def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.3.0", result.stdout)
+        self.assertIn("agent 0.3.1", result.stdout)
 
     def test_agent_entrypoint_rename_shortcut_updates_public_name(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1782,27 +1782,29 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(payload["llm_backend"], "claude-code")
         self.assertEqual(payload["response"], "fake claude response")
 
-    def test_agent_requires_llm_backend(self) -> None:
+    def test_agent_uses_embedded_mini_brain_without_external_backend(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
             result = self.run_cli(
                 "agent",
                 "--json",
-                "senha=abc123",
-                "analise esse incidente",
+                "ola",
+                "como",
+                "posso",
+                "comecar?",
                 env={"AIKIT_CONFIG_HOME": config_home},
             )
 
-        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["kind"], "agent")
-        self.assertEqual(payload["status"], "blocked")
-        self.assertFalse(payload["ok"])
-        self.assertTrue(payload["requires_llm"])
+        self.assertEqual(payload["status"], "ok")
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["llm_backend"], "embedded-mini-brain")
+        self.assertEqual(payload["model_plan"]["mini_brain"]["embedded"]["runtime"], "llama-cpp-python")
+        self.assertTrue(payload["model_plan"]["mini_brain"]["embedded"]["model_file_present"])
         self.assertTrue(payload["prompt_received"])
-        self.assertNotIn("prompt", payload)
-        self.assertNotIn("senha=abc123", result.stdout)
-        self.assertIn("requires a configured LLM backend", payload["message"])
-        self.assertIn("agent run <agent> <capability>", payload["next_steps"][0])
+        self.assertTrue(payload["response"].strip())
+        self.assertNotIn("requires a configured LLM backend", result.stdout)
 
     def test_agent_without_args_starts_onboarding(self) -> None:
         with tempfile.TemporaryDirectory() as config_home:
@@ -1852,7 +1854,7 @@ class AikitCliTest(unittest.TestCase):
         self.assertEqual(minimal_payload["kind"], "onboarding-plan")
         self.assertEqual(minimal_payload["mode"], "minimal")
         self.assertFalse(minimal_payload["external_actions_executed"])
-        self.assertIn("qwen3:0.6b", json.dumps(minimal_payload))
+        self.assertIn("Qwen/Qwen2.5-0.5B-Instruct", json.dumps(minimal_payload))
         self.assertEqual(complete_payload["kind"], "onboarding-plan")
         self.assertEqual(complete_payload["mode"], "complete")
         self.assertFalse(complete_payload["external_actions_executed"])
@@ -2475,7 +2477,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.3.0", installed_agent.stdout)
+            self.assertIn("agent 0.3.1", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2619,7 +2621,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.3.0", result.stdout)
+        self.assertIn("ai-devkit 0.3.1", result.stdout)
 
 
 if __name__ == "__main__":

@@ -65,8 +65,8 @@ agent secrets doctor
 agent mcp tools
 ```
 
-`agent onboard minimal` planeja o setup essencial: identidade, coordenador LLM,
-mini-cerebro Qwen3-0.6B via Ollama e memoria local. `agent onboard complete`
+`agent onboard minimal` planeja o setup essencial: identidade, coordenador LLM
+opcional, mini-cerebro Qwen2.5-0.5B embarcado e memoria local. `agent onboard complete`
 inclui tambem toolchain, providers/sources, catalogo de agentes, automacoes
 locais, tarefas, notificacoes, knowledge e memoria compartilhada. Ambos
 retornam plano deterministico; instalacoes externas continuam exigindo opt-in.
@@ -247,14 +247,21 @@ Uso:
 agent "roteie este pedido para o agente especialista adequado"
 ```
 
-### Opcao F: usar Ollama local
+### Mini cerebro embarcado e Ollama local
 
-O Agent DevKit consegue diagnosticar Ollama, listar modelos, planejar pull e
-usar o backend local como trabalhador operacional. Claude/Codex continuam sendo
-os coordenadores e revisores preferenciais para decisao, especificacao e entrega
-final.
+O Agent DevKit vem com um mini cerebro local embarcado baseado no contrato
+`Qwen/Qwen2.5-0.5B-Instruct` para conversa inicial, onboarding, setup e tarefas
+simples sem depender de Claude, Codex, API externa ou Ollama.
+
+Ollama continua suportado como pool opcional de workers locais. O Agent DevKit
+consegue diagnosticar Ollama, listar modelos, planejar pull e usar o backend
+local como trabalhador operacional quando ele estiver configurado ou tiver
+modelos instalados. Claude/Codex continuam sendo os coordenadores e revisores
+preferenciais para decisao, especificacao e entrega final.
 
 ```bash
+agent setup mini-brain --yes
+agent local-llm doctor
 agent ollama status
 agent ollama models
 agent ollama pull qwen3:0.6b --dry-run
@@ -325,9 +332,10 @@ executa a task primaria pelo runner existente e revisa a conclusao pelo
 `review_gate`.
 
 Para tarefas operacionais como resumo, classificacao, extracao e normalizacao,
-o runtime pode delegar uma subtarefa limitada ao `local-llm-operator` usando
-Ollama. O resultado local aparece em `local_llm_execution` e e usado apenas como
-contexto de apoio pelo coordenador principal.
+o runtime pode usar o mini cerebro embarcado para bootstrap/conversa simples ou
+delegar uma subtarefa limitada ao `local-llm-operator` usando Ollama quando
+disponivel. O resultado local aparece em `local_llm_execution` e e usado apenas
+como contexto de apoio pelo coordenador principal.
 
 Quando `review_gate.required = true`, o Agent DevKit exige uma segunda revisao
 concreta pelo `execution-reviewer`, preferindo `claude-code` ou `codex-cli`.

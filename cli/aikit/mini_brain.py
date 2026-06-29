@@ -5,14 +5,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from cli.aikit.embedded_mini_brain import (
+    EMBEDDED_BACKEND_ID,
+    EMBEDDED_MODEL_ID,
+    embedded_mini_brain_status,
+)
 from cli.aikit.llm import BACKENDS, configure_backend, doctor_backend, load_config, save_config
-from cli.aikit.ollama import ollama_pull, ollama_status
+from cli.aikit.ollama import ollama_status
 
 
 MINI_BRAIN_CONFIG_KEY = "mini_brain"
-DEFAULT_HF_MODEL = "Qwen/Qwen3-0.6B"
+DEFAULT_HF_MODEL = EMBEDDED_MODEL_ID
 DEFAULT_OLLAMA_MODEL = "qwen3:0.6b"
-DEFAULT_PROVIDER = "ollama"
+DEFAULT_PROVIDER = EMBEDDED_BACKEND_ID
 DEFAULT_BASE_URL = "http://localhost:11434/v1"
 ALLOWED_TASKS = [
     "setup_help",
@@ -50,14 +55,15 @@ def mini_brain_contract(
 ) -> dict[str, Any]:
     config = load_config() if config is None else config
     stored = config.get(MINI_BRAIN_CONFIG_KEY) if isinstance(config.get(MINI_BRAIN_CONFIG_KEY), dict) else {}
-    enabled = bool(stored.get("enabled"))
+    enabled = bool(stored.get("enabled", True))
     provider = stored.get("provider") or stored.get("runtime") or DEFAULT_PROVIDER
     hf_model = stored.get("hf_model") or stored.get("model") or DEFAULT_HF_MODEL
     ollama_model = stored.get("ollama_model") or DEFAULT_OLLAMA_MODEL
+    embedded = embedded_mini_brain_status()
     ollama_payload = ollama_status() if ollama_payload is None else ollama_payload
     ollama_backend = doctor_backend(BACKENDS["ollama"], config) if ollama_backend is None else ollama_backend
-    backend_configured = ollama_backend.get("status") == "ok"
-    runtime_available = ollama_payload.get("status") == "ok" or backend_configured
+    ollama_configured = ollama_backend.get("configured") is True
+    runtime_available = embedded.get("available") is True
     available = enabled and provider == DEFAULT_PROVIDER and runtime_available
     status = "ok" if available else "disabled" if not enabled else "unavailable"
     return {
@@ -65,7 +71,8 @@ def mini_brain_contract(
         "status": status,
         "enabled": enabled,
         "available": available,
-        "configured": enabled and provider == DEFAULT_PROVIDER and backend_configured,
+        "configured": available,
+        "embedded_configured": provider == DEFAULT_PROVIDER,
         "provider": provider,
         "runtime": provider,
         "hf_model": hf_model,
@@ -76,6 +83,7 @@ def mini_brain_contract(
         "limits": dict_value(stored.get("limits"), DEFAULT_LIMITS),
         "guardrails": list_value(stored.get("guardrails"), DEFAULT_GUARDRAILS),
         "stored_secret": False,
+        "embedded": embedded,
         "ollama": {
             "status": ollama_payload.get("status"),
             "daemon": (ollama_payload.get("daemon") or {}).get("status")
@@ -87,6 +95,7 @@ def mini_brain_contract(
             "status": ollama_backend.get("status"),
             "model": ollama_backend.get("model"),
             "base_url": ollama_backend.get("base_url"),
+            "configured": ollama_configured,
         },
     }
 
@@ -98,6 +107,7 @@ def setup_mini_brain(
     set_default: bool = False,
     model: str = DEFAULT_OLLAMA_MODEL,
 ) -> dict[str, Any]:
+    embedded = embedded_mini_brain_status()
     if dry_run or not yes:
         status = "planned" if dry_run else "needs-confirmation"
         needs_confirmation = not dry_run and not yes
@@ -110,53 +120,21 @@ def setup_mini_brain(
             "yes": yes,
             "stored_secret": False,
             "mini_brain": planned_contract(model=model),
-            "pull": ollama_pull(model, yes=False, dry_run=dry_run),
+            "embedded": embedded,
+            "ollama_setup": {
+                "status": "skipped",
+                "ok": True,
+                "provider": "ollama",
+                "model": model,
+                "message": "Ollama is optional; use `agent local-llm install` to add local worker models.",
+            },
             "next_steps": ["agent setup mini-brain --yes"],
-            "message": "Use --yes to pull Qwen3-0.6B with Ollama and enable the mini-brain.",
+            "message": "Use --yes to enable the embedded Qwen2.5-0.5B mini-brain.",
         }
 
-    pull = ollama_pull(model, yes=True, dry_run=False)
-    toolchain_install = None
-    if pull.get("status") == "missing":
-        from cli.aikit.toolchain import install_toolchain
-
-        toolchain_install = install_toolchain(None, "ollama", dry_run=False, yes=True)
-        if toolchain_install.get("status") == "installed":
-            pull = ollama_pull(model, yes=True, dry_run=False)
-    if not pull.get("ok"):
-        payload = {
-            "kind": "mini-brain-setup",
-            "status": "failed",
-            "ok": False,
-            "exit_code": int(pull.get("exit_code") or 2),
-            "dry_run": False,
-            "yes": True,
-            "stored_secret": False,
-            "mini_brain": planned_contract(model=model),
-            "pull": pull,
-            "next_steps": ["Install Ollama or run agent ollama pull qwen3:0.6b --yes"],
-            "message": pull.get("message") or "Could not pull the mini-brain model.",
-        }
-        if toolchain_install:
-            payload["toolchain_install"] = toolchain_install
-            payload["next_steps"] = [
-                "Review `agent toolchain doctor ollama`.",
-                "Run `agent toolchain install ollama --yes` if you approve external installation.",
-                "Then run `agent setup mini-brain --yes` again.",
-            ]
-        return payload
-
-    existing_config = load_config()
-    existing_ollama = (
-        existing_config.get("llm", {}).get("backends", {}).get(DEFAULT_PROVIDER)
-        if isinstance(existing_config.get("llm"), dict)
-        else {}
-    )
-    existing_base_url = existing_ollama.get("base_url") if isinstance(existing_ollama, dict) else None
     configured = configure_backend(
         DEFAULT_PROVIDER,
-        base_url=existing_base_url or DEFAULT_BASE_URL,
-        model=model,
+        model=DEFAULT_HF_MODEL,
         set_default=set_default,
     )
     config = load_config()
@@ -172,8 +150,14 @@ def setup_mini_brain(
         "stored_secret": False,
         "config_path": str(written_path),
         "mini_brain": contract,
-        "pull": pull,
-        "toolchain_install": toolchain_install,
+        "embedded": embedded,
+        "ollama_setup": {
+            "status": "skipped",
+            "ok": True,
+            "provider": "ollama",
+            "model": model,
+            "message": "Ollama remains optional for additional local worker models.",
+        },
         "llm_configure": configured,
         "next_steps": ["Use low-risk setup, wizard and summary prompts normally."],
     }
@@ -196,6 +180,7 @@ def planned_contract(*, model: str = DEFAULT_OLLAMA_MODEL) -> dict[str, Any]:
         "limits": dict(DEFAULT_LIMITS),
         "guardrails": list(DEFAULT_GUARDRAILS),
         "stored_secret": False,
+        "embedded": embedded_mini_brain_status(),
     }
 
 

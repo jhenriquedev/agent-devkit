@@ -352,20 +352,20 @@ class RuntimeConsolidationV020Test(unittest.TestCase):
         self.assertIn("azure-devops", configured_payload["specialists"]["configured_providers"])
         self.assertGreaterEqual(configured_payload["specialists"]["ready_agents"], 1)
 
-    def test_mini_brain_setup_propagates_ollama_missing_exit_code(self) -> None:
+    def test_mini_brain_setup_does_not_require_ollama(self) -> None:
         with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as empty_path:
             env = {"AGENT_DEVKIT_HOME": config_home, "PATH": empty_path}
             result = self.run_agent("setup", "mini-brain", "--yes", "--json", env=env)
 
-        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
-        self.assertEqual(payload["status"], "failed")
-        self.assertFalse(payload["ok"])
-        self.assertEqual(payload["exit_code"], 2)
-        self.assertEqual(payload["pull"]["status"], "missing")
-        self.assertIn("toolchain_install", payload)
+        self.assertEqual(payload["status"], "configured")
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["mini_brain"]["provider"], "embedded-mini-brain")
+        self.assertEqual(payload["embedded"]["status"], "ok")
+        self.assertEqual(payload["ollama_setup"]["status"], "skipped")
 
-    def test_mini_brain_setup_can_install_ollama_before_pull_with_opt_in(self) -> None:
+    def test_ollama_remains_installable_as_optional_local_worker(self) -> None:
         with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as bin_dir:
             bin_path = Path(bin_dir)
             brew = bin_path / "brew"
@@ -392,14 +392,16 @@ class RuntimeConsolidationV020Test(unittest.TestCase):
             )
             brew.chmod(0o755)
             env = {"AGENT_DEVKIT_HOME": config_home, "PATH": bin_dir}
-            result = self.run_agent("setup", "mini-brain", "--yes", "--json", env=env)
+            result = self.run_agent("toolchain", "install", "ollama", "--yes", "--json", env=env)
+            install = self.run_agent("local-llm", "install", "qwen3:0.6b", "--yes", "--json", env=env)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["status"], "configured")
-        self.assertEqual(payload["toolchain_install"]["status"], "installed")
-        self.assertEqual(payload["pull"]["status"], "ok")
-        self.assertEqual(payload["mini_brain"]["ollama_model"], "qwen3:0.6b")
+        self.assertEqual(install.returncode, 0, install.stderr)
+        self.assertEqual(json.loads(result.stdout)["status"], "installed")
+        install_payload = json.loads(install.stdout)
+        self.assertEqual(install_payload["provider"], "ollama")
+        self.assertEqual(install_payload["status"], "ok")
+        self.assertEqual(install_payload["model"], "qwen3:0.6b")
 
     def test_local_llm_mutations_require_explicit_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as empty_path:

@@ -8,7 +8,7 @@ from typing import Any
 from cli.aikit.core.requests import AgentPromptRequest
 from cli.aikit.core.runtime import run_agent_prompt
 from cli.aikit.llm import BACKENDS, configure_backend
-from cli.aikit.mini_brain import DEFAULT_OLLAMA_MODEL, setup_mini_brain
+from cli.aikit.mini_brain import DEFAULT_OLLAMA_MODEL
 from cli.aikit.ollama import ollama_status
 from cli.aikit.onboarding import onboarding_status
 from cli.aikit.personality import load_personality, update_personality
@@ -104,11 +104,9 @@ def run_interactive_onboarding(result: dict[str, Any]) -> dict[str, Any]:
         print("\nOllama nao foi encontrado.")
         if command:
             print(f"Instalacao sugerida: {command}")
-        print("Depois de instalar, rode `agent setup mini-brain --yes` para baixar o Qwen3-0.6B.")
-    elif ask_yes_no(f"Deseja habilitar o mini cerebro local com {DEFAULT_OLLAMA_MODEL}?", default=False):
-        set_default = ask_yes_no("Usar este mini cerebro como backend LLM padrao?", default=False)
-        setup = setup_mini_brain(yes=True, set_default=set_default)
-        print(setup.get("message") or f"Mini cerebro: {setup.get('status')}")
+        print("O mini cerebro embarcado ja funciona; instale Ollama apenas se quiser workers locais adicionais.")
+    elif ask_yes_no(f"Deseja instalar o modelo Ollama opcional {DEFAULT_OLLAMA_MODEL} para workers locais?", default=False):
+        print("Rode: agent local-llm install " + DEFAULT_OLLAMA_MODEL + " --yes")
 
     fresh = onboarding_status(ROOT)
     toolchain = fresh.get("toolchain") if isinstance(fresh.get("toolchain"), dict) else {}
@@ -129,7 +127,7 @@ def run_interactive_onboarding(result: dict[str, Any]) -> dict[str, Any]:
 
 def choose_onboarding_mode() -> str:
     print("\nModos de onboarding:")
-    print("1. minimo: identidade, coordenador LLM, mini-cerebro local e memoria")
+    print("1. minimo: identidade, mini-cerebro local embarcado e memoria")
     print("2. completo: minimo + toolchain, sources, notificacoes, knowledge e memorias")
     print("3. pular")
     answer = ask_text("Escolha o modo", default="minimo").strip().lower()
@@ -161,7 +159,7 @@ def configure_personality_interactively(agent: dict[str, Any]) -> None:
 
 
 def configure_llm_interactively() -> None:
-    print("\nNenhum backend LLM coordenador utilizavel foi detectado.")
+    print("\nNenhum backend LLM coordenador externo utilizavel foi detectado.")
     print("Opcoes: claude-code, codex-cli, ollama, openai, anthropic, openrouter, pular")
     choice = ask_text("Qual backend deseja configurar primeiro?", default="pular").strip().lower()
     if choice in {"", "pular", "skip", "cancelar", "cancel"}:

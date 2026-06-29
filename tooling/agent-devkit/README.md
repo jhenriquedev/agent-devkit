@@ -30,7 +30,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.3.0
+agent 0.3.1
 ```
 
 ## Quick Start
@@ -45,8 +45,10 @@ agent llm list
 agent commands list
 ```
 
-Agent DevKit `v0.3.0` also includes deterministic runtime discovery and
-integration commands:
+Agent DevKit `v0.3.1` also includes the embedded Qwen2.5-0.5B mini-brain GGUF
+for local bootstrap conversations without Ollama, Claude, Codex or API keys.
+The `v0.3.0` deterministic runtime discovery and integration commands remain
+available:
 
 ```bash
 agent roadmap
@@ -73,14 +75,15 @@ Run a natural-language task:
 agent "analise o problema relatado no card 9900"
 ```
 
-Natural-language mode requires an LLM backend. Deterministic commands such as
-`agent agents list`, `agent capabilities list`, `agent doctor`, `agent provider`
-and `agent run` do not require an LLM.
+Natural-language mode can start with the embedded mini-brain. Stronger
+coordinator/reviewer backends remain optional for higher-level work.
+Deterministic commands such as `agent agents list`, `agent capabilities list`,
+`agent doctor`, `agent provider` and `agent run` do not require an external LLM.
 
 Running `agent` without arguments starts the local onboarding status and wizard:
 memory, personality, LLM backends, Ollama, toolchain, sources and next actions.
-Use `agent onboard minimal` for identity, coordinator LLM, Qwen3-0.6B via
-Ollama and local memory. Use `agent onboard complete` to include toolchain,
+Use `agent onboard minimal` for identity, optional coordinator LLM, embedded
+Qwen2.5-0.5B mini-brain and local memory. Use `agent onboard complete` to include toolchain,
 providers/sources, specialist catalog, local automations, tasks, notifications,
 knowledge and shared memory. Both commands return plans; external installs
 still require explicit opt-in.
@@ -97,6 +100,7 @@ Useful operational commands:
 agent plan "analyze Azure card 7914"
 agent execute --dry-run "summarize these logs"
 agent workflow install daily-pr-review --dry-run
+agent setup mini-brain --yes
 agent local-llm doctor
 agent local-llm install qwen3:0.6b --dry-run
 agent skill create my-skill --description "Local skill"
@@ -224,9 +228,11 @@ agent llm configure openrouter --api-key-env OPENROUTER_API_KEY --model openai/g
 agent llm doctor openrouter
 ```
 
-### Option F: Ollama local backend
+### Embedded mini-brain and Ollama local backend
 
 ```bash
+agent setup mini-brain --yes
+agent local-llm doctor
 agent ollama status
 agent ollama models
 agent ollama pull qwen3:0.6b --dry-run
@@ -236,8 +242,10 @@ agent llm configure ollama --base-url http://localhost:11434/v1 --model qwen3:0.
 agent llm doctor ollama
 ```
 
-Ollama is treated as an operational worker for repetitive local tasks. Codex and
-Claude remain the preferred coordinators and reviewers for high-level planning,
+Agent DevKit includes an embedded mini-brain for initial conversation,
+onboarding and setup without external authentication. Ollama is still treated as
+an optional operational worker for repetitive local tasks. Codex and Claude
+remain the preferred coordinators and reviewers for high-level planning,
 software changes, documents, automation decisions and final review.
 
 ### Switch or override the backend

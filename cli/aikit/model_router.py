@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from cli.aikit.embedded_mini_brain import EMBEDDED_BACKEND_ID
 from cli.aikit.llm import BACKENDS, doctor_backend, llm_preference, load_config
 from cli.aikit.mini_brain import mini_brain_contract
 from cli.aikit.ollama import ollama_status
@@ -13,6 +14,9 @@ from cli.aikit.write_policy import normalize_write_policy, write_policy_public_f
 
 OPERATIONAL_PATTERN = re.compile(
     r"(?i)\b(resum\w*|sumari\w*|classifi\w*|extra(?:i|ir|ia|cao|ção)\w*|normaliz\w*|compar\w*|logs?|rascunho|agrupe|agrupar)\b"
+)
+SIMPLE_CHAT_SETUP_PATTERN = re.compile(
+    r"(?i)\b(ol[aá]|oi|bom dia|boa tarde|boa noite|ajuda|help|comec(?:ar|o)|começ(?:ar|o)|setup|onboard|configur|instal|usar)\b"
 )
 HIGH_LEVEL_PATTERN = re.compile(
     r"(?i)\b(arquitet|decid|aprovar|reprovar|especifica|requisit|implemente|codigo|c[oó]digo|documento|automac|deploy|seguran)\b"
@@ -48,7 +52,9 @@ def build_model_plan(
     mini_brain = mini_brain_contract(config=config, ollama_payload=ollama, ollama_backend=ollama_backend)
     local_available = mini_brain.get("available") is True
     operational = bool(OPERATIONAL_PATTERN.search(prompt))
+    simple_chat_setup = bool(SIMPLE_CHAT_SETUP_PATTERN.search(prompt))
     high_level = bool(HIGH_LEVEL_PATTERN.search(prompt))
+    local_provider = select_local_provider(ollama_payload=ollama, ollama_backend=ollama_backend, mini_brain=mini_brain)
     policy = choose_model_strategy(
         prompt,
         route=route,
@@ -56,10 +62,12 @@ def build_model_plan(
         specialist_tasks=specialist_tasks or [],
         configuration_tasks=configuration_tasks or [],
         operational=operational,
+        simple_chat_setup=simple_chat_setup,
         high_level=high_level,
         local_available=local_available,
     )
     use_local = policy["strategy"] == "mini-brain" and local_available
+    delegate_local = use_local and operational
     return {
         "kind": "model-plan",
         "status": "planned",
@@ -73,22 +81,30 @@ def build_model_plan(
         "max_llm_calls": policy["max_llm_calls"],
         "intent": route.get("intent") if route else "llm",
         "primary_coordinators": coordinator_order(preference),
-        "local_llm_role": "operational-worker",
+        "local_llm_role": "operational-worker" if operational else "bootstrap-coordinator",
         "local_llm_available": local_available,
-        "local_llm_provider": mini_brain.get("provider") or "ollama",
-        "local_llm_backend_configured": ollama_backend.get("status") == "ok",
+        "local_llm_provider": local_provider,
+        "local_llm_backend_configured": ollama_backend.get("configured") is True if local_provider == "ollama" else True,
         "local_llm_runtime": {
-            "binary_status": ollama.get("status"),
+            "provider": local_provider,
+            "binary_status": ollama.get("status") if local_provider == "ollama" else "embedded",
             "backend_status": ollama_backend.get("status"),
-            "model": mini_brain.get("ollama_model") or ollama_backend.get("model"),
-            "base_url": ollama_backend.get("base_url"),
+            "model": (mini_brain.get("ollama_model") or ollama_backend.get("model")) if local_provider == "ollama" else mini_brain.get("hf_model"),
+            "base_url": ollama_backend.get("base_url") if local_provider == "ollama" else None,
+        },
+        "optional_local_providers": {
+            "ollama": {
+                "status": ollama.get("status"),
+                "backend_status": ollama_backend.get("status"),
+                "model_count": ollama.get("model_count"),
+            }
         },
         "mini_brain": mini_brain,
         "local_llm_recommended": operational,
         "local_llm_selected": use_local,
         "delegation": {
-            "allowed": policy["strategy"] == "mini-brain",
-            "selected": use_local,
+            "allowed": policy["strategy"] == "mini-brain" and operational,
+            "selected": delegate_local,
             "reason": local_reason(
                 operational=operational,
                 local_available=local_available,
@@ -110,6 +126,7 @@ def choose_model_strategy(
     specialist_tasks: list[dict[str, Any]],
     configuration_tasks: list[dict[str, Any]],
     operational: bool,
+    simple_chat_setup: bool,
     high_level: bool,
     local_available: bool,
 ) -> dict[str, Any]:
@@ -154,7 +171,7 @@ def choose_model_strategy(
             max_llm_calls=0,
             matrix="Conhecida + estruturada + baixo risco -> automacao",
         )
-    if operational and not high_level:
+    if (operational or simple_chat_setup) and not high_level:
         return policy(
             "mini-brain" if local_available else "external-llm",
             "The prompt is operational and low-risk; local mini-brain is preferred when available.",
@@ -241,3 +258,19 @@ def local_reason(*, operational: bool, local_available: bool, high_level: bool, 
     if operational and not local_available:
         return "Task is operational, but the local mini-brain is not enabled or available; coordinator/API fallback should execute."
     return "Task requires coordinator-level reasoning or review."
+
+
+def select_local_provider(
+    *,
+    ollama_payload: dict[str, Any],
+    ollama_backend: dict[str, Any],
+    mini_brain: dict[str, Any],
+) -> str:
+    ollama_ready = (
+        ollama_payload.get("status") == "ok"
+        and ollama_backend.get("status") == "ok"
+        and (ollama_backend.get("configured") is True or int(ollama_payload.get("model_count") or 0) > 0)
+    )
+    if ollama_ready:
+        return "ollama"
+    return str(mini_brain.get("provider") or EMBEDDED_BACKEND_ID)

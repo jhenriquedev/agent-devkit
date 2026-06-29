@@ -237,9 +237,12 @@ def run_agent_prompt_request(request: AgentPromptRequest) -> dict[str, Any]:
     )
     local_llm_execution = maybe_delegate_local_llm(prompt, model_plan)
     coordinator_prompt = enrich_prompt_with_local_result(contextual_prompt, local_llm_execution)
+    requested_backend = request.llm
+    if should_use_embedded_coordinator(model_plan, requested_backend=request.llm):
+        requested_backend = "embedded-mini-brain"
     result = invoke_agent_prompt(
         coordinator_prompt,
-        request.llm,
+        requested_backend,
         public_name=name,
         allow_fallback=not request.no_llm_fallback,
     )
@@ -276,6 +279,16 @@ def run_agent_prompt_request(request: AgentPromptRequest) -> dict[str, Any]:
         result["response"] = enforce_identity_response(str(result["response"]), prompt, name=name)
     result["identity"] = {"name": name, "source": "local"}
     return finalize_agent_session(result, session, prompt, backend=result.get("llm_backend") or request.llm)
+
+
+def should_use_embedded_coordinator(model_plan: dict[str, Any], *, requested_backend: str | None) -> bool:
+    if requested_backend:
+        return False
+    return (
+        model_plan.get("strategy") == "mini-brain"
+        and model_plan.get("local_llm_provider") == "embedded-mini-brain"
+        and model_plan.get("risk") == "low"
+    )
 
 
 def mark_review_task_needs_review(execution_plan: dict[str, Any], review_result: dict[str, Any]) -> dict[str, Any]:

@@ -106,16 +106,16 @@ def onboarding_plan(root: Path, mode: str) -> dict[str, Any]:
         ),
         plan_step(
             "coordinator-llm",
-            "Registrar Claude Code, Codex CLI ou API como coordenador/planejador/revisor.",
+            "Registrar Claude Code, Codex CLI ou API como coordenador/planejador/revisor opcional para tarefas de alto nivel.",
             "agent llm list",
             write_policy="local_config_write",
         ),
         plan_step(
             "mini-brain",
-            "Habilitar Qwen3-0.6B via Ollama para conversa simples, setup e tarefas operacionais leves.",
+            "Validar o mini cerebro embarcado Qwen2.5-0.5B para conversa simples, setup e tarefas operacionais leves.",
             "agent setup mini-brain --dry-run",
             write_policy="local_config_write",
-            model="qwen3:0.6b",
+            model="Qwen/Qwen2.5-0.5B-Instruct",
         ),
         plan_step(
             "sessions-and-memory",

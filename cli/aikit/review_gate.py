@@ -24,13 +24,13 @@ def build_review_gate(
     if route:
         required = True
         reasons.append("deterministic-route")
-    if model_plan and (model_plan.get("local_llm_selected") or model_plan.get("local_llm_recommended")):
+    if model_plan and local_worker_review_required(model_plan):
         required = True
         reasons.append("local-llm")
     if model_plan and model_plan.get("strategy") == "human":
         required = True
         reasons.append("human-strategy")
-    if model_plan and model_plan.get("strategy") == "mini-brain":
+    if model_plan and mini_brain_review_required(model_plan):
         required = True
         reasons.append("mini-brain")
     if model_plan and model_plan.get("risk") == "high":
@@ -48,6 +48,18 @@ def build_review_gate(
         "triggers": sorted(set(reasons)),
         "route": route,
     }
+
+
+def local_worker_review_required(model_plan: dict[str, Any]) -> bool:
+    if not (model_plan.get("local_llm_selected") or model_plan.get("local_llm_recommended")):
+        return False
+    return model_plan.get("local_llm_provider") == "ollama" or model_plan.get("risk") != "low"
+
+
+def mini_brain_review_required(model_plan: dict[str, Any]) -> bool:
+    if model_plan.get("strategy") != "mini-brain":
+        return False
+    return model_plan.get("risk") != "low" or model_plan.get("local_llm_provider") == "ollama"
 
 
 def mark_reviewed(payload: dict[str, Any], *, reviewer: str | None = None, notes: str | None = None) -> dict[str, Any]:

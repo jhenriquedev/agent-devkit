@@ -17,6 +17,7 @@ const topLevelIncludes = [
   "agents",
   "providers",
   "plugins",
+  "models",
   "vendor",
   "scripts",
   "tooling/toolchain.yaml",

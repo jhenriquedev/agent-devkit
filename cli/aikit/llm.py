@@ -14,6 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from cli.aikit.app_home import app_home, config_path as app_config_path, ensure_app_home
+from cli.aikit.embedded_mini_brain import (
+    EMBEDDED_BACKEND_ID,
+    EMBEDDED_MODEL_ID,
+    EmbeddedMiniBrainError,
+    embedded_backend_config,
+    embedded_backend_doctor,
+    invoke_embedded_mini_brain,
+)
 from cli.aikit.identity import host_cli_prompt, identity_system_prompt
 
 
@@ -33,6 +41,14 @@ class LlmBackend:
 
 
 BACKENDS: dict[str, LlmBackend] = {
+    EMBEDDED_BACKEND_ID: LlmBackend(
+        id=EMBEDDED_BACKEND_ID,
+        display_name="Embedded mini-brain",
+        kind="embedded-local",
+        auth="none",
+        default_model=EMBEDDED_MODEL_ID,
+        notes="Uses the Agent DevKit embedded mini-brain for setup, onboarding and low-risk conversation.",
+    ),
     "openai": LlmBackend(
         id="openai",
         display_name="OpenAI API",
@@ -100,7 +116,7 @@ BACKENDS: dict[str, LlmBackend] = {
 
 ENV_VAR_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 DEFAULT_AGENT_TIMEOUT_SECONDS = 120
-DEFAULT_FALLBACK_ORDER = ("claude-code", "codex-cli", "openai", "anthropic", "openrouter", "ollama")
+DEFAULT_FALLBACK_ORDER = ("claude-code", "codex-cli", "openai", "anthropic", "openrouter", "ollama", EMBEDDED_BACKEND_ID)
 
 
 def config_home() -> Path:
@@ -323,6 +339,8 @@ def normalize_backend_order(order: str | list[str] | tuple[str, ...]) -> list[st
 
 
 def default_backend_config(backend: LlmBackend) -> dict[str, Any]:
+    if backend.id == EMBEDDED_BACKEND_ID:
+        return embedded_backend_config()
     entry: dict[str, Any] = {"kind": backend.kind, "auth": backend.auth}
     if backend.auth == "api-key-env":
         entry["api_key_ref"] = f"env:{backend.api_key_env}"
@@ -361,6 +379,8 @@ def doctor_backends(backend_id: str | None = None) -> dict[str, Any]:
 
 
 def doctor_backend(backend: LlmBackend, config: dict[str, Any]) -> dict[str, Any]:
+    if backend.id == EMBEDDED_BACKEND_ID:
+        return embedded_backend_doctor()
     configured = config.get("llm", {}).get("backends", {}).get(backend.id, {})
     if not isinstance(configured, dict):
         configured = {}
@@ -616,6 +636,11 @@ class LlmPolicyError(LlmInvocationError):
 def invoke_resolved_backend(backend: dict[str, Any], prompt: str, *, public_name: str = "Agent DevKit") -> str:
     kind = backend.get("kind")
     backend_id = backend.get("id")
+    if kind == "embedded-local" and backend_id == EMBEDDED_BACKEND_ID:
+        try:
+            return invoke_embedded_mini_brain(prompt, public_name=public_name)
+        except EmbeddedMiniBrainError as exc:
+            raise LlmInvocationError(str(exc)) from exc
     if kind == "openai-compatible":
         return invoke_openai_compatible(backend, prompt, public_name=public_name)
     if kind == "anthropic":

@@ -24,7 +24,7 @@ FORBIDDEN_DELEGATION_MARKERS = (
 
 
 def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[str, Any]:
-    """Execute a bounded operational task with Ollama when the model plan selected it."""
+    """Execute a bounded operational task with the selected local worker."""
     delegation = model_plan.get("delegation") if isinstance(model_plan.get("delegation"), dict) else {}
     if model_plan.get("strategy") != "mini-brain":
         return skipped(
@@ -36,6 +36,12 @@ def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[st
         return skipped(
             "high-risk",
             "High-risk tasks cannot be delegated to local LLM workers.",
+            model_plan=model_plan,
+        )
+    if model_plan.get("local_llm_role") != "operational-worker":
+        return skipped(
+            "not-operational-worker",
+            "The embedded mini-brain is acting as the bootstrap coordinator, not as a delegated worker.",
             model_plan=model_plan,
         )
     if int(model_plan.get("max_llm_calls") or 0) <= 0:
@@ -50,9 +56,10 @@ def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[st
     if any(marker in lowered for marker in FORBIDDEN_DELEGATION_MARKERS):
         return skipped("forbidden", "Prompt contains an action that local LLM workers cannot execute.", model_plan=model_plan)
     delegated_prompt = build_delegated_prompt(prompt, model_plan)
+    provider = str(model_plan.get("local_llm_provider") or "ollama")
     result = invoke_agent_prompt(
         delegated_prompt,
-        "ollama",
+        provider,
         public_name="Local LLM Operator",
         allow_fallback=False,
     )
@@ -64,7 +71,7 @@ def maybe_delegate_local_llm(prompt: str, model_plan: dict[str, Any]) -> dict[st
         "status": "ok" if result.get("ok") else result.get("status", "failed"),
         "ok": bool(result.get("ok")),
         "llm_backend": result.get("llm_backend"),
-        "model_provider": "ollama",
+        "model_provider": provider,
         "mini_brain": summarize_mini_brain(model_plan.get("mini_brain")),
         "strategy": model_plan.get("strategy"),
         "risk": model_plan.get("risk"),
@@ -108,7 +115,7 @@ def enrich_prompt_with_local_result(prompt: str, local_execution: dict[str, Any]
         [
             prompt,
             "",
-            "Contexto operacional produzido pelo local-llm-operator/Ollama:",
+            f"Contexto operacional produzido pelo local-llm-operator/{local_execution.get('model_provider') or local_execution.get('llm_backend') or 'local'}:",
             str(local_execution["response"]),
             "",
             "Use esse contexto apenas como apoio. A decisao, resposta final e revisao continuam sob responsabilidade do coordenador.",
@@ -131,7 +138,10 @@ def skipped(reason: str, message: str, *, model_plan: dict[str, Any]) -> dict[st
         "strategy": model_plan.get("strategy"),
         "risk": model_plan.get("risk"),
         "confidence": model_plan.get("confidence"),
-        "requires_review": bool(model_plan.get("local_llm_recommended") or model_plan.get("local_llm_selected")),
+        "requires_review": bool(
+            model_plan.get("local_llm_role") == "operational-worker"
+            and (model_plan.get("local_llm_recommended") or model_plan.get("local_llm_selected"))
+        ),
     }
 
 

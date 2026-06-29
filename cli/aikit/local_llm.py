@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from typing import Any
 
+from cli.aikit.embedded_mini_brain import EMBEDDED_BACKEND_ID, EMBEDDED_MODEL_ID, embedded_mini_brain_status
 from cli.aikit.mini_brain import DEFAULT_OLLAMA_MODEL, mini_brain_contract
 from cli.aikit.model_router import build_model_plan
 from cli.aikit.ollama import ollama_models, ollama_pull, ollama_status
@@ -28,7 +29,9 @@ def local_llm_list() -> dict[str, Any]:
         "kind": "local-llm",
         "schema_version": LOCAL_LLM_SCHEMA_VERSION,
         "status": "ok",
-        "provider": "ollama",
+        "provider": EMBEDDED_BACKEND_ID,
+        "optional_providers": ["ollama"],
+        "embedded": embedded_mini_brain_status(),
         "mini_brain": contract,
         "workers": [{"id": worker_id, "purpose": purpose} for worker_id, purpose in LOCAL_WORKERS],
         "models": {
@@ -42,12 +45,14 @@ def local_llm_doctor() -> dict[str, Any]:
     status = ollama_status()
     contract = mini_brain_contract(ollama_payload=status)
     model_plan = build_model_plan("resuma estes logs operacionais")
-    ok = status.get("status") == "ok" and contract.get("enabled") is True
+    ok = contract.get("available") is True
     return {
         "kind": "local-llm-doctor",
         "schema_version": LOCAL_LLM_SCHEMA_VERSION,
         "status": "ok" if ok else "partial",
-        "provider": "ollama",
+        "provider": EMBEDDED_BACKEND_ID,
+        "optional_providers": ["ollama"],
+        "embedded": embedded_mini_brain_status(),
         "ollama": status,
         "mini_brain": contract,
         "model_plan": {
@@ -65,7 +70,14 @@ def local_llm_models() -> dict[str, Any]:
     payload = ollama_models()
     payload["kind"] = "local-llm-models"
     payload["schema_version"] = LOCAL_LLM_SCHEMA_VERSION
-    payload["provider"] = "ollama"
+    payload["provider"] = EMBEDDED_BACKEND_ID
+    payload["embedded"] = {
+        "status": "ok",
+        "provider": EMBEDDED_BACKEND_ID,
+        "model": EMBEDDED_MODEL_ID,
+        "installed": True,
+    }
+    payload["optional_provider"] = "ollama"
     return payload
 
 

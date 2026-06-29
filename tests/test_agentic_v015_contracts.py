@@ -312,7 +312,7 @@ class AgenticV015ContractsTest(unittest.TestCase):
         self.assertEqual(blocked_payload["exit_code"], 2)
         self.assertEqual(json.loads(pull.stdout)["status"], "ok")
 
-    def test_setup_mini_brain_dry_run_plans_qwen3_without_side_effect(self) -> None:
+    def test_setup_mini_brain_dry_run_plans_embedded_qwen_without_side_effect(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             result = self.run_agent("setup", "mini-brain", "--dry-run", "--json", env={"AI_DEVKIT_CONFIG_HOME": tmpdir})
 
@@ -322,17 +322,16 @@ class AgenticV015ContractsTest(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["kind"], "mini-brain-setup")
         self.assertEqual(payload["status"], "planned")
-        self.assertEqual(payload["mini_brain"]["hf_model"], "Qwen/Qwen3-0.6B")
+        self.assertEqual(payload["mini_brain"]["hf_model"], "Qwen/Qwen2.5-0.5B-Instruct")
+        self.assertEqual(payload["mini_brain"]["provider"], "embedded-mini-brain")
         self.assertEqual(payload["mini_brain"]["ollama_model"], "qwen3:0.6b")
         self.assertFalse(payload["mini_brain"]["enabled"])
         self.assertFalse(payload["stored_secret"])
         self.assertFalse(config_path.exists())
 
-    def test_setup_mini_brain_yes_pulls_qwen3_and_configures_ollama(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as bindir:
-            bin_path = Path(bindir)
-            self.write_fake_ollama(bin_path)
-            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": f"{bin_path}{os.pathsep}{os.environ.get('PATH', '')}"}
+    def test_setup_mini_brain_yes_enables_embedded_without_ollama(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as empty_path:
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": empty_path}
             result = self.run_agent("setup", "mini-brain", "--yes", "--json", env=env)
 
             config = json.loads((Path(tmpdir) / "config.json").read_text(encoding="utf-8"))
@@ -342,12 +341,35 @@ class AgenticV015ContractsTest(unittest.TestCase):
         self.assertEqual(payload["kind"], "mini-brain-setup")
         self.assertEqual(payload["status"], "configured")
         self.assertTrue(payload["mini_brain"]["enabled"])
+        self.assertTrue(payload["mini_brain"]["available"])
+        self.assertEqual(payload["mini_brain"]["provider"], "embedded-mini-brain")
+        self.assertEqual(payload["mini_brain"]["hf_model"], "Qwen/Qwen2.5-0.5B-Instruct")
         self.assertEqual(payload["mini_brain"]["ollama_model"], "qwen3:0.6b")
-        self.assertEqual(payload["pull"]["status"], "ok")
+        self.assertEqual(payload["embedded"]["status"], "ok")
+        self.assertEqual(payload["ollama_setup"]["status"], "skipped")
         self.assertFalse(payload["stored_secret"])
+        self.assertEqual(config["mini_brain"]["provider"], "embedded-mini-brain")
         self.assertEqual(config["mini_brain"]["ollama_model"], "qwen3:0.6b")
-        self.assertEqual(config["llm"]["backends"]["ollama"]["model"], "qwen3:0.6b")
+        self.assertEqual(config["llm"]["backends"]["embedded-mini-brain"]["model"], "Qwen/Qwen2.5-0.5B-Instruct")
+        self.assertNotIn("ollama", config["llm"]["backends"])
         self.assertNotIn("test-secret", json.dumps(config).lower())
+
+    def test_local_llm_doctor_reports_embedded_brain_and_optional_ollama(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as empty_path:
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": empty_path}
+            result = self.run_agent("local-llm", "doctor", "--json", env=env)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "local-llm-doctor")
+        self.assertEqual(payload["provider"], "embedded-mini-brain")
+        self.assertEqual(payload["mini_brain"]["provider"], "embedded-mini-brain")
+        self.assertTrue(payload["mini_brain"]["available"])
+        self.assertTrue(payload["mini_brain"]["embedded"]["model_file_present"])
+        self.assertEqual(payload["mini_brain"]["embedded"]["dependency"]["status"], "ok")
+        self.assertTrue(payload["mini_brain"]["embedded"]["model_file"].endswith(".gguf"))
+        self.assertEqual(payload["ollama"]["status"], "missing")
+        self.assertIn("ollama", payload["optional_providers"])
 
     def test_toolchain_includes_ollama(self) -> None:
         result = self.run_agent("toolchain", "list", "--json")

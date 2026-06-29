@@ -111,7 +111,7 @@ function createVenv(basePython, venvRoot) {
 function pythonImportsOk(python) {
   const result = spawnSync(
     python,
-    ["-c", "import yaml, jsonschema, bs4, pypdf, reportlab"],
+    ["-c", "import yaml, jsonschema, bs4, pypdf, reportlab, llama_cpp"],
     { stdio: "ignore", shell: false },
   );
   return result.status === 0;

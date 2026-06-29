@@ -1,0 +1,30 @@
+{
+  "schema_version": "agent-devkit.embedded-model/v1",
+  "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model_name": "qwen2.5-0.5b-instruct",
+  "artifact": {
+    "filename": "qwen2.5-0.5b-instruct-q2_k.gguf",
+    "format": "gguf",
+    "quantization": "q2_k",
+    "size_bytes": 415182688,
+    "sha256": "9ee36184e616dfc76df4f5dd66f908dbde6979524ae36e6cefb67f532f798cb8",
+    "source": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q2_k.gguf"
+  },
+  "provider": "embedded-mini-brain",
+  "license": "apache-2.0",
+  "runtime": "llama-cpp-python",
+  "purpose": [
+    "setup_help",
+    "wizard_conversation",
+    "intent_classification",
+    "command_explanation",
+    "short_error_summary"
+  ],
+  "guardrails": [
+    "no_secrets",
+    "low_risk_only",
+    "no_external_writes",
+    "coordinator_review_required"
+  ],
+  "notes": "This manifest declares the embedded mini-brain contract shipped with Agent DevKit. Ollama remains an optional local worker pool for additional models."
+}
