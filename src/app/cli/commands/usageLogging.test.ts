@@ -22,11 +22,12 @@ describe("agent usage logging", () => {
       expect(preferences.preferences.theme).toBe("default-purple");
 
       const logDirectory = join(home, ".agent-devkit", "logs");
-      const [logFile] = await readdir(logDirectory);
-      if (logFile === undefined) {
+      const logFiles = await readdir(logDirectory);
+      const usageLogFile = logFiles.find((file) => file.startsWith("usage-"));
+      if (usageLogFile === undefined) {
         throw new Error("Expected usage log file to be created.");
       }
-      const content = await readFile(join(logDirectory, logFile), "utf8");
+      const content = await readFile(join(logDirectory, usageLogFile), "utf8");
       const event = JSON.parse(content.trim());
 
       expect(event).toMatchObject({

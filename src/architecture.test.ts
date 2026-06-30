@@ -4,6 +4,8 @@ import { createLogsModuleBindings } from "./modules/logs/logs.bind";
 import { logsModuleConfig } from "./modules/logs/logs.config";
 import { createProjectModuleBindings } from "./modules/project/project.bind";
 import { projectModuleConfig } from "./modules/project/project.config";
+import { createSecretsModuleBindings } from "./modules/secrets/secrets.bind";
+import { secretsModuleConfig } from "./modules/secrets/secrets.config";
 import { createSelfModuleBindings } from "./modules/self/self.bind";
 import { selfModuleConfig } from "./modules/self/self.config";
 import { createUserModuleBindings } from "./modules/user/user.bind";
@@ -44,6 +46,7 @@ describe("canonical architecture", () => {
       "bind.ts",
       "capability.ts",
       "config.ts",
+      "crypto.ts",
       "database.ts",
       "errors.ts",
       "logger.ts",
@@ -62,6 +65,12 @@ describe("canonical architecture", () => {
     ).resolves.toBe(true);
     await expect(
       exists(join(process.cwd(), "src", "infra", "clients", "http.client.ts")),
+    ).resolves.toBe(true);
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "crypto", "local_secret_crypto.ts")),
+    ).resolves.toBe(true);
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "crypto", "encrypted_secret_store.ts")),
     ).resolves.toBe(true);
     await expect(exists(join(process.cwd(), "src", "infra", "clients", "index.ts"))).resolves.toBe(
       true,
@@ -84,7 +93,7 @@ describe("canonical architecture", () => {
   });
 
   it("defines module entrypoints and isolated capabilities", async () => {
-    const modules = ["logs", "project", "self", "user"];
+    const modules = ["logs", "project", "secrets", "self", "user"];
 
     for (const moduleName of modules) {
       await expect(
@@ -123,6 +132,19 @@ describe("canonical architecture", () => {
           "capabilities",
           "analysis",
           "analysis.service.ts",
+        ),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      exists(
+        join(
+          process.cwd(),
+          "src",
+          "modules",
+          "secrets",
+          "capabilities",
+          "vault",
+          "vault.service.ts",
         ),
       ),
     ).resolves.toBe(true);
@@ -198,6 +220,12 @@ describe("canonical architecture", () => {
         "src/modules/project/capabilities/**/*.test.ts",
       ],
     });
+    expect(secretsModuleConfig.tests).toEqual({
+      include: [
+        "src/modules/secrets/secrets.surface.test.ts",
+        "src/modules/secrets/capabilities/**/*.test.ts",
+      ],
+    });
     expect(selfModuleConfig.tests).toEqual({
       include: [
         "src/modules/self/self.surface.test.ts",
@@ -215,6 +243,7 @@ describe("canonical architecture", () => {
   it("binds modules through the canonical module binding contract", () => {
     const logsResult = createLogsModuleBindings();
     const projectResult = createProjectModuleBindings({ appVersion: "0.4.0" });
+    const secretsResult = createSecretsModuleBindings();
     const selfResult = createSelfModuleBindings({
       currentVersion: "0.4.0",
       packageName: "agent-devkit",
@@ -223,11 +252,13 @@ describe("canonical architecture", () => {
 
     expect(logsResult.isOk()).toBe(true);
     expect(projectResult.isOk()).toBe(true);
+    expect(secretsResult.isOk()).toBe(true);
     expect(selfResult.isOk()).toBe(true);
     expect(userResult.isOk()).toBe(true);
 
     const logs = logsResult.unwrap();
     const project = projectResult.unwrap();
+    const secrets = secretsResult.unwrap();
     const self = selfResult.unwrap();
     const user = userResult.unwrap();
 
@@ -251,6 +282,13 @@ describe("canonical architecture", () => {
     expect(project.capabilities.reset.capability).toMatchObject({
       id: "project.reset",
       moduleId: "project",
+    });
+
+    expect(secrets.config).toBe(secretsModuleConfig);
+    expect(Object.keys(secrets.capabilities)).toEqual(["vault"]);
+    expect(secrets.capabilities.vault.capability).toMatchObject({
+      id: "secrets.vault",
+      moduleId: "secrets",
     });
 
     expect(self.config).toBe(selfModuleConfig);

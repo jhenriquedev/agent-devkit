@@ -16,7 +16,7 @@ desktop.ini
 !.env.example
 *.pem
 *.key
-secrets/
+/secrets/
 credentials.json
 
 # Node / TypeScript

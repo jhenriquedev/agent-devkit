@@ -35,6 +35,31 @@ export interface UsageLogger {
   writeUsage(event: UsageLogInput): Promise<Result<AgentDevKitErrorCode, void>>;
 }
 
+export type TechnicalLogInput = {
+  area: UsageLogArea;
+  command?: string;
+  durationMs?: number;
+  error?: {
+    message: string;
+    name: string;
+  };
+  event: string;
+  interface: UsageLogInterface;
+  level: LogLevel;
+  message: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type TechnicalLogEvent = TechnicalLogInput & {
+  category: "technical";
+  schema: "agent-devkit.technical-log/v1";
+  timestamp: string;
+};
+
+export interface TechnicalLogger {
+  writeTechnical(event: TechnicalLogInput): Promise<Result<AgentDevKitErrorCode, void>>;
+}
+
 export class ConsoleLogger implements Logger {
   write(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
     const payload = metadata ? ` ${JSON.stringify(metadata)}` : "";

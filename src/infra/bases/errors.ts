@@ -3,6 +3,8 @@ export const ErrorCodes = {
   CacheReadFailed: "CACHE_READ_FAILED",
   CapabilityExecutionFailed: "CAPABILITY_EXECUTION_FAILED",
   DatabaseReadFailed: "DATABASE_READ_FAILED",
+  DecryptionFailed: "DECRYPTION_FAILED",
+  EncryptionFailed: "ENCRYPTION_FAILED",
   FileReadFailed: "FILE_READ_FAILED",
   FileWriteFailed: "FILE_WRITE_FAILED",
   InvalidInput: "INVALID_INPUT",

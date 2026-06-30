@@ -28,7 +28,7 @@ describe("agent doctor", () => {
     }
   });
 
-  it("prints doctor JSON and does not create state directories", async () => {
+  it("prints doctor JSON and creates only the global state directory", async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), "agent-devkit-home-"));
     const projectDirectory = await mkdtemp(join(tmpdir(), "agent-devkit-project-"));
 
@@ -45,7 +45,7 @@ describe("agent doctor", () => {
       expect(report.version).toBe("0.4.0");
       expect(report.runtime.globalState).toEqual({
         path: join(homeDirectory, ".agent-devkit"),
-        exists: false,
+        exists: true,
       });
       expect(report.runtime.projectState).toEqual({
         path: join(resolvedProjectDirectory, ".agent-devkit"),

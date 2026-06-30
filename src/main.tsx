@@ -8,6 +8,7 @@ import { registerInitCommand } from "./app/cli/commands/initCommand";
 import { registerLogsCommand } from "./app/cli/commands/logsCommand";
 import { registerPreferencesCommand } from "./app/cli/commands/preferencesCommand";
 import { registerResetCommand } from "./app/cli/commands/resetCommand";
+import { registerSecretsCommand } from "./app/cli/commands/secretsCommand";
 import { registerUpdateCommand } from "./app/cli/commands/updateCommand";
 import {
   configureLocalizedHelp,
@@ -16,6 +17,7 @@ import {
 } from "./app/cli/i18n";
 import { CliUsageLoggingMiddleware } from "./app/cli/usageLogging";
 import { App } from "./app/tui/App";
+import { JsonTechnicalLogger } from "./infra/logging/json_technical_logger";
 import { JsonUsageLogger } from "./infra/logging/json_usage_logger";
 
 const program = new Command();
@@ -23,6 +25,7 @@ const userPreferences = loadCliUserPreferences();
 const translator = createCliTranslator();
 const usageLogging = new CliUsageLoggingMiddleware({
   logger: new JsonUsageLogger({ retentionDays: userPreferences.logRetentionDays }),
+  technicalLogger: new JsonTechnicalLogger({ retentionDays: userPreferences.logRetentionDays }),
 });
 configureLocalizedHelp(program, translator);
 
@@ -48,6 +51,7 @@ registerInitCommand(program, { appVersion: packageJson.version, translator, usag
 registerLogsCommand(program, { translator, usageLogging });
 registerPreferencesCommand(program, { translator, usageLogging });
 registerResetCommand(program, { appVersion: packageJson.version, translator, usageLogging });
+registerSecretsCommand(program, { translator, usageLogging });
 registerUpdateCommand(program, { translator, usageLogging });
 
 await program.parseAsync(process.argv);

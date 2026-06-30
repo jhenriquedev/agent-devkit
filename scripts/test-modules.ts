@@ -4,12 +4,14 @@ import { join } from "node:path";
 import type { AgentDevKitModuleConfig } from "../src/infra/bases/module";
 import { logsModuleConfig } from "../src/modules/logs/logs.config";
 import { projectModuleConfig } from "../src/modules/project/project.config";
+import { secretsModuleConfig } from "../src/modules/secrets/secrets.config";
 import { selfModuleConfig } from "../src/modules/self/self.config";
 import { userModuleConfig } from "../src/modules/user/user.config";
 
 const moduleConfigs: AgentDevKitModuleConfig[] = [
   logsModuleConfig,
   projectModuleConfig,
+  secretsModuleConfig,
   selfModuleConfig,
   userModuleConfig,
 ];
