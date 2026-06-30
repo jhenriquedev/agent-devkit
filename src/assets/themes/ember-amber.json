@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "ember-amber",
+  "name": "Ember Amber",
+  "description": "Warm amber theme for high-attention operations.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#1A1410",
+    "panel": "#251C16",
+    "elevated": "#34271D",
+    "border": "#4C3828",
+    "borderStrong": "#6B4E34",
+    "text": "#F2E8DE",
+    "textMuted": "#C0A995",
+    "textDim": "#846E5C",
+    "primary": "#E8B45F",
+    "primaryStrong": "#FFD28A",
+    "success": "#5FD0C8",
+    "warning": "#FFCB3A",
+    "danger": "#E87A8E",
+    "accent": "#8B7AE6"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}

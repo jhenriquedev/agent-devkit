@@ -4,8 +4,13 @@ import { join } from "node:path";
 import type { AgentDevKitModuleConfig } from "../src/infra/bases/module";
 import { projectModuleConfig } from "../src/modules/project/project.config";
 import { selfModuleConfig } from "../src/modules/self/self.config";
+import { userModuleConfig } from "../src/modules/user/user.config";
 
-const moduleConfigs: AgentDevKitModuleConfig[] = [projectModuleConfig, selfModuleConfig];
+const moduleConfigs: AgentDevKitModuleConfig[] = [
+  projectModuleConfig,
+  selfModuleConfig,
+  userModuleConfig,
+];
 
 function printUsage(): void {
   console.log("Usage: npm run test:modules -- [module...] [--changed]");

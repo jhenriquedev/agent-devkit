@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "forest-teal",
+  "name": "Forest Teal",
+  "description": "Deep green terminal theme with teal actions.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#101815",
+    "panel": "#17231F",
+    "elevated": "#20312B",
+    "border": "#2D473E",
+    "borderStrong": "#3D6558",
+    "text": "#E4F2EC",
+    "textMuted": "#9CB9AD",
+    "textDim": "#668176",
+    "primary": "#5FD0C8",
+    "primaryStrong": "#8DE4DD",
+    "success": "#78D89A",
+    "warning": "#E2BD68",
+    "danger": "#E87A8E",
+    "accent": "#8B7AE6"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}

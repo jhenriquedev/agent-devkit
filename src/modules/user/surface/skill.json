@@ -1,0 +1,9 @@
+{
+  "moduleId": "user",
+  "purpose": "Manage user preferences and personalization.",
+  "whenToUse": [
+    "The user wants to view or change Agent DevKit preferences.",
+    "The user wants to select a CLI/TUI theme."
+  ],
+  "constraints": ["Do not read secrets.", "Only write under the user Agent DevKit state directory."]
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "default-purple",
+  "name": "Default Purple",
+  "description": "Theme based on the Agent DevKit TUI design system.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#14131C",
+    "panel": "#1C1A28",
+    "elevated": "#232032",
+    "border": "#2E2B3F",
+    "borderStrong": "#3A3650",
+    "text": "#E8E6F2",
+    "textMuted": "#9D98B8",
+    "textDim": "#6B6783",
+    "primary": "#8B7AE6",
+    "primaryStrong": "#A99CF0",
+    "success": "#5FD0C8",
+    "warning": "#E8B45F",
+    "danger": "#E87A8E",
+    "accent": "#E7A6CB"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}

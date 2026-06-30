@@ -13,9 +13,11 @@ services:
     volumes:
       - .:/workspace
       - agent-devkit-node-modules:/workspace/node_modules
+      - agent-devkit-state:/root/.agent-devkit
     stdin_open: true
     tty: true
     command: npm run check
 
 volumes:
   agent-devkit-node-modules:
+  agent-devkit-state:

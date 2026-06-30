@@ -1,0 +1,7 @@
+{
+  "moduleId": "user",
+  "mode": "user-preferences",
+  "allowedActions": ["read-user-preferences", "write-user-preferences-after-command"],
+  "forbiddenActions": ["read-secrets", "write-project-state-without-explicit-command"],
+  "approvalRequired": false
+}

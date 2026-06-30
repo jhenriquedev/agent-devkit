@@ -4,6 +4,8 @@ import { createProjectModuleBindings } from "./modules/project/project.bind";
 import { projectModuleConfig } from "./modules/project/project.config";
 import { createSelfModuleBindings } from "./modules/self/self.bind";
 import { selfModuleConfig } from "./modules/self/self.config";
+import { createUserModuleBindings } from "./modules/user/user.bind";
+import { userModuleConfig } from "./modules/user/user.config";
 
 async function exists(path: string): Promise<boolean> {
   try {
@@ -80,7 +82,7 @@ describe("canonical architecture", () => {
   });
 
   it("defines module entrypoints and isolated capabilities", async () => {
-    const modules = ["project", "self"];
+    const modules = ["project", "self", "user"];
 
     for (const moduleName of modules) {
       await expect(
@@ -153,6 +155,19 @@ describe("canonical architecture", () => {
         ),
       ),
     ).resolves.toBe(true);
+    await expect(
+      exists(
+        join(
+          process.cwd(),
+          "src",
+          "modules",
+          "user",
+          "capabilities",
+          "preferences",
+          "preferences.service.ts",
+        ),
+      ),
+    ).resolves.toBe(true);
   });
 
   it("binds module test suites in each module contract", () => {
@@ -168,6 +183,12 @@ describe("canonical architecture", () => {
         "src/modules/self/capabilities/**/*.test.ts",
       ],
     });
+    expect(userModuleConfig.tests).toEqual({
+      include: [
+        "src/modules/user/user.surface.test.ts",
+        "src/modules/user/capabilities/**/*.test.ts",
+      ],
+    });
   });
 
   it("binds modules through the canonical module binding contract", () => {
@@ -176,12 +197,15 @@ describe("canonical architecture", () => {
       currentVersion: "0.4.0",
       packageName: "agent-devkit",
     });
+    const userResult = createUserModuleBindings();
 
     expect(projectResult.isOk()).toBe(true);
     expect(selfResult.isOk()).toBe(true);
+    expect(userResult.isOk()).toBe(true);
 
     const project = projectResult.unwrap();
     const self = selfResult.unwrap();
+    const user = userResult.unwrap();
 
     expect(project.config).toBe(projectModuleConfig);
     expect(Object.keys(project.capabilities)).toEqual(["doctor", "init", "reset"]);
@@ -203,6 +227,13 @@ describe("canonical architecture", () => {
     expect(self.capabilities.update.capability).toMatchObject({
       id: "self.update",
       moduleId: "self",
+    });
+
+    expect(user.config).toBe(userModuleConfig);
+    expect(Object.keys(user.capabilities)).toEqual(["preferences"]);
+    expect(user.capabilities.preferences.capability).toMatchObject({
+      id: "user.preferences",
+      moduleId: "user",
     });
   });
 });

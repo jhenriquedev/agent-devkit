@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "high-contrast",
+  "name": "High Contrast",
+  "description": "High contrast dark theme for maximum terminal legibility.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#050509",
+    "panel": "#101018",
+    "elevated": "#191924",
+    "border": "#3F3F52",
+    "borderStrong": "#686882",
+    "text": "#FFFFFF",
+    "textMuted": "#C9C9D8",
+    "textDim": "#8C8CA3",
+    "primary": "#B8AAFF",
+    "primaryStrong": "#D7D0FF",
+    "success": "#7DEFE6",
+    "warning": "#FFD166",
+    "danger": "#FF8DA1",
+    "accent": "#7CC4FF"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}

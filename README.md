@@ -170,7 +170,22 @@ agent reset -g --dry-run
 agent update --latest --dry-run
 agent update 0.4.0 --dry-run
 agent update 0.4.0 --yes
+agent preferences
+agent preferences --json
+agent preferences themes
+agent preferences set-theme forest-teal
+agent preferences update --theme ocean-blue
 ```
+
+Initial themes:
+
+- `default-purple`
+- `forest-teal`
+- `ocean-blue`
+- `ember-amber`
+- `rose-pink`
+- `slate-neutral`
+- `high-contrast`
 
 `reset` removes only Agent DevKit state folders and executes destructive work
 only with `--yes`. `update` plans an npm global install by default and executes

@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "ocean-blue",
+  "name": "Ocean Blue",
+  "description": "Cool blue theme for calm long-running sessions.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#101620",
+    "panel": "#182233",
+    "elevated": "#202D43",
+    "border": "#2E405E",
+    "borderStrong": "#3F5D88",
+    "text": "#E5EEF8",
+    "textMuted": "#9DB1C8",
+    "textDim": "#677C96",
+    "primary": "#7CC4FF",
+    "primaryStrong": "#A8D8FF",
+    "success": "#5FD0C8",
+    "warning": "#E8B45F",
+    "danger": "#E87A8E",
+    "accent": "#A99CF0"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}

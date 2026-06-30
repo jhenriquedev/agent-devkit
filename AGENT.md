@@ -72,6 +72,11 @@ serialization lives in `src/infra/files` for JSON, TXT, MD and PDF/binary
 payloads. Asset loading lives in `src/infra/assets` and must guard against path
 traversal outside `src/assets`.
 
+Theme assets live in `src/assets/themes`. The default theme is
+`default-purple`, based on the TUI design system in `docs/ai-devkit-ui`.
+User preferences live under `~/.agent-devkit/preferences.json` and must be
+changed through the `user.preferences` capability.
+
 Capabilities must extend the canonical base from
 `src/infra/bases/capability.ts`; repositories must implement its repository
 port. Module composition must happen through binders from

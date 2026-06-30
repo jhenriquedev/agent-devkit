@@ -1,0 +1,10 @@
+{
+  "moduleId": "user",
+  "templates": [
+    {
+      "id": "user.preferences",
+      "template": "Use user preferences to apply the selected theme {{theme}} when rendering CLI or TUI output.",
+      "variables": ["theme"]
+    }
+  ]
+}

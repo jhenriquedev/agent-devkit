@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "slate-neutral",
+  "name": "Slate Neutral",
+  "description": "Low-chroma theme for dense operational work.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#121418",
+    "panel": "#1B1F26",
+    "elevated": "#252B34",
+    "border": "#333B47",
+    "borderStrong": "#4B5666",
+    "text": "#E7EBF0",
+    "textMuted": "#A2ACB8",
+    "textDim": "#687381",
+    "primary": "#A99CF0",
+    "primaryStrong": "#C6BDF6",
+    "success": "#5FD0C8",
+    "warning": "#E8B45F",
+    "danger": "#E87A8E",
+    "accent": "#7CC4FF"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}

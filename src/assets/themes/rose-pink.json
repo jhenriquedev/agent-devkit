@@ -1,0 +1,28 @@
+{
+  "schema": "agent-devkit.theme/v1",
+  "id": "rose-pink",
+  "name": "Rose Pink",
+  "description": "Soft rose theme for guided onboarding and reviews.",
+  "appearance": "dark",
+  "colors": {
+    "background": "#1A1218",
+    "panel": "#261B24",
+    "elevated": "#352431",
+    "border": "#4A3143",
+    "borderStrong": "#68445E",
+    "text": "#F4E7F0",
+    "textMuted": "#C2A0B8",
+    "textDim": "#86677B",
+    "primary": "#E7A6CB",
+    "primaryStrong": "#F2C1DC",
+    "success": "#5FD0C8",
+    "warning": "#E8B45F",
+    "danger": "#E87A8E",
+    "accent": "#8B7AE6"
+  },
+  "fonts": {
+    "heading": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  }
+}
