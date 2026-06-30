@@ -1,0 +1,20 @@
+{
+  "moduleId": "project",
+  "templates": [
+    {
+      "id": "project.doctor",
+      "template": "Explain this Agent DevKit doctor report without asking for credentials: {{report}}",
+      "variables": ["report"]
+    },
+    {
+      "id": "project.init",
+      "template": "Explain that project initialization will create only Agent DevKit local state files: {{plannedFiles}}",
+      "variables": ["plannedFiles"]
+    },
+    {
+      "id": "project.reset",
+      "template": "Explain the reset target and warn that deletion requires explicit confirmation: {{targetPath}}",
+      "variables": ["targetPath"]
+    }
+  ]
+}

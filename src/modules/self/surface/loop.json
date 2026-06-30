@@ -1,0 +1,7 @@
+{
+  "moduleId": "self",
+  "mode": "package-maintenance",
+  "allowedActions": ["read-npm-registry", "install-selected-version-after-confirmation"],
+  "forbiddenActions": ["downgrade-on-latest", "install-without-confirmation"],
+  "approvalRequired": true
+}

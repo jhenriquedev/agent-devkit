@@ -1,0 +1,15 @@
+{
+  "moduleId": "project",
+  "mode": "state-management",
+  "allowedActions": [
+    "read-project-state",
+    "write-project-state-after-command",
+    "delete-agent-devkit-state-after-confirmation"
+  ],
+  "forbiddenActions": [
+    "read-secrets",
+    "write-env-files",
+    "delete-files-outside-agent-devkit-state"
+  ],
+  "approvalRequired": true
+}

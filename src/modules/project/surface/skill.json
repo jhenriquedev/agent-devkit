@@ -1,0 +1,13 @@
+{
+  "moduleId": "project",
+  "purpose": "Manage and inspect Agent DevKit state for a local project.",
+  "whenToUse": [
+    "The user asks whether the current project is initialized.",
+    "The user wants to initialize project-local Agent DevKit state.",
+    "The user wants to remove project or global Agent DevKit state."
+  ],
+  "whenNotToUse": [
+    "The user wants to update the npm package.",
+    "The user wants model reasoning, routing, or prompt execution."
+  ]
+}

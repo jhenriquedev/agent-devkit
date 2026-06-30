@@ -27,7 +27,7 @@ program
 
 registerDoctorCommand(program, { appVersion: packageJson.version });
 registerInitCommand(program, { appVersion: packageJson.version });
-registerResetCommand(program);
+registerResetCommand(program, { appVersion: packageJson.version });
 registerUpdateCommand(program);
 
 program.parse(process.argv);

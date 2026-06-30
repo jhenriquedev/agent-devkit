@@ -1,0 +1,11 @@
+{
+  "moduleId": "project",
+  "summary": "Project state is local, explicit, and kept under .agent-devkit. Doctor observes state, init creates it, and reset removes it only with confirmation.",
+  "facts": [
+    "~/.agent-devkit is global user state.",
+    "<project>/.agent-devkit is project-local state.",
+    "agent doctor must not create or delete files.",
+    "agent init creates .agent-devkit/config.json and .agent-devkit/agent-devkit.lock.",
+    "agent reset removes only .agent-devkit for the selected scope and requires --yes for destructive work."
+  ]
+}

@@ -1,8 +1,8 @@
 import type { Command } from "commander";
-import { RunDoctor } from "../../../domain/usecases/RunDoctor";
-import { NodePathInspector } from "../../../infra/filesystem/NodePathInspector";
-import { NodeSystemInfoProvider } from "../../../infra/process/NodeSystemInfoProvider";
-import { formatDoctorText } from "../../viewmodels/doctorViewModel";
+import {
+  createProjectModuleBindings,
+  formatDoctorText,
+} from "../../../modules/project/project.index";
 
 type RegisterDoctorCommandOptions = {
   appVersion: string;
@@ -17,11 +17,21 @@ export function registerDoctorCommand(
     .description("inspect the local Agent DevKit environment without changing it")
     .option("--json", "print the doctor report as JSON")
     .action(async (commandOptions: { json?: boolean }) => {
-      const report = await new RunDoctor({
+      const bindings = createProjectModuleBindings({
         appVersion: options.appVersion,
-        pathInspector: new NodePathInspector(),
-        systemInfo: new NodeSystemInfoProvider(),
-      }).execute();
+      });
+
+      if (bindings.isErr()) {
+        throw new Error(bindings.unwrapError());
+      }
+
+      const result = await bindings.unwrap().capabilities.doctor.execute();
+
+      if (result.isErr()) {
+        throw new Error(result.unwrapError());
+      }
+
+      const report = result.unwrap();
 
       if (commandOptions.json === true) {
         console.log(JSON.stringify(report, null, 2));

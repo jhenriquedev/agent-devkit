@@ -1,0 +1,12 @@
+{
+  "moduleId": "self",
+  "purpose": "Maintain the Agent DevKit package itself.",
+  "whenToUse": [
+    "The user wants to see available npm versions.",
+    "The user wants to update Agent DevKit to a selected version."
+  ],
+  "whenNotToUse": [
+    "The user wants to initialize or reset project-local state.",
+    "The user wants to run a capability unrelated to package maintenance."
+  ]
+}

@@ -1,10 +1,15 @@
 import { homedir } from "node:os";
 import type { Command } from "commander";
-import { ResetState } from "../../../domain/usecases/ResetState";
-import { FileStateResetRepository } from "../../../infra/repositories/FileStateResetRepository";
-import { formatResetText } from "../../viewmodels/resetViewModel";
+import {
+  createProjectModuleBindings,
+  formatResetText,
+} from "../../../modules/project/project.index";
 
-export function registerResetCommand(program: Command): void {
+type RegisterResetCommandOptions = {
+  appVersion: string;
+};
+
+export function registerResetCommand(program: Command, options: RegisterResetCommandOptions): void {
   program
     .command("reset")
     .description("remove Agent DevKit state from the current project or global scope")
@@ -20,21 +25,33 @@ export function registerResetCommand(program: Command): void {
         yes?: boolean;
       }) => {
         const dryRun = commandOptions.dryRun === true || commandOptions.yes !== true;
-        const result = await new ResetState({
+        const bindings = createProjectModuleBindings({
+          appVersion: options.appVersion,
+        });
+
+        if (bindings.isErr()) {
+          throw new Error(bindings.unwrapError());
+        }
+
+        const result = await bindings.unwrap().capabilities.reset.execute({
+          dryRun,
           homeDirectory: homedir(),
           projectRoot: process.cwd(),
-          repository: new FileStateResetRepository(),
-        }).execute({
-          dryRun,
           scope: commandOptions.global === true ? "global" : "project",
         });
 
+        if (result.isErr()) {
+          throw new Error(result.unwrapError());
+        }
+
+        const resetResult = result.unwrap();
+
         if (commandOptions.json === true) {
-          console.log(JSON.stringify(result, null, 2));
+          console.log(JSON.stringify(resetResult, null, 2));
           return;
         }
 
-        console.log(formatResetText(result));
+        console.log(formatResetText(resetResult));
       },
     );
 }

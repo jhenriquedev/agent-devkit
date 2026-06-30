@@ -25,6 +25,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "check:fast": "npm run typecheck && npm run lint && npm run test:modules:changed",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build && npm run package:verify",
     "clean": "node scripts/clean.mjs",
     "dev": "tsx src/main.tsx",
@@ -37,7 +38,13 @@
     "package:pack": "npm pack",
     "package:verify": "node scripts/verify-package.mjs",
     "release:verify": "node scripts/verify-release-alignment.mjs",
-    "test": "vitest run",
+    "test": "npm run test:architecture && npm run test:infra && npm run test:app && npm run test:modules",
+    "test:app": "vitest run src/app/cli/commands src/package.test.ts",
+    "test:architecture": "vitest run src/architecture.test.ts",
+    "test:infra": "vitest run src/infra",
+    "test:module": "tsx scripts/test-modules.ts",
+    "test:modules": "tsx scripts/test-modules.ts",
+    "test:modules:changed": "tsx scripts/test-modules.ts --changed",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

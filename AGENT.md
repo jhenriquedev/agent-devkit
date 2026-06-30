@@ -25,23 +25,63 @@ The product should support two interaction styles:
 
 ## Architecture Rules
 
+The project uses capability-first modules, not DDD layers.
+
 Keep boundaries strict:
 
-- `src/app`: presenter layer. CLI, TUI, view models and user-facing formatting.
-- `src/app/mcp`: presenter layer for external agents. MCP tools/resources must call domain use cases, not CLI commands.
-- `src/domain`: product rules. Entities, ports, services and use cases.
-- `src/infra`: concrete adapters. Filesystem, config, process execution, local repositories and external integrations.
+- `src/app`: entrypoints and presentation adapters. CLI, TUI and MCP live here.
+- `src/modules`: product modules and isolated capabilities.
+- `src/infra`: global low-level bases only, such as `Result`, error codes, logger, HTTP client and helpers.
+- `src/assets`: shared UI/runtime assets.
 
-Dependency direction:
+Each module must follow this shape:
 
 ```txt
-app -> domain
-infra -> domain ports
-domain -> no app or infra imports
+src/modules/<module>/
+  <module>.index.ts
+  <module>.config.ts
+  <module>.bind.ts
+  <module>.surface.ts
+  surface/
+    capabilities.json
+    knowledge.json
+    loop.json
+    prompt.json
+    skill.json
+  capabilities/
+    <capability>/
+      <capability>.entities.ts
+      <capability>.repository.ts
+      <capability>.service.ts
+      <capability>.viewmodel.ts
+      <capability>.readme.md
+      <capability>.test.ts
 ```
 
-Do not put business rules in the TUI or CLI parser. Do not let domain code
-format terminal output, read files directly, or spawn child processes directly.
+Repository interfaces and concrete implementations stay together inside the
+capability. This is intentional: capabilities are isolated vertical slices.
+
+All capability service methods must return `Result<left, right>` from
+`src/infra/bases/result.ts`. Error codes belong in
+`src/infra/bases/errors.ts`.
+
+Capabilities must extend the canonical base from
+`src/infra/bases/capability.ts`; repositories must implement its repository
+port. Module composition must happen through binders from
+`src/infra/bases/bind.ts`, and binding operations must return `Result`.
+
+Each module config must satisfy `src/infra/bases/module.ts` and bind its module
+tests through `tests.include`. `npm run test:modules` must use those bindings;
+do not add module tests through package-level glob shortcuts.
+
+Module-level surface files define the canonical agentic interface for skill,
+knowledge, prompt, loop behavior and capability registry. They must validate
+against `src/infra/bases/surface.ts`; do not add ad hoc prompt or knowledge
+files directly inside capabilities unless they are explicitly referenced as
+optional assets by a module surface.
+
+Do not put capability rules in the TUI or CLI parser. `app` must call module
+bindings and remain thin.
 
 ## Version Scope
 

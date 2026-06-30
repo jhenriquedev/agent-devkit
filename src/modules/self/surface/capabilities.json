@@ -1,0 +1,12 @@
+{
+  "moduleId": "self",
+  "capabilities": [
+    {
+      "id": "self.update",
+      "title": "Update",
+      "summary": "List npm versions and plan or run a self-update.",
+      "kind": "external",
+      "risk": "external-write"
+    }
+  ]
+}

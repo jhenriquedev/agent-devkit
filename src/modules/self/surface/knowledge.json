@@ -1,0 +1,10 @@
+{
+  "moduleId": "self",
+  "summary": "Self maintenance uses npm metadata and plans global package installation. It must avoid accidental downgrades.",
+  "facts": [
+    "agent update --latest should not downgrade below the running version.",
+    "agent update <version> targets an explicit npm version.",
+    "update execution requires --yes.",
+    "dry-run returns the npm command without executing it."
+  ]
+}

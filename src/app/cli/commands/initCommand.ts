@@ -1,7 +1,8 @@
 import type { Command } from "commander";
-import { InitializeProject } from "../../../domain/usecases/InitializeProject";
-import { FileProjectStateRepository } from "../../../infra/repositories/FileProjectStateRepository";
-import { formatInitText } from "../../viewmodels/initViewModel";
+import {
+  createProjectModuleBindings,
+  formatInitText,
+} from "../../../modules/project/project.index";
 
 type RegisterInitCommandOptions = {
   appVersion: string;
@@ -14,17 +15,30 @@ export function registerInitCommand(program: Command, options: RegisterInitComma
     .option("--dry-run", "show what would be created without writing files")
     .option("--json", "print the initialization result as JSON")
     .action(async (commandOptions: { dryRun?: boolean; json?: boolean }) => {
-      const result = await new InitializeProject({
+      const bindings = createProjectModuleBindings({
         appVersion: options.appVersion,
+      });
+
+      if (bindings.isErr()) {
+        throw new Error(bindings.unwrapError());
+      }
+
+      const result = await bindings.unwrap().capabilities.init.execute({
+        dryRun: commandOptions.dryRun === true,
         projectRoot: process.cwd(),
-        repository: new FileProjectStateRepository(),
-      }).execute({ dryRun: commandOptions.dryRun === true });
+      });
+
+      if (result.isErr()) {
+        throw new Error(result.unwrapError());
+      }
+
+      const initResult = result.unwrap();
 
       if (commandOptions.json === true) {
-        console.log(JSON.stringify(result, null, 2));
+        console.log(JSON.stringify(initResult, null, 2));
         return;
       }
 
-      console.log(formatInitText(result));
+      console.log(formatInitText(initResult));
     });
 }

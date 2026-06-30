@@ -33,6 +33,14 @@ npm run build
 npm run typecheck
 npm run lint
 npm run test
+npm run test:architecture
+npm run test:infra
+npm run test:app
+npm run test:modules
+npm run test:modules -- project
+npm run test:module -- self
+npm run test:modules:changed
+npm run check:fast
 npm run package:verify
 npm run package:pack
 ```
@@ -75,29 +83,53 @@ src/
     cli/
     mcp/
     tui/
-    viewmodels/
 
-  domain/
-    entities/
-    ports/
-    services/
-    usecases/
+  modules/
+    <module>/
+      <module>.index.ts
+      <module>.config.ts
+      <module>.bind.ts
+      <module>.surface.ts
+      surface/
+        capabilities.json
+        knowledge.json
+        loop.json
+        prompt.json
+        skill.json
+      capabilities/
+        <capability>/
+          <capability>.entities.ts
+          <capability>.repository.ts
+          <capability>.service.ts
+          <capability>.viewmodel.ts
+          <capability>.readme.md
+          <capability>.test.ts
 
   infra/
-    config/
-    filesystem/
-    process/
-    repositories/
+    bases/
+    helpers/
+
+  assets/
+    fonts/
+    i18n/
+    images/
+    themes/
 ```
 
 Rules:
 
-- `app` owns terminal input/output, CLI parsing, TUI screens and view models.
-- `app/mcp` owns the future MCP interface for external agents and hosts.
-- `domain` owns product rules, entities, ports and use cases.
-- `infra` owns concrete adapters such as filesystem, processes and local config.
-- Domain code must not import from `app` or `infra`.
-- Presenters must call use cases instead of reading files or spawning processes directly.
+- `app` owns entrypoints and presentation adapters: CLI, TUI and MCP.
+- `modules` owns product capabilities as isolated vertical slices.
+- A module groups capabilities from the same functional domain; it is not an agent.
+- A module surface is the canonical agentic interface for that domain.
+- A capability owns its entities, service, repository implementation, view model and tests.
+- `infra` contains only global low-level bases and reusable helpers.
+- Capability services must return `Result<left, right>` from `infra/bases/result.ts`.
+- Module configs must bind their test suites through `infra/bases/module.ts`.
+- Module binders must return `Result` through `infra/bases/bind.ts`.
+- Capabilities and repositories must implement the contracts from `infra/bases/capability.ts`.
+- Module surface files must pass the minimum schemas defined by `infra/bases/surface.ts`.
+- `app` calls module bindings instead of reaching into filesystem, npm or process details directly.
 
 ## Distribution
 

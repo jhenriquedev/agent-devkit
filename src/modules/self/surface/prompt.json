@@ -1,0 +1,10 @@
+{
+  "moduleId": "self",
+  "templates": [
+    {
+      "id": "self.update",
+      "template": "Explain this Agent DevKit update plan and whether it will execute: {{plan}}",
+      "variables": ["plan"]
+    }
+  ]
+}
