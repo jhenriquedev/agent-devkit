@@ -1,0 +1,65 @@
+{
+  "name": "agent-devkit",
+  "version": "0.4.0",
+  "description": "Agent DevKit CLI and TUI runtime for specialist AI agents, capabilities and provider-aware workflows.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "agent": "./dist/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jhenriquedev/agent-devkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jhenriquedev/agent-devkit/issues"
+  },
+  "homepage": "https://github.com/jhenriquedev/agent-devkit#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build && npm run package:verify",
+    "clean": "node scripts/clean.mjs",
+    "dev": "tsx src/main.tsx",
+    "docker:agent": "docker compose run --rm agent ./node_modules/.bin/tsx src/main.tsx",
+    "docker:build": "docker compose build agent",
+    "docker:check": "docker compose run --rm agent npm run check",
+    "docker:shell": "docker compose run --rm agent bash",
+    "format": "biome format --write .",
+    "lint": "biome check .",
+    "package:pack": "npm pack",
+    "package:verify": "node scripts/verify-package.mjs",
+    "release:verify": "node scripts/verify-release-alignment.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "ink": "^7.1.0",
+    "react": "^19.2.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@types/node": "^26.0.1",
+    "@types/react": "^19.2.17",
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

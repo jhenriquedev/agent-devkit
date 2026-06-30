@@ -1,0 +1,20 @@
+services:
+  agent:
+    build:
+      context: .
+      target: development
+    image: agent-devkit:local
+    working_dir: /workspace
+    environment:
+      CI: "1"
+      FORCE_COLOR: "1"
+      NPM_CONFIG_UPDATE_NOTIFIER: "false"
+    volumes:
+      - .:/workspace
+      - agent-devkit-node-modules:/workspace/node_modules
+    stdin_open: true
+    tty: true
+    command: npm run check
+
+volumes:
+  agent-devkit-node-modules:

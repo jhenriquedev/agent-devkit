@@ -1,0 +1,44 @@
+# Agent DevKit local and generated files
+
+# OS/editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials.json
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local development notes and generated internal docs.
+# Public project documentation belongs in README.md, AGENT.md and .github/.
+docs/
+
+# Local Agent DevKit runtime state for this checkout.
+.agent-devkit/
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+.cache/

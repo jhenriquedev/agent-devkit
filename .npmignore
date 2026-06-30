@@ -1,0 +1,15 @@
+src/
+scripts/
+tests/
+.github/
+docs/
+.env
+.env.*
+coverage/
+node_modules/
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+biome.json
+*.tsbuildinfo
+npm-debug.log*
