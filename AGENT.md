@@ -65,6 +65,13 @@ All capability service methods must return `Result<left, right>` from
 `src/infra/bases/result.ts`. Error codes belong in
 `src/infra/bases/errors.ts`.
 
+Infra adapters must also return `Result`. Concrete clients live in
+`src/infra/clients`; database contracts stay in `src/infra/bases/database.ts`.
+Postgres and Redis clients receive injected driver-compatible executors. File
+serialization lives in `src/infra/files` for JSON, TXT, MD and PDF/binary
+payloads. Asset loading lives in `src/infra/assets` and must guard against path
+traversal outside `src/assets`.
+
 Capabilities must extend the canonical base from
 `src/infra/bases/capability.ts`; repositories must implement its repository
 port. Module composition must happen through binders from

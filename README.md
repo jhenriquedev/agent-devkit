@@ -106,7 +106,10 @@ src/
           <capability>.test.ts
 
   infra/
+    assets/
     bases/
+    clients/
+    files/
     helpers/
 
   assets/
@@ -129,6 +132,10 @@ Rules:
 - Module binders must return `Result` through `infra/bases/bind.ts`.
 - Capabilities and repositories must implement the contracts from `infra/bases/capability.ts`.
 - Module surface files must pass the minimum schemas defined by `infra/bases/surface.ts`.
+- Concrete clients live in `infra/clients`; database contracts stay in `infra/bases/database.ts`.
+- Postgres and Redis clients must use injected executors.
+- File serialization lives in `infra/files` and supports JSON, TXT, MD and PDF/binary payloads.
+- Asset loading lives in `infra/assets` and reads from the canonical `src/assets` folders.
 - `app` calls module bindings instead of reaching into filesystem, npm or process details directly.
 
 ## Distribution

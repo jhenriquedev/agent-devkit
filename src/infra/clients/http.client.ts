@@ -1,5 +1,5 @@
-import { type AgentDevKitErrorCode, ErrorCodes } from "./errors";
-import { Result } from "./result";
+import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
+import { Result } from "../bases/result";
 
 export type HttpClientResponse<T> = {
   body: T;

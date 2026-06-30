@@ -1,5 +1,8 @@
 export const ErrorCodes = {
+  AssetReadFailed: "ASSET_READ_FAILED",
+  CacheReadFailed: "CACHE_READ_FAILED",
   CapabilityExecutionFailed: "CAPABILITY_EXECUTION_FAILED",
+  DatabaseReadFailed: "DATABASE_READ_FAILED",
   FileReadFailed: "FILE_READ_FAILED",
   FileWriteFailed: "FILE_WRITE_FAILED",
   InvalidInput: "INVALID_INPUT",

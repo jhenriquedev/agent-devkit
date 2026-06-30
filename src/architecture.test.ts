@@ -35,18 +35,45 @@ describe("canonical architecture", () => {
   });
 
   it("keeps global infra bases available", async () => {
+    for (const baseFile of [
+      "assets.ts",
+      "bind.ts",
+      "capability.ts",
+      "config.ts",
+      "database.ts",
+      "errors.ts",
+      "logger.ts",
+      "module.ts",
+      "result.ts",
+      "serializer.ts",
+      "surface.ts",
+    ]) {
+      await expect(exists(join(process.cwd(), "src", "infra", "bases", baseFile))).resolves.toBe(
+        true,
+      );
+    }
+
     await expect(
-      exists(join(process.cwd(), "src", "infra", "bases", "http.client.ts")),
+      exists(join(process.cwd(), "src", "infra", "assets", "asset_loader.ts")),
     ).resolves.toBe(true);
-    await expect(exists(join(process.cwd(), "src", "infra", "bases", "logger.ts"))).resolves.toBe(
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "clients", "http.client.ts")),
+    ).resolves.toBe(true);
+    await expect(exists(join(process.cwd(), "src", "infra", "clients", "index.ts"))).resolves.toBe(
       true,
     );
-    await expect(exists(join(process.cwd(), "src", "infra", "bases", "result.ts"))).resolves.toBe(
-      true,
-    );
-    await expect(exists(join(process.cwd(), "src", "infra", "bases", "errors.ts"))).resolves.toBe(
-      true,
-    );
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "clients", "postgres.client.ts")),
+    ).resolves.toBe(true);
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "clients", "redis.client.ts")),
+    ).resolves.toBe(true);
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "files", "file_serializers.ts")),
+    ).resolves.toBe(true);
+    await expect(
+      exists(join(process.cwd(), "src", "infra", "files", "serialized_file_store.ts")),
+    ).resolves.toBe(true);
     await expect(exists(join(process.cwd(), "src", "infra", "helpers", "index.ts"))).resolves.toBe(
       true,
     );
