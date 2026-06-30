@@ -246,7 +246,7 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
     setup_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     setup_parser.add_argument("--dry-run", action="store_true", help="show setup plan without installing external tools")
     setup_parser.add_argument("--yes", action="store_true", help="confirm setup actions")
-    setup_parser.add_argument("--set-default", action="store_true", help="make the mini-brain Ollama backend the default LLM")
+    setup_parser.add_argument("--set-default", action="store_true", help="make the embedded mini-brain the default LLM")
     setup_parser.add_argument("action", nargs="?", default="plan", choices=["plan", "personality", "mini-brain"])
 
     alias_parser = subparsers.add_parser("alias", help="manage local command aliases for agent")

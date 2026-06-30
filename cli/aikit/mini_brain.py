@@ -9,6 +9,7 @@ from cli.aikit.embedded_mini_brain import (
     EMBEDDED_BACKEND_ID,
     EMBEDDED_MODEL_ID,
     embedded_mini_brain_status,
+    setup_embedded_mini_brain,
 )
 from cli.aikit.llm import BACKENDS, configure_backend, doctor_backend, load_config, save_config
 from cli.aikit.ollama import ollama_status
@@ -121,6 +122,7 @@ def setup_mini_brain(
             "stored_secret": False,
             "mini_brain": planned_contract(model=model),
             "embedded": embedded,
+            "embedded_install": setup_embedded_mini_brain(dry_run=True, yes=False),
             "ollama_setup": {
                 "status": "skipped",
                 "ok": True,
@@ -129,7 +131,31 @@ def setup_mini_brain(
                 "message": "Ollama is optional; use `agent local-llm install` to add local worker models.",
             },
             "next_steps": ["agent setup mini-brain --yes"],
-            "message": "Use --yes to enable the embedded Qwen2.5-0.5B mini-brain.",
+            "message": "Use --yes to download and enable the embedded Qwen2.5-0.5B mini-brain.",
+        }
+
+    embedded_install = setup_embedded_mini_brain(dry_run=False, yes=True)
+    embedded = embedded_mini_brain_status()
+    if embedded_install.get("ok") is not True:
+        return {
+            "kind": "mini-brain-setup",
+            "status": "failed",
+            "ok": False,
+            "exit_code": embedded_install.get("exit_code", 1),
+            "dry_run": False,
+            "yes": True,
+            "stored_secret": False,
+            "mini_brain": mini_brain_contract(),
+            "embedded": embedded,
+            "embedded_install": embedded_install,
+            "ollama_setup": {
+                "status": "skipped",
+                "ok": True,
+                "provider": "ollama",
+                "model": model,
+                "message": "Ollama remains optional for additional local worker models.",
+            },
+            "message": "Embedded mini-brain setup failed before the backend could be enabled.",
         }
 
     configured = configure_backend(
@@ -151,6 +177,7 @@ def setup_mini_brain(
         "config_path": str(written_path),
         "mini_brain": contract,
         "embedded": embedded,
+        "embedded_install": embedded_install,
         "ollama_setup": {
             "status": "skipped",
             "ok": True,

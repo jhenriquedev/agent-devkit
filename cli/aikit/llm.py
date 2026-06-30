@@ -364,7 +364,8 @@ def doctor_backends(backend_id: str | None = None) -> dict[str, Any]:
 
     checks = [doctor_backend(BACKENDS[item], config) for item in ids]
     status = "ok"
-    if any(item["status"] == "missing" for item in checks):
+    missing_statuses = {"missing", "not-installed", "dependency-missing", "invalid-model"}
+    if any(item["status"] in missing_statuses for item in checks):
         status = "partial" if not backend_id else "missing"
     if any(item["status"] == "error" for item in checks):
         status = "error"

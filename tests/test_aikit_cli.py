@@ -1791,7 +1791,10 @@ class AikitCliTest(unittest.TestCase):
                 "como",
                 "posso",
                 "comecar?",
-                env={"AIKIT_CONFIG_HOME": config_home},
+                env={
+                    "AIKIT_CONFIG_HOME": config_home,
+                    "AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE": "resposta local de smoke do mini cerebro embarcado",
+                },
             )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -1801,9 +1804,32 @@ class AikitCliTest(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["llm_backend"], "embedded-mini-brain")
         self.assertEqual(payload["model_plan"]["mini_brain"]["embedded"]["runtime"], "llama-cpp-python")
-        self.assertTrue(payload["model_plan"]["mini_brain"]["embedded"]["model_file_present"])
+        self.assertTrue(payload["model_plan"]["mini_brain"]["embedded"]["smoke_mode"])
+        self.assertTrue(payload["model_plan"]["mini_brain"]["embedded"]["available"])
         self.assertTrue(payload["prompt_received"])
         self.assertTrue(payload["response"].strip())
+        self.assertNotIn("requires a configured LLM backend", result.stdout)
+
+    def test_agent_prompt_without_embedded_model_guides_mini_brain_setup(self) -> None:
+        with tempfile.TemporaryDirectory() as config_home:
+            result = self.run_cli(
+                "agent",
+                "--json",
+                "ola",
+                "como",
+                "posso",
+                "comecar?",
+                env={"AIKIT_CONFIG_HOME": config_home},
+            )
+
+        self.assertEqual(result.returncode, 2, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "agent")
+        self.assertEqual(payload["status"], "needs-setup")
+        self.assertFalse(payload["requires_llm"])
+        self.assertEqual(payload["mode"], "embedded-mini-brain-not-installed")
+        self.assertEqual(payload["mini_brain"]["embedded"]["status"], "not-installed")
+        self.assertIn("agent setup mini-brain --yes", payload["next_steps"])
         self.assertNotIn("requires a configured LLM backend", result.stdout)
 
     def test_agent_without_args_starts_onboarding(self) -> None:

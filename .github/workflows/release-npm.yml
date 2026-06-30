@@ -23,8 +23,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          lfs: true
 
       - name: Resolve version
         id: version
@@ -74,6 +72,11 @@ jobs:
           AGENT_DEVKIT_PYTHON: python3
           AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE: "resposta local de smoke do mini cerebro embarcado"
         run: npm run package:verify
+
+      - name: Verify package size
+        run: |
+          npm pack ./tooling/agent-devkit --dry-run --json > /tmp/agent-devkit-pack.json
+          node -e 'const p=require("/tmp/agent-devkit-pack.json")[0]; const max=100*1024*1024; if (p.size > max) { throw new Error("Package tarball too large: " + p.size + " > " + max); } console.log("Package tarball size ok: " + p.size);'
 
       - name: Check npm version availability
         id: npm

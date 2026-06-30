@@ -26,5 +26,5 @@
     "no_external_writes",
     "coordinator_review_required"
   ],
-  "notes": "This manifest declares the embedded mini-brain contract shipped with Agent DevKit. Ollama remains an optional local worker pool for additional models."
+  "notes": "This manifest declares the embedded mini-brain artifact downloaded on demand into .agent-devkit/models. Ollama remains an optional local worker pool for additional models."
 }

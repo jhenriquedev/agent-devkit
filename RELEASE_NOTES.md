@@ -4,16 +4,16 @@ Embedded mini-brain patch release.
 
 ## Highlights
 
-- Ships a real embedded `Qwen/Qwen2.5-0.5B-Instruct` GGUF artifact inside the
-  npm runtime as the initial local mini-brain.
+- Ships the embedded `Qwen/Qwen2.5-0.5B-Instruct` mini-brain contract and
+  installs the GGUF on demand into `.agent-devkit/models` with explicit opt-in.
 - Replaces the previous deterministic mini-brain stub with real local
   inference through `llama-cpp-python`.
 - Keeps Ollama as an optional local worker pool for additional models and
   operational delegation instead of making it a prerequisite for first use.
 - Lets low-risk `agent "<prompt>"` setup/onboarding conversations run without
   Claude, Codex, Ollama, OpenAI, Anthropic, OpenRouter or API keys.
-- Updates package verification to assert the embedded model file size and
-  SHA-256 before publish.
+- Updates package verification to reject GGUF artifacts in the npm runtime while
+  keeping model URL, size and SHA-256 in the manifest.
 - Updates onboarding and LLM documentation to describe the embedded mini-brain
   as the default bootstrap path and Ollama as an optional extension.
 
@@ -23,11 +23,11 @@ Embedded mini-brain patch release.
   pass locally.
 - Source smoke confirms `agent "<prompt>"` uses `embedded-mini-brain` with
   Ollama and host CLIs absent from `PATH`.
-- Packaged npm runtime smoke confirms the bundled GGUF is loaded from
-  `runtime/models`.
+- Packaged npm runtime smoke confirms the manifest-only package can bootstrap
+  and that the GGUF is not bundled into `runtime/models`.
 - `npm run package:build` passes locally.
-- `npm run package:verify` passes locally and validates the embedded model
-  artifact size and SHA-256.
+- `npm run package:verify` passes locally and validates the on-demand embedded
+  model contract.
 
 # v0.3.0
 

@@ -68,14 +68,17 @@ def local_llm_doctor() -> dict[str, Any]:
 
 def local_llm_models() -> dict[str, Any]:
     payload = ollama_models()
+    embedded = embedded_mini_brain_status()
     payload["kind"] = "local-llm-models"
     payload["schema_version"] = LOCAL_LLM_SCHEMA_VERSION
     payload["provider"] = EMBEDDED_BACKEND_ID
     payload["embedded"] = {
-        "status": "ok",
+        "status": embedded.get("status"),
         "provider": EMBEDDED_BACKEND_ID,
         "model": EMBEDDED_MODEL_ID,
-        "installed": True,
+        "installed": embedded.get("model_file_valid") is True,
+        "available": embedded.get("available") is True,
+        "install_command": embedded.get("install_command"),
     }
     payload["optional_provider"] = "ollama"
     return payload

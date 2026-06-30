@@ -66,7 +66,7 @@ agent mcp tools
 ```
 
 `agent onboard minimal` planeja o setup essencial: identidade, coordenador LLM
-opcional, mini-cerebro Qwen2.5-0.5B embarcado e memoria local. `agent onboard complete`
+opcional, mini-cerebro local instalavel sob demanda e memoria local. `agent onboard complete`
 inclui tambem toolchain, providers/sources, catalogo de agentes, automacoes
 locais, tarefas, notificacoes, knowledge e memoria compartilhada. Ambos
 retornam plano deterministico; instalacoes externas continuam exigindo opt-in.
@@ -249,9 +249,11 @@ agent "roteie este pedido para o agente especialista adequado"
 
 ### Mini cerebro embarcado e Ollama local
 
-O Agent DevKit vem com um mini cerebro local embarcado baseado no contrato
+O Agent DevKit vem com um mini cerebro local baseado no contrato
 `Qwen/Qwen2.5-0.5B-Instruct` para conversa inicial, onboarding, setup e tarefas
-simples sem depender de Claude, Codex, API externa ou Ollama.
+simples sem depender de Claude, Codex, API externa ou Ollama. O pacote npm
+inclui o manifest do modelo; o GGUF e baixado para `.agent-devkit/models` sob
+demanda com `agent setup mini-brain --yes`.
 
 Ollama continua suportado como pool opcional de workers locais. O Agent DevKit
 consegue diagnosticar Ollama, listar modelos, planejar pull e usar o backend

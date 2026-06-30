@@ -54,6 +54,7 @@ function shouldIgnore(sourcePath) {
   const name = path.basename(sourcePath);
   if (ignoredNames.has(name)) return true;
   if (name.endsWith(".pyc") || name.endsWith(".pyo")) return true;
+  if (name.endsWith(".gguf")) return true;
   if (name === ".env" || (name.startsWith(".env.") && name !== ".env.example")) return true;
   if (sourcePath.startsWith(runtimeRoot)) return true;
   return false;

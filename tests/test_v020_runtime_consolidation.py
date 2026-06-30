@@ -354,7 +354,11 @@ class RuntimeConsolidationV020Test(unittest.TestCase):
 
     def test_mini_brain_setup_does_not_require_ollama(self) -> None:
         with tempfile.TemporaryDirectory() as config_home, tempfile.TemporaryDirectory() as empty_path:
-            env = {"AGENT_DEVKIT_HOME": config_home, "PATH": empty_path}
+            env = {
+                "AGENT_DEVKIT_HOME": config_home,
+                "PATH": empty_path,
+                "AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE": "resposta local de smoke do mini cerebro embarcado",
+            }
             result = self.run_agent("setup", "mini-brain", "--yes", "--json", env=env)
 
         self.assertEqual(result.returncode, 0, result.stderr)

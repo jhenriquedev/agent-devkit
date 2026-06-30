@@ -138,6 +138,42 @@ def local_capabilities_help_response(prompt: str, *, name: str) -> dict[str, Any
     }
 
 
+def embedded_mini_brain_install_response(prompt: str, *, name: str, model_plan: dict[str, Any]) -> dict[str, Any]:
+    embedded = (
+        ((model_plan.get("mini_brain") or {}).get("embedded") or {})
+        if isinstance(model_plan.get("mini_brain"), dict)
+        else {}
+    )
+    status = embedded.get("status") or "not-installed"
+    response = (
+        f"Eu sou {name}. Consigo orientar o setup inicial localmente, mas o mini-cerebro local ainda nao esta instalado "
+        f"(status: {status}). Para habilitar conversa local sem Claude, Codex, Ollama ou API externa, execute "
+        "`agent setup mini-brain --yes`. Sem esse download, posso continuar com onboarding, memoria, wizards e "
+        "capabilities deterministicas."
+    )
+    return {
+        "kind": "agent",
+        "status": "needs-setup",
+        "ok": False,
+        "requires_llm": False,
+        "prompt_received": True,
+        "prompt_length": len(prompt),
+        "mode": "embedded-mini-brain-not-installed",
+        "identity": {"name": name, "source": "local"},
+        "llm_backend": "embedded-mini-brain",
+        "mini_brain": model_plan.get("mini_brain"),
+        "response": response,
+        "message": "Embedded mini-brain is not installed yet.",
+        "next_steps": [
+            "agent setup mini-brain --dry-run",
+            "agent setup mini-brain --yes",
+            "agent llm configure claude-code --set-default",
+            "agent llm configure codex-cli --set-default",
+        ],
+        "exit_code": 2,
+    }
+
+
 def agent_requires_llm(args: argparse.Namespace) -> dict[str, Any]:
     prompt = " ".join(args.prompt).strip()
     return run_agent_prompt_request(
@@ -238,6 +274,9 @@ def run_agent_prompt_request(request: AgentPromptRequest) -> dict[str, Any]:
     local_llm_execution = maybe_delegate_local_llm(prompt, model_plan)
     coordinator_prompt = enrich_prompt_with_local_result(contextual_prompt, local_llm_execution)
     requested_backend = request.llm
+    if should_prompt_for_embedded_install(model_plan, requested_backend=request.llm):
+        result = embedded_mini_brain_install_response(prompt, name=name, model_plan=model_plan)
+        return finalize_agent_session(result, session, prompt, backend="embedded-mini-brain")
     if should_use_embedded_coordinator(model_plan, requested_backend=request.llm):
         requested_backend = "embedded-mini-brain"
     result = invoke_agent_prompt(
@@ -288,6 +327,22 @@ def should_use_embedded_coordinator(model_plan: dict[str, Any], *, requested_bac
         model_plan.get("strategy") == "mini-brain"
         and model_plan.get("local_llm_provider") == "embedded-mini-brain"
         and model_plan.get("risk") == "low"
+    )
+
+
+def should_prompt_for_embedded_install(model_plan: dict[str, Any], *, requested_backend: str | None) -> bool:
+    if requested_backend:
+        return False
+    embedded = (
+        ((model_plan.get("mini_brain") or {}).get("embedded") or {})
+        if isinstance(model_plan.get("mini_brain"), dict)
+        else {}
+    )
+    return (
+        model_plan.get("strategy") in {"mini-brain", "external-llm"}
+        and model_plan.get("local_llm_provider") == "embedded-mini-brain"
+        and embedded.get("available") is not True
+        and model_plan.get("fallback") == "configure-local-mini-brain-or-use-external-llm"
     )
 
 

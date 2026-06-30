@@ -331,7 +331,11 @@ class AgenticV015ContractsTest(unittest.TestCase):
 
     def test_setup_mini_brain_yes_enables_embedded_without_ollama(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as empty_path:
-            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": empty_path}
+            env = {
+                "AI_DEVKIT_CONFIG_HOME": tmpdir,
+                "PATH": empty_path,
+                "AGENT_DEVKIT_EMBEDDED_SMOKE_RESPONSE": "resposta local de smoke do mini cerebro embarcado",
+            }
             result = self.run_agent("setup", "mini-brain", "--yes", "--json", env=env)
 
             config = json.loads((Path(tmpdir) / "config.json").read_text(encoding="utf-8"))
@@ -346,6 +350,7 @@ class AgenticV015ContractsTest(unittest.TestCase):
         self.assertEqual(payload["mini_brain"]["hf_model"], "Qwen/Qwen2.5-0.5B-Instruct")
         self.assertEqual(payload["mini_brain"]["ollama_model"], "qwen3:0.6b")
         self.assertEqual(payload["embedded"]["status"], "ok")
+        self.assertEqual(payload["embedded_install"]["download"]["status"], "skipped")
         self.assertEqual(payload["ollama_setup"]["status"], "skipped")
         self.assertFalse(payload["stored_secret"])
         self.assertEqual(config["mini_brain"]["provider"], "embedded-mini-brain")
@@ -364,9 +369,9 @@ class AgenticV015ContractsTest(unittest.TestCase):
         self.assertEqual(payload["kind"], "local-llm-doctor")
         self.assertEqual(payload["provider"], "embedded-mini-brain")
         self.assertEqual(payload["mini_brain"]["provider"], "embedded-mini-brain")
-        self.assertTrue(payload["mini_brain"]["available"])
-        self.assertTrue(payload["mini_brain"]["embedded"]["model_file_present"])
-        self.assertEqual(payload["mini_brain"]["embedded"]["dependency"]["status"], "ok")
+        self.assertFalse(payload["mini_brain"]["available"])
+        self.assertFalse(payload["mini_brain"]["embedded"]["model_file_present"])
+        self.assertEqual(payload["mini_brain"]["embedded"]["status"], "not-installed")
         self.assertTrue(payload["mini_brain"]["embedded"]["model_file"].endswith(".gguf"))
         self.assertEqual(payload["ollama"]["status"], "missing")
         self.assertIn("ollama", payload["optional_providers"])

@@ -2,8 +2,6 @@
 
 import { mkdtemp, rm, readdir, readFile, stat } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { createReadStream } from "node:fs";
-import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -159,27 +157,9 @@ async function assertExists(relativePath) {
   await stat(path.join(runtimeRoot, relativePath));
 }
 
-async function assertFileSize(relativePath, expectedBytes) {
-  const payload = await stat(path.join(runtimeRoot, relativePath));
-  if (payload.size !== expectedBytes) {
-    throw new Error(`Unexpected file size for ${relativePath}: ${payload.size} != ${expectedBytes}`);
-  }
-}
-
-function sha256File(filePath) {
-  return new Promise((resolve, reject) => {
-    const hash = createHash("sha256");
-    const stream = createReadStream(filePath);
-    stream.on("error", reject);
-    stream.on("data", (chunk) => hash.update(chunk));
-    stream.on("end", () => resolve(hash.digest("hex")));
-  });
-}
-
-async function assertSha256(relativePath, expectedSha256) {
-  const actual = await sha256File(path.join(runtimeRoot, relativePath));
-  if (actual !== expectedSha256) {
-    throw new Error(`Unexpected SHA-256 for ${relativePath}: ${actual} != ${expectedSha256}`);
+async function assertMissing(relativePath) {
+  if (await pathExists(path.join(runtimeRoot, relativePath))) {
+    throw new Error(`Unexpected file found in npm runtime: ${relativePath}`);
   }
 }
 
@@ -220,6 +200,9 @@ async function assertNoForbiddenFiles(directory) {
     if (entry.name.endsWith(".pyc") || entry.name.endsWith(".pyo")) {
       throw new Error(`Forbidden Python cache found in npm runtime: ${fullPath}`);
     }
+    if (entry.name.endsWith(".gguf")) {
+      throw new Error(`Forbidden embedded model artifact found in npm runtime: ${fullPath}`);
+    }
     if (entry.isDirectory()) {
       await assertNoForbiddenFiles(fullPath);
     }
@@ -248,12 +231,7 @@ async function main() {
   await assertExists("cli/aikit/orchestrator.py");
   await assertExists("cli/aikit/wizard_state.py");
   await assertExists("models/qwen2.5-0.5b-instruct/manifest.json");
-  await assertExists("models/qwen2.5-0.5b-instruct/qwen2.5-0.5b-instruct-q2_k.gguf");
-  await assertFileSize("models/qwen2.5-0.5b-instruct/qwen2.5-0.5b-instruct-q2_k.gguf", 415182688);
-  await assertSha256(
-    "models/qwen2.5-0.5b-instruct/qwen2.5-0.5b-instruct-q2_k.gguf",
-    "9ee36184e616dfc76df4f5dd66f908dbde6979524ae36e6cefb67f532f798cb8",
-  );
+  await assertMissing("models/qwen2.5-0.5b-instruct/qwen2.5-0.5b-instruct-q2_k.gguf");
   await assertExists("agents");
   await assertExists("agents/task-orchestrator/agent.yaml");
     await assertExists("agents/provider-configurator/agent.yaml");

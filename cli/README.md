@@ -209,8 +209,8 @@ agent onboard minimal
 agent onboard complete
 ```
 
-`minimal` cobre identidade, coordenador LLM opcional, mini-cerebro
-Qwen2.5-0.5B embarcado e memoria local. `complete` inclui tambem toolchain, providers/sources,
+`minimal` cobre identidade, coordenador LLM opcional, mini-cerebro local
+instalavel sob demanda e memoria local. `complete` inclui tambem toolchain, providers/sources,
 catalogo de agentes, automacoes locais, tarefas, notificacoes, knowledge e
 memoria compartilhada. Instalacoes externas continuam exigindo opt-in.
 
@@ -233,10 +233,10 @@ remoto continua exigindo provider, criptografia e opt-in explicito.
 ## Backends LLM
 
 O modo `agent "<prompt>"` consegue conversar e orientar setup com o mini cerebro
-embarcado. Para coordenacao/revisao mais forte, o Agent DevKit suporta estas
+local depois que ele for instalado com opt-in. Para coordenacao/revisao mais forte, o Agent DevKit suporta estas
 familias de backend:
 
-- Mini cerebro local embarcado (`embedded-mini-brain`) para onboarding, setup e
+- Mini cerebro local instalavel (`embedded-mini-brain`) para onboarding, setup e
   conversa simples sem autenticacao externa.
 - CLIs oficiais autenticadas fora do Agent DevKit (`codex-cli` e
   `claude-code`).
