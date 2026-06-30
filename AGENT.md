@@ -55,7 +55,9 @@ Initial commands should stay intentionally small:
 - `agent --help`
 - `agent --version`
 - `agent doctor`
-- `agent agents list`
+- `agent init`
+- `agent reset`
+- `agent update`
 
 ## Repository Notes
 

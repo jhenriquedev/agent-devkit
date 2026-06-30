@@ -7,6 +7,7 @@ services:
     working_dir: /workspace
     environment:
       CI: "1"
+      AGENT_DEVKIT_TEST_NPM_VIEW: "${AGENT_DEVKIT_TEST_NPM_VIEW:-}"
       FORCE_COLOR: "1"
       NPM_CONFIG_UPDATE_NOTIFIER: "false"
     volumes:

@@ -47,6 +47,9 @@ npm run docker:build
 npm run docker:check
 npm run docker:agent -- --help
 npm run --silent docker:agent -- doctor --json
+npm run --silent docker:agent -- init --dry-run
+npm run --silent docker:agent -- reset --dry-run
+npm run --silent docker:agent -- update --latest --dry-run
 ```
 
 Interactive TUI runs are also executed through the container:
@@ -118,6 +121,21 @@ agent install project
 
 When `.agent-devkit/` exists, it should concentrate Agent DevKit state for that
 scope instead of spreading generated files across unrelated project paths.
+
+Maintenance commands:
+
+```bash
+agent reset --dry-run
+agent reset --yes
+agent reset -g --dry-run
+agent update --latest --dry-run
+agent update 0.4.0 --dry-run
+agent update 0.4.0 --yes
+```
+
+`reset` removes only Agent DevKit state folders and executes destructive work
+only with `--yes`. `update` plans an npm global install by default and executes
+it only with `--yes`.
 
 ## Internal Docs
 
