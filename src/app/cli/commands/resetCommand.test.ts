@@ -17,10 +17,11 @@ describe("agent reset", () => {
     try {
       const { stdout } = await execFileAsync(tsxBin, [mainEntrypoint, "reset", "--dry-run"], {
         cwd: projectRoot,
+        env: { ...process.env, HOME: join(projectRoot, "home") },
       });
 
       expect(stdout).toContain("Agent DevKit Reset");
-      expect(stdout).toContain("[planned] project state");
+      expect(stdout).toContain("[planned] estado do projeto");
       await expect(readdir(join(projectRoot, ".agent-devkit"))).resolves.toEqual([]);
     } finally {
       await rm(projectRoot, { force: true, recursive: true });
@@ -34,6 +35,7 @@ describe("agent reset", () => {
     try {
       const { stdout } = await execFileAsync(tsxBin, [mainEntrypoint, "reset", "--yes", "--json"], {
         cwd: projectRoot,
+        env: { ...process.env, HOME: join(projectRoot, "home") },
       });
       const result = JSON.parse(stdout);
 

@@ -24,7 +24,9 @@ describe("agent root command", () => {
   it.each([["-h"], ["--help"]])("prints help with %s", async (flag) => {
     const { stdout } = await runAgent([flag]);
 
-    expect(stdout).toContain("Usage: agent [options] [command] [prompt...]");
-    expect(stdout).toContain("Commands:");
+    expect(stdout).toContain("Uso: agent [options] [command] [prompt...]");
+    expect(stdout).toContain("Comandos:");
+    expect(stdout).toContain("imprime a versao atual");
+    expect(stdout).toContain("exibe ajuda do comando");
   });
 });

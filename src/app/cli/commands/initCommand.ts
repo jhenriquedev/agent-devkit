@@ -1,44 +1,58 @@
 import type { Command } from "commander";
+import type { Translator } from "../../../infra/bases/i18n";
 import {
   createProjectModuleBindings,
   formatInitText,
 } from "../../../modules/project/project.index";
+import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 type RegisterInitCommandOptions = {
   appVersion: string;
+  translator: Translator;
+  usageLogging: CliUsageLoggingMiddleware;
 };
 
 export function registerInitCommand(program: Command, options: RegisterInitCommandOptions): void {
-  program
+  const initCommand = program
     .command("init")
-    .description("initialize Agent DevKit project state in the current directory")
-    .option("--dry-run", "show what would be created without writing files")
-    .option("--json", "print the initialization result as JSON")
-    .action(async (commandOptions: { dryRun?: boolean; json?: boolean }) => {
-      const bindings = createProjectModuleBindings({
-        appVersion: options.appVersion,
-      });
+    .description(options.translator.t("cli.init.description"))
+    .option("--dry-run", options.translator.t("cli.init.option.dryRun"))
+    .option("--json", options.translator.t("cli.init.option.json"));
 
-      if (bindings.isErr()) {
-        throw new Error(bindings.unwrapError());
-      }
+  initCommand.action(
+    options.usageLogging.track(
+      {
+        area: "project",
+        command: "init",
+        options: () => initCommand.opts(),
+      },
+      async (commandOptions: { dryRun?: boolean; json?: boolean }) => {
+        const bindings = createProjectModuleBindings({
+          appVersion: options.appVersion,
+        });
 
-      const result = await bindings.unwrap().capabilities.init.execute({
-        dryRun: commandOptions.dryRun === true,
-        projectRoot: process.cwd(),
-      });
+        if (bindings.isErr()) {
+          throw new Error(bindings.unwrapError());
+        }
 
-      if (result.isErr()) {
-        throw new Error(result.unwrapError());
-      }
+        const result = await bindings.unwrap().capabilities.init.execute({
+          dryRun: commandOptions.dryRun === true,
+          projectRoot: process.cwd(),
+        });
 
-      const initResult = result.unwrap();
+        if (result.isErr()) {
+          throw new Error(result.unwrapError());
+        }
 
-      if (commandOptions.json === true) {
-        console.log(JSON.stringify(initResult, null, 2));
-        return;
-      }
+        const initResult = result.unwrap();
 
-      console.log(formatInitText(initResult));
-    });
+        if (commandOptions.json === true) {
+          console.log(JSON.stringify(initResult, null, 2));
+          return;
+        }
+
+        console.log(formatInitText(initResult, options.translator));
+      },
+    ),
+  );
 }

@@ -1,17 +1,34 @@
 import type { Command } from "commander";
 import packageJson from "../../../../package.json";
+import type { Translator } from "../../../infra/bases/i18n";
 import { createSelfModuleBindings, formatUpdateText } from "../../../modules/self/self.index";
+import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
-export function registerUpdateCommand(program: Command): void {
-  program
+type RegisterUpdateCommandOptions = {
+  translator: Translator;
+  usageLogging: CliUsageLoggingMiddleware;
+};
+
+export function registerUpdateCommand(
+  program: Command,
+  options: RegisterUpdateCommandOptions,
+): void {
+  const updateCommand = program
     .command("update")
-    .argument("[version]", "specific package version to install")
-    .description("list npm versions and plan or run a self-update")
-    .option("--dry-run", "show the planned npm update without installing")
-    .option("--json", "print the update plan as JSON")
-    .option("--latest", "select the npm latest version")
-    .option("--yes", "confirm installation of the selected version")
-    .action(
+    .argument("[version]", options.translator.t("cli.update.argument.version"))
+    .description(options.translator.t("cli.update.description"))
+    .option("--dry-run", options.translator.t("cli.update.option.dryRun"))
+    .option("--json", options.translator.t("cli.update.option.json"))
+    .option("--latest", options.translator.t("cli.update.option.latest"))
+    .option("--yes", options.translator.t("cli.update.option.yes"));
+
+  updateCommand.action(
+    options.usageLogging.track(
+      {
+        area: "self",
+        command: "update",
+        options: () => updateCommand.opts(),
+      },
       async (
         targetVersion: string | undefined,
         commandOptions: {
@@ -48,7 +65,8 @@ export function registerUpdateCommand(program: Command): void {
           return;
         }
 
-        console.log(formatUpdateText(updateResult));
+        console.log(formatUpdateText(updateResult, options.translator));
       },
-    );
+    ),
+  );
 }

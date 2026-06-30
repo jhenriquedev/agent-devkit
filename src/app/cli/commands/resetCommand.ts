@@ -1,23 +1,34 @@
 import { homedir } from "node:os";
 import type { Command } from "commander";
+import type { Translator } from "../../../infra/bases/i18n";
 import {
   createProjectModuleBindings,
   formatResetText,
 } from "../../../modules/project/project.index";
+import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 type RegisterResetCommandOptions = {
   appVersion: string;
+  translator: Translator;
+  usageLogging: CliUsageLoggingMiddleware;
 };
 
 export function registerResetCommand(program: Command, options: RegisterResetCommandOptions): void {
-  program
+  const resetCommand = program
     .command("reset")
-    .description("remove Agent DevKit state from the current project or global scope")
-    .option("-g, --global", "reset global state under ~/.agent-devkit")
-    .option("--dry-run", "show what would be removed without deleting files")
-    .option("--json", "print the reset result as JSON")
-    .option("--yes", "confirm state removal")
-    .action(
+    .description(options.translator.t("cli.reset.description"))
+    .option("-g, --global", options.translator.t("cli.reset.option.global"))
+    .option("--dry-run", options.translator.t("cli.reset.option.dryRun"))
+    .option("--json", options.translator.t("cli.reset.option.json"))
+    .option("--yes", options.translator.t("cli.reset.option.yes"));
+
+  resetCommand.action(
+    options.usageLogging.track(
+      {
+        area: "project",
+        command: "reset",
+        options: () => resetCommand.opts(),
+      },
       async (commandOptions: {
         dryRun?: boolean;
         global?: boolean;
@@ -51,7 +62,8 @@ export function registerResetCommand(program: Command, options: RegisterResetCom
           return;
         }
 
-        console.log(formatResetText(resetResult));
+        console.log(formatResetText(resetResult, options.translator));
       },
-    );
+    ),
+  );
 }

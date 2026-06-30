@@ -20,9 +20,9 @@ describe("agent doctor", () => {
       });
 
       expect(stdout).toContain("Agent DevKit Doctor");
-      expect(stdout).toContain("Version: 0.4.0");
-      expect(stdout).toContain("Global state:");
-      expect(stdout).toContain("Project state:");
+      expect(stdout).toContain("Versao: 0.4.0");
+      expect(stdout).toContain("Estado global:");
+      expect(stdout).toContain("Estado do projeto:");
     } finally {
       await rm(cwd, { force: true, recursive: true });
     }

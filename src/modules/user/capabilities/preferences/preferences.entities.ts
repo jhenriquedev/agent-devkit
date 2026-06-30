@@ -1,7 +1,10 @@
+import type { LanguageDefinition, LanguageId, LanguageSummary } from "../../../../infra/bases/i18n";
 import type { ThemeDefinition } from "../../../../infra/bases/theme";
 
 export type UserPreferences = {
   schema: "agent-devkit.user-preferences/v1";
+  language: LanguageId;
+  logRetentionDays: number;
   theme: string;
   updatedAt: string;
 };
@@ -13,10 +16,12 @@ export type ThemeSummary = {
   selected: boolean;
 };
 
-export type PreferencesStatus = "updated" | "view";
+export type PreferencesStatus = "reset" | "updated" | "view";
 
 export type PreferencesResult = {
+  activeLanguage: LanguageDefinition;
   activeTheme: ThemeDefinition;
+  languages: LanguageSummary[];
   path: string;
   preferences: UserPreferences;
   status: PreferencesStatus;
@@ -24,6 +29,8 @@ export type PreferencesResult = {
 };
 
 export type PreferencesServiceOptions = {
-  action: "set-theme" | "view";
+  action: "reset-defaults" | "set-language" | "set-log-retention" | "set-theme" | "update" | "view";
+  language?: LanguageId;
+  logRetentionDays?: number;
   theme?: string;
 };

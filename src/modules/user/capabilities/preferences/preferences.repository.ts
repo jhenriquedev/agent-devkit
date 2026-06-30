@@ -3,24 +3,31 @@ import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { I18nCatalog } from "../../../../infra/assets/i18n_catalog";
 import type { CapabilityRepositoryPort } from "../../../../infra/bases/capability";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../../../../infra/bases/errors";
+import type { LanguageDefinition } from "../../../../infra/bases/i18n";
 import { Result } from "../../../../infra/bases/result";
 import { type ThemeDefinition, ThemeDefinitionSchema } from "../../../../infra/bases/theme";
 import type { UserPreferences } from "./preferences.entities";
 
 export type PreferencesRepositoryOptions = {
   homeDirectory?: string;
+  i18nDirectory?: string;
   themesDirectory?: string;
 };
 
 export interface PreferencesRepositoryPort extends CapabilityRepositoryPort {
+  defaultPreferences(): UserPreferences;
+  loadLanguages(): Promise<Result<AgentDevKitErrorCode, LanguageDefinition[]>>;
   loadPreferences(): Promise<Result<AgentDevKitErrorCode, UserPreferences>>;
   loadThemes(): Promise<Result<AgentDevKitErrorCode, ThemeDefinition[]>>;
   preferencesPath(): string;
   savePreferences(preferences: UserPreferences): Promise<Result<AgentDevKitErrorCode, void>>;
 }
 
+const defaultLanguage = "pt-BR";
+const defaultLogRetentionDays = 30;
 const defaultTheme = "default-purple";
 
 function defaultThemesDirectory(): string {
@@ -37,9 +44,11 @@ function defaultThemesDirectory(): string {
   );
 }
 
-function defaultPreferences(): UserPreferences {
+function createDefaultPreferences(): UserPreferences {
   return {
     schema: "agent-devkit.user-preferences/v1",
+    language: defaultLanguage,
+    logRetentionDays: defaultLogRetentionDays,
     theme: defaultTheme,
     updatedAt: new Date(0).toISOString(),
   };
@@ -48,18 +57,28 @@ function defaultPreferences(): UserPreferences {
 export class PreferencesRepository implements PreferencesRepositoryPort {
   readonly repositoryId = "user.preferences.repository";
   readonly #homeDirectory: string;
+  readonly #i18nCatalog: I18nCatalog;
   readonly #themesDirectory: string;
 
   constructor(options: PreferencesRepositoryOptions = {}) {
     this.#homeDirectory = options.homeDirectory ?? homedir();
+    this.#i18nCatalog = new I18nCatalog({ directory: options.i18nDirectory });
     this.#themesDirectory = options.themesDirectory ?? defaultThemesDirectory();
+  }
+
+  defaultPreferences(): UserPreferences {
+    return createDefaultPreferences();
+  }
+
+  async loadLanguages(): Promise<Result<AgentDevKitErrorCode, LanguageDefinition[]>> {
+    return this.#i18nCatalog.loadLanguages();
   }
 
   async loadPreferences(): Promise<Result<AgentDevKitErrorCode, UserPreferences>> {
     try {
       await access(this.preferencesPath());
     } catch {
-      return Result.ok(defaultPreferences());
+      return Result.ok(this.defaultPreferences());
     }
 
     try {
@@ -69,7 +88,13 @@ export class PreferencesRepository implements PreferencesRepositoryPort {
         return Result.fail(ErrorCodes.InvalidInput);
       }
 
-      return Result.ok(payload);
+      return Result.ok({
+        schema: "agent-devkit.user-preferences/v1",
+        language: payload.language ?? defaultLanguage,
+        logRetentionDays: payload.logRetentionDays ?? defaultLogRetentionDays,
+        theme: payload.theme ?? defaultTheme,
+        updatedAt: payload.updatedAt ?? new Date(0).toISOString(),
+      });
     } catch {
       return Result.fail(ErrorCodes.FileReadFailed);
     }

@@ -1,18 +1,20 @@
 import { Box, Text } from "ink";
+import type { Translator } from "../../infra/bases/i18n";
 
 type AppProps = {
   initialPrompt?: string;
+  translator: Translator;
 };
 
-export function App({ initialPrompt }: AppProps) {
+export function App({ initialPrompt, translator }: AppProps) {
   return (
     <Box flexDirection="column">
-      <Text bold>Agent DevKit</Text>
-      <Text>v0.4.0 technical foundation</Text>
+      <Text bold>{translator.t("tui.title")}</Text>
+      <Text>{translator.t("tui.foundation")}</Text>
       {initialPrompt ? (
-        <Text>Prompt: {initialPrompt}</Text>
+        <Text>{translator.t("tui.prompt", { prompt: initialPrompt })}</Text>
       ) : (
-        <Text>Run agent --help for CLI options.</Text>
+        <Text>{translator.t("tui.helpHint")}</Text>
       )}
     </Box>
   );

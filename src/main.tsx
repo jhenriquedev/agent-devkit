@@ -5,31 +5,49 @@ import React from "react";
 import packageJson from "../package.json";
 import { registerDoctorCommand } from "./app/cli/commands/doctorCommand";
 import { registerInitCommand } from "./app/cli/commands/initCommand";
+import { registerLogsCommand } from "./app/cli/commands/logsCommand";
 import { registerPreferencesCommand } from "./app/cli/commands/preferencesCommand";
 import { registerResetCommand } from "./app/cli/commands/resetCommand";
 import { registerUpdateCommand } from "./app/cli/commands/updateCommand";
+import {
+  configureLocalizedHelp,
+  createCliTranslator,
+  loadCliUserPreferences,
+} from "./app/cli/i18n";
+import { CliUsageLoggingMiddleware } from "./app/cli/usageLogging";
 import { App } from "./app/tui/App";
+import { JsonUsageLogger } from "./infra/logging/json_usage_logger";
 
 const program = new Command();
+const userPreferences = loadCliUserPreferences();
+const translator = createCliTranslator();
+const usageLogging = new CliUsageLoggingMiddleware({
+  logger: new JsonUsageLogger({ retentionDays: userPreferences.logRetentionDays }),
+});
+configureLocalizedHelp(program, translator);
 
 program
   .name("agent")
-  .description("Agent DevKit CLI and TUI runtime")
-  .version(packageJson.version, "-v, --version")
-  .argument("[prompt...]", "open the TUI with an optional free-form prompt")
-  .action((promptParts: string[]) => {
-    const initialPrompt = promptParts.join(" ").trim();
-    render(
-      React.createElement(App, {
-        initialPrompt: initialPrompt.length > 0 ? initialPrompt : undefined,
-      }),
-    );
-  });
+  .description(translator.t("cli.root.description"))
+  .version(packageJson.version, "-v, --version", translator.t("cli.version.option"))
+  .argument("[prompt...]", translator.t("cli.root.promptArgument"))
+  .action(
+    usageLogging.track({ area: "user", command: "tui" }, (promptParts: string[]) => {
+      const initialPrompt = promptParts.join(" ").trim();
+      render(
+        React.createElement(App, {
+          initialPrompt: initialPrompt.length > 0 ? initialPrompt : undefined,
+          translator,
+        }),
+      );
+    }),
+  );
 
-registerDoctorCommand(program, { appVersion: packageJson.version });
-registerInitCommand(program, { appVersion: packageJson.version });
-registerPreferencesCommand(program);
-registerResetCommand(program, { appVersion: packageJson.version });
-registerUpdateCommand(program);
+registerDoctorCommand(program, { appVersion: packageJson.version, translator, usageLogging });
+registerInitCommand(program, { appVersion: packageJson.version, translator, usageLogging });
+registerLogsCommand(program, { translator, usageLogging });
+registerPreferencesCommand(program, { translator, usageLogging });
+registerResetCommand(program, { appVersion: packageJson.version, translator, usageLogging });
+registerUpdateCommand(program, { translator, usageLogging });
 
-program.parse(process.argv);
+await program.parseAsync(process.argv);

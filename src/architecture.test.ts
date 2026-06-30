@@ -1,5 +1,7 @@
 import { access, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { createLogsModuleBindings } from "./modules/logs/logs.bind";
+import { logsModuleConfig } from "./modules/logs/logs.config";
 import { createProjectModuleBindings } from "./modules/project/project.bind";
 import { projectModuleConfig } from "./modules/project/project.config";
 import { createSelfModuleBindings } from "./modules/self/self.bind";
@@ -82,7 +84,7 @@ describe("canonical architecture", () => {
   });
 
   it("defines module entrypoints and isolated capabilities", async () => {
-    const modules = ["project", "self", "user"];
+    const modules = ["logs", "project", "self", "user"];
 
     for (const moduleName of modules) {
       await expect(
@@ -111,6 +113,19 @@ describe("canonical architecture", () => {
       }
     }
 
+    await expect(
+      exists(
+        join(
+          process.cwd(),
+          "src",
+          "modules",
+          "logs",
+          "capabilities",
+          "analysis",
+          "analysis.service.ts",
+        ),
+      ),
+    ).resolves.toBe(true);
     await expect(
       exists(
         join(
@@ -171,6 +186,12 @@ describe("canonical architecture", () => {
   });
 
   it("binds module test suites in each module contract", () => {
+    expect(logsModuleConfig.tests).toEqual({
+      include: [
+        "src/modules/logs/logs.surface.test.ts",
+        "src/modules/logs/capabilities/**/*.test.ts",
+      ],
+    });
     expect(projectModuleConfig.tests).toEqual({
       include: [
         "src/modules/project/project.surface.test.ts",
@@ -192,6 +213,7 @@ describe("canonical architecture", () => {
   });
 
   it("binds modules through the canonical module binding contract", () => {
+    const logsResult = createLogsModuleBindings();
     const projectResult = createProjectModuleBindings({ appVersion: "0.4.0" });
     const selfResult = createSelfModuleBindings({
       currentVersion: "0.4.0",
@@ -199,13 +221,22 @@ describe("canonical architecture", () => {
     });
     const userResult = createUserModuleBindings();
 
+    expect(logsResult.isOk()).toBe(true);
     expect(projectResult.isOk()).toBe(true);
     expect(selfResult.isOk()).toBe(true);
     expect(userResult.isOk()).toBe(true);
 
+    const logs = logsResult.unwrap();
     const project = projectResult.unwrap();
     const self = selfResult.unwrap();
     const user = userResult.unwrap();
+
+    expect(logs.config).toBe(logsModuleConfig);
+    expect(Object.keys(logs.capabilities)).toEqual(["analysis"]);
+    expect(logs.capabilities.analysis.capability).toMatchObject({
+      id: "logs.analysis",
+      moduleId: "logs",
+    });
 
     expect(project.config).toBe(projectModuleConfig);
     expect(Object.keys(project.capabilities)).toEqual(["doctor", "init", "reset"]);

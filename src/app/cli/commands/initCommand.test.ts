@@ -16,10 +16,11 @@ describe("agent init", () => {
     try {
       const { stdout } = await execFileAsync(tsxBin, [mainEntrypoint, "init", "--dry-run"], {
         cwd: projectRoot,
+        env: { ...process.env, HOME: join(projectRoot, "home") },
       });
 
       expect(stdout).toContain("Agent DevKit Init");
-      expect(stdout).toContain("[planned] project state");
+      expect(stdout).toContain("[planned] estado do projeto");
       expect(stdout).toContain(".agent-devkit/config.json");
       await expect(
         readFile(join(projectRoot, ".agent-devkit", "config.json"), "utf8"),
@@ -36,6 +37,7 @@ describe("agent init", () => {
       const resolvedProjectRoot = await realpath(projectRoot);
       const { stdout } = await execFileAsync(tsxBin, [mainEntrypoint, "init", "--json"], {
         cwd: projectRoot,
+        env: { ...process.env, HOME: join(projectRoot, "home") },
       });
       const result = JSON.parse(stdout);
 

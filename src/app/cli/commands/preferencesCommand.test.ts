@@ -20,7 +20,10 @@ describe("agent preferences", () => {
       const result = JSON.parse(stdout);
 
       expect(result.preferences.theme).toBe("default-purple");
+      expect(result.preferences.language).toBe("pt-BR");
+      expect(result.preferences.logRetentionDays).toBe(30);
       expect(result.themes).toHaveLength(7);
+      expect(result.languages).toHaveLength(5);
     } finally {
       await rm(home, { force: true, recursive: true });
     }
@@ -61,6 +64,109 @@ describe("agent preferences", () => {
 
       expect(result.status).toBe("updated");
       expect(result.preferences.theme).toBe("ocean-blue");
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
+
+  it("updates selected user language from the CLI", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-cli-home-"));
+
+    try {
+      const { stdout } = await execFileAsync(
+        tsxBin,
+        [mainEntrypoint, "preferences", "set-language", "fr-FR", "--json"],
+        {
+          env: { ...process.env, HOME: home },
+        },
+      );
+      const result = JSON.parse(stdout);
+
+      expect(result.status).toBe("updated");
+      expect(result.preferences.language).toBe("fr-FR");
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
+
+  it("updates log retention from the CLI", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-cli-home-"));
+
+    try {
+      const { stdout } = await execFileAsync(
+        tsxBin,
+        [mainEntrypoint, "preferences", "update", "--log-retention-days", "90", "--json"],
+        {
+          env: { ...process.env, HOME: home },
+        },
+      );
+      const result = JSON.parse(stdout);
+
+      expect(result.status).toBe("updated");
+      expect(result.preferences.logRetentionDays).toBe(90);
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
+
+  it("restores default user preferences from the CLI", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-cli-home-"));
+
+    try {
+      await execFileAsync(
+        tsxBin,
+        [
+          mainEntrypoint,
+          "preferences",
+          "update",
+          "--theme",
+          "ocean-blue",
+          "--language",
+          "en-US",
+          "--log-retention-days",
+          "90",
+        ],
+        {
+          env: { ...process.env, HOME: home },
+        },
+      );
+
+      const { stdout } = await execFileAsync(
+        tsxBin,
+        [mainEntrypoint, "preferences", "reset-defaults", "--json"],
+        {
+          env: { ...process.env, HOME: home },
+        },
+      );
+      const result = JSON.parse(stdout);
+
+      expect(result.status).toBe("reset");
+      expect(result.preferences.theme).toBe("default-purple");
+      expect(result.preferences.language).toBe("pt-BR");
+      expect(result.preferences.logRetentionDays).toBe(30);
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
+
+  it("prints preferences in the selected language", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-cli-home-"));
+
+    try {
+      await execFileAsync(
+        tsxBin,
+        [mainEntrypoint, "preferences", "set-language", "en-US", "--json"],
+        {
+          env: { ...process.env, HOME: home },
+        },
+      );
+
+      const { stdout } = await execFileAsync(tsxBin, [mainEntrypoint, "preferences"], {
+        env: { ...process.env, HOME: home },
+      });
+
+      expect(stdout).toContain("Agent DevKit Preferences");
+      expect(stdout).toContain("language en-US");
     } finally {
       await rm(home, { force: true, recursive: true });
     }

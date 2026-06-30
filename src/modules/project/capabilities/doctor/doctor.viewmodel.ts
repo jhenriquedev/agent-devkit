@@ -1,7 +1,10 @@
+import { I18nCatalog } from "../../../../infra/assets/i18n_catalog";
+import type { Translator } from "../../../../infra/bases/i18n";
 import type { DoctorReport, DoctorStatePath } from "./doctor.entities";
 
 type FormatDoctorTextOptions = {
   color?: boolean;
+  translator?: Translator;
 };
 
 const colors = {
@@ -11,6 +14,7 @@ const colors = {
   ok: "#5FD0C8",
   text: "#E8E6F2",
 };
+const defaultTranslator = new I18nCatalog().translator("en-US");
 
 function colorize(value: string, hex: string, enabled: boolean): string {
   if (!enabled) {
@@ -45,8 +49,8 @@ function pill(label: string, enabled: boolean): string {
   return colorize(value, statusColor(label), enabled);
 }
 
-function statusText(label: string, enabled: boolean): string {
-  return colorize(label, statusColor(label), enabled);
+function statusText(status: string, label: string, enabled: boolean): string {
+  return colorize(label, statusColor(status), enabled);
 }
 
 function section(title: string, rows: Array<[string, string]>, enabled: boolean): string[] {
@@ -61,51 +65,61 @@ export function formatDoctorText(
   options: FormatDoctorTextOptions = {},
 ): string {
   const color = options.color === true;
+  const translator = options.translator ?? defaultTranslator;
+  const t = (key: string, values?: Record<string, string>) => translator.t(key, values);
   const globalStatus = stateStatus(report.runtime.globalState);
   const projectStatus = stateStatus(report.runtime.projectState);
+  const globalStatusLabel = t(`doctor.status.${globalStatus}`);
+  const projectStatusLabel = t(`doctor.status.${projectStatus}`);
 
   return [
-    `${colorize("Agent DevKit Doctor", colors.text, color)}  ${colorize("local - no credentials required", colors.dim, color)}`,
-    `${colorize(">", colors.indigo, color)} agent doctor`,
+    `${colorize(t("doctor.title"), colors.text, color)}  ${colorize(t("doctor.subtitle"), colors.dim, color)}`,
+    colorize(t("doctor.command"), colors.indigo, color),
     "",
-    `${pill(report.status, color)} local health`,
+    `${pill(report.status, color)} ${t("doctor.health")}`,
     ...section(
-      "runtime",
+      t("doctor.section.runtime"),
       [
-        ["version", report.version],
-        ["node", report.node.version],
+        [t("doctor.field.version"), report.version],
+        [t("doctor.field.node"), report.node.version],
       ],
       color,
     ),
     ...section(
-      "environment",
+      t("doctor.section.environment"),
       [
-        ["platform", report.system.platform],
-        ["cwd", report.system.cwd],
+        [t("doctor.field.platform"), report.system.platform],
+        [t("doctor.field.cwd"), report.system.cwd],
         [
-          "tty",
+          t("doctor.field.tty"),
           `stdin=${String(report.terminal.stdinIsTTY)} stdout=${String(report.terminal.stdoutIsTTY)}`,
         ],
       ],
       color,
     ),
     ...section(
-      "state",
+      t("doctor.section.state"),
       [
         [
-          "global",
-          `${statusText(globalStatus, color).padEnd(8)} ${report.runtime.globalState.path}`,
+          t("doctor.field.global"),
+          `${statusText(globalStatus, globalStatusLabel, color).padEnd(8)} ${report.runtime.globalState.path}`,
         ],
         [
-          "project",
-          `${statusText(projectStatus, color).padEnd(8)} ${report.runtime.projectState.path}`,
+          t("doctor.field.project"),
+          `${statusText(projectStatus, projectStatusLabel, color).padEnd(8)} ${report.runtime.projectState.path}`,
         ],
       ],
       color,
     ),
     "",
-    `Version: ${report.version}`,
-    `Global state: ${globalStatus} (${report.runtime.globalState.path})`,
-    `Project state: ${projectStatus} (${report.runtime.projectState.path})`,
+    t("doctor.line.version", { version: report.version }),
+    t("doctor.line.globalState", {
+      path: report.runtime.globalState.path,
+      status: globalStatusLabel,
+    }),
+    t("doctor.line.projectState", {
+      path: report.runtime.projectState.path,
+      status: projectStatusLabel,
+    }),
   ].join("\n");
 }

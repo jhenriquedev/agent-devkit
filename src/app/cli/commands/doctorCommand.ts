@@ -1,45 +1,62 @@
 import type { Command } from "commander";
+import type { Translator } from "../../../infra/bases/i18n";
 import {
   createProjectModuleBindings,
   formatDoctorText,
 } from "../../../modules/project/project.index";
+import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 type RegisterDoctorCommandOptions = {
   appVersion: string;
+  translator: Translator;
+  usageLogging: CliUsageLoggingMiddleware;
 };
 
 export function registerDoctorCommand(
   program: Command,
   options: RegisterDoctorCommandOptions,
 ): void {
-  program
+  const doctorCommand = program
     .command("doctor")
-    .description("inspect the local Agent DevKit environment without changing it")
-    .option("--json", "print the doctor report as JSON")
-    .action(async (commandOptions: { json?: boolean }) => {
-      const bindings = createProjectModuleBindings({
-        appVersion: options.appVersion,
-      });
+    .description(options.translator.t("cli.doctor.description"))
+    .option("--json", options.translator.t("cli.doctor.option.json"));
 
-      if (bindings.isErr()) {
-        throw new Error(bindings.unwrapError());
-      }
+  doctorCommand.action(
+    options.usageLogging.track(
+      {
+        area: "project",
+        command: "doctor",
+        options: () => doctorCommand.opts(),
+      },
+      async (commandOptions: { json?: boolean }) => {
+        const bindings = createProjectModuleBindings({
+          appVersion: options.appVersion,
+        });
 
-      const result = await bindings.unwrap().capabilities.doctor.execute();
+        if (bindings.isErr()) {
+          throw new Error(bindings.unwrapError());
+        }
 
-      if (result.isErr()) {
-        throw new Error(result.unwrapError());
-      }
+        const result = await bindings.unwrap().capabilities.doctor.execute();
 
-      const report = result.unwrap();
+        if (result.isErr()) {
+          throw new Error(result.unwrapError());
+        }
 
-      if (commandOptions.json === true) {
-        console.log(JSON.stringify(report, null, 2));
-        return;
-      }
+        const report = result.unwrap();
 
-      console.log(
-        formatDoctorText(report, { color: report.terminal.stdoutIsTTY && !process.env.NO_COLOR }),
-      );
-    });
+        if (commandOptions.json === true) {
+          console.log(JSON.stringify(report, null, 2));
+          return;
+        }
+
+        console.log(
+          formatDoctorText(report, {
+            color: report.terminal.stdoutIsTTY && !process.env.NO_COLOR,
+            translator: options.translator,
+          }),
+        );
+      },
+    ),
+  );
 }
