@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from cli.aikit import __version__
-from cli.aikit.aliases import add_alias, list_aliases, remove_alias, sync_aliases
+from cli.aikit.aliases import add_alias, list_aliases, remove_alias, setup_alias_path, sync_aliases
 from cli.aikit.agentic_commands import agentic_execute, agentic_plan
 from cli.aikit.app_home import app_home_status, migrate_default_home
 from cli.aikit.architecture import architecture_contract
@@ -1530,6 +1530,10 @@ def dispatch_alias(args: argparse.Namespace) -> dict[str, Any]:
             if args.name:
                 raise DevKitError("alias sync does not accept a name")
             return sync_aliases()
+        if args.action == "path":
+            if args.name:
+                raise DevKitError("alias path does not accept a name")
+            return setup_alias_path(yes=args.yes)
     except ValueError as exc:
         raise DevKitError(str(exc)) from exc
     raise DevKitError(f"unsupported alias action: {args.action}")

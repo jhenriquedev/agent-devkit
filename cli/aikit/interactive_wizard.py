@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from typing import Any
 
 from cli.aikit.core.requests import AgentPromptRequest
 from cli.aikit.core.runtime import run_agent_prompt
+from cli.aikit.aliases import setup_alias_path
 from cli.aikit.llm import BACKENDS, configure_backend
 from cli.aikit.mini_brain import DEFAULT_OLLAMA_MODEL
 from cli.aikit.ollama import ollama_status
@@ -14,6 +16,30 @@ from cli.aikit.onboarding import onboarding_status
 from cli.aikit.personality import load_personality, update_personality
 from cli.aikit.runtime_paths import ROOT
 from cli.aikit.wizard_state import WizardStateError, answer_wizard, cancel_wizard, show_wizard
+
+ONBOARDING_MODE_OPTIONS = [
+    {
+        "id": "minimal",
+        "number": "1",
+        "label": "minimo",
+        "description": "identidade, mini-cerebro local embarcado e memoria",
+        "recommended": True,
+    },
+    {
+        "id": "complete",
+        "number": "2",
+        "label": "completo",
+        "description": "minimo + toolchain, sources, notificacoes, knowledge e memorias",
+        "recommended": False,
+    },
+    {
+        "id": "skip",
+        "number": "3",
+        "label": "pular",
+        "description": "",
+        "recommended": False,
+    },
+]
 
 
 def maybe_run_interactive_wizard(result: dict[str, Any]) -> dict[str, Any]:
@@ -126,18 +152,148 @@ def run_interactive_onboarding(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def choose_onboarding_mode() -> str:
+    selected = choose_onboarding_mode_with_arrows()
+    if selected:
+        return selected
     print("\nModos de onboarding:")
-    print("1. minimo: identidade, mini-cerebro local embarcado e memoria")
-    print("2. completo: minimo + toolchain, sources, notificacoes, knowledge e memorias")
-    print("3. pular")
-    answer = ask_text("Escolha o modo", default="minimo").strip().lower()
+    for option in ONBOARDING_MODE_OPTIONS:
+        print(format_onboarding_option(option, selected=False, include_selector=False))
+    answer = ask_text("Escolha o modo:").strip().lower()
+    return parse_onboarding_mode_answer(answer)
+
+
+def choose_onboarding_mode_with_arrows() -> str | None:
+    if not sys.stdin.isatty() or not sys.stdout.isatty() or os.environ.get("TERM") == "dumb":
+        return None
+    try:
+        return read_onboarding_mode_selection()
+    except KeyboardInterrupt:
+        print()
+        return "skip"
+    except (OSError, ValueError):
+        return None
+
+
+def read_onboarding_mode_selection() -> str:
+    selected_index = 0
+    typed_answer = ""
+    print("\nModos de onboarding:")
+    render_onboarding_options(selected_index)
+    print_onboarding_prompt(typed_answer)
+    while True:
+        key = read_key()
+        if key in {"\x03", "\x04"}:
+            raise KeyboardInterrupt
+        if key in {"\r", "\n"}:
+            if typed_answer:
+                parsed = parse_onboarding_mode_answer(typed_answer.strip().lower(), default="")
+                if parsed:
+                    return parsed
+                typed_answer = ""
+                rerender_onboarding_options(selected_index, typed_answer)
+                continue
+            return str(ONBOARDING_MODE_OPTIONS[selected_index]["id"])
+        if key in {"\x1b[A", "k"}:
+            typed_answer = ""
+            selected_index = (selected_index - 1) % len(ONBOARDING_MODE_OPTIONS)
+            rerender_onboarding_options(selected_index, typed_answer)
+            continue
+        if key in {"\x1b[B", "j"}:
+            typed_answer = ""
+            selected_index = (selected_index + 1) % len(ONBOARDING_MODE_OPTIONS)
+            rerender_onboarding_options(selected_index, typed_answer)
+            continue
+        if key in {"\x7f", "\b"}:
+            typed_answer = typed_answer[:-1]
+            rerender_onboarding_options(selected_index, typed_answer)
+            continue
+        parsed = parse_onboarding_mode_answer(key.strip().lower(), default="")
+        if parsed:
+            print()
+            return parsed
+        if key.isprintable():
+            typed_answer += key
+            rerender_onboarding_options(selected_index, typed_answer)
+
+
+def render_onboarding_options(selected_index: int) -> None:
+    for index, option in enumerate(ONBOARDING_MODE_OPTIONS):
+        print(format_onboarding_option(option, selected=index == selected_index, include_selector=True))
+
+
+def rerender_onboarding_options(selected_index: int, typed_answer: str) -> None:
+    lines_to_move = len(ONBOARDING_MODE_OPTIONS) + 1
+    sys.stdout.write(f"\x1b[{lines_to_move}A")
+    for index, option in enumerate(ONBOARDING_MODE_OPTIONS):
+        sys.stdout.write("\x1b[2K")
+        sys.stdout.write(format_onboarding_option(option, selected=index == selected_index, include_selector=True) + "\n")
+    sys.stdout.write("\x1b[2K")
+    sys.stdout.write(onboarding_prompt_line(typed_answer) + "\n")
+    sys.stdout.flush()
+
+
+def format_onboarding_option(option: dict[str, Any], *, selected: bool, include_selector: bool) -> str:
+    selector = "> " if selected else "  "
+    prefix = selector if include_selector else ""
+    description = f": {option['description']}" if option.get("description") else ""
+    recommended = " (Recomendado)" if option.get("recommended") else ""
+    return f"{prefix}{option['number']}. {option['label']}{description}{recommended}"
+
+
+def parse_onboarding_mode_answer(answer: str, *, default: str = "minimal") -> str:
+    if not answer:
+        return default
     if answer in {"1", "minimo", "mínimo", "minimal"}:
         return "minimal"
     if answer in {"2", "completo", "complete", "full"}:
         return "complete"
     if answer in {"3", "pular", "skip", "cancelar", "cancel"}:
         return "skip"
-    return "minimal"
+    return default
+
+
+def print_onboarding_prompt(typed_answer: str) -> None:
+    print(onboarding_prompt_line(typed_answer))
+
+
+def onboarding_prompt_line(typed_answer: str) -> str:
+    suffix = f" {typed_answer}" if typed_answer else ""
+    return f"Escolha o modo:{suffix}"
+
+
+def read_key() -> str:
+    if os.name == "nt":
+        import msvcrt
+
+        char = msvcrt.getwch()
+        if char in {"\x00", "\xe0"}:
+            code = msvcrt.getwch()
+            if code == "H":
+                return "\x1b[A"
+            if code == "P":
+                return "\x1b[B"
+        return char
+
+    import termios
+    import tty
+    import select
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        char = sys.stdin.read(1)
+        if char == "\x1b":
+            sequence = ""
+            for _ in range(2):
+                ready, _, _ = select.select([sys.stdin], [], [], 0.01)
+                if not ready:
+                    break
+                sequence += sys.stdin.read(1)
+            char += sequence
+        return char
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
 def configure_personality_interactively(agent: dict[str, Any]) -> None:
@@ -149,13 +305,27 @@ def configure_personality_interactively(agent: dict[str, Any]) -> None:
     language = ask_text("Idioma padrao das respostas?", default=str(agent.get("language") or "pt-BR"))
     tone = ask_text("Tom das respostas?", default=current_tone)
     detail_level = ask_text("Nivel de detalhe?", default=current_detail)
-    update_personality(
+    payload = update_personality(
         agent_name=agent_name,
         user_name=user_name,
         language=language,
         tone=tone,
         detail_level=detail_level,
     )
+    alias = payload.get("alias") if isinstance(payload.get("alias"), dict) else None
+    if not alias:
+        return
+    if alias.get("status") == "added":
+        print(f"Comando local criado: {alias.get('name')}")
+    elif alias.get("message"):
+        print(f"Alias nao configurado automaticamente: {alias['message']}")
+    path_status = alias.get("path_status") if isinstance(alias.get("path_status"), dict) else {}
+    if path_status.get("setup_required"):
+        bin_dir = path_status.get("bin_dir")
+        print(f"O comando foi criado em {bin_dir}, mas essa pasta ainda nao esta no PATH.")
+        if ask_yes_no("Deseja habilitar aliases do Agent DevKit no shell para proximas sessoes?", default=True):
+            setup = setup_alias_path(yes=True)
+            print(setup.get("message") or "PATH de aliases atualizado.")
 
 
 def configure_llm_interactively() -> None:

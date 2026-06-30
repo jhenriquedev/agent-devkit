@@ -224,35 +224,39 @@ class AikitCliTest(unittest.TestCase):
         result = self.run_cli("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.3.1", result.stdout)
+        self.assertIn("aikit 0.3.2", result.stdout)
 
     def test_short_version_exits_successfully(self) -> None:
         result = self.run_cli("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("aikit 0.3.1", result.stdout)
+        self.assertIn("aikit 0.3.2", result.stdout)
 
     def test_agent_entrypoint_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("--version")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.3.1", result.stdout)
+        self.assertIn("agent 0.3.2", result.stdout)
 
     def test_agent_entrypoint_short_version_uses_agent_program_name(self) -> None:
         result = self.run_agent("-v")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("agent 0.3.1", result.stdout)
+        self.assertIn("agent 0.3.2", result.stdout)
 
     def test_agent_entrypoint_rename_shortcut_updates_public_name(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             env = {"AGENT_DEVKIT_HOME": tmpdir}
             renamed = self.run_agent("--rename", "Ianota", "--json", env=env)
             identity = self.run_agent("--json", "qual", "seu", "nome?", env=env)
+            alias_exists = (Path(tmpdir) / "bin" / "Ianota").is_file()
 
         self.assertEqual(renamed.returncode, 0, renamed.stderr)
         self.assertEqual(identity.returncode, 0, identity.stderr)
-        self.assertEqual(json.loads(renamed.stdout)["agent_name"], "Ianota")
+        renamed_payload = json.loads(renamed.stdout)
+        self.assertEqual(renamed_payload["agent_name"], "Ianota")
+        self.assertEqual(renamed_payload["alias"]["name"], "Ianota")
+        self.assertTrue(alias_exists)
         self.assertIn("Ianota", json.loads(identity.stdout)["response"])
 
     def test_agent_entrypoint_accepts_json_after_natural_prompt(self) -> None:
@@ -2503,7 +2507,7 @@ class AikitCliTest(unittest.TestCase):
                 env={"PATH": os.environ.get("PATH", "")},
             )
             self.assertEqual(installed_agent.returncode, 0, installed_agent.stderr)
-            self.assertIn("agent 0.3.1", installed_agent.stdout)
+            self.assertIn("agent 0.3.2", installed_agent.stdout)
 
     def test_doctor_project_reports_lock_divergence(self) -> None:
         with tempfile.TemporaryDirectory() as install_home, tempfile.TemporaryDirectory() as project_dir:
@@ -2647,7 +2651,7 @@ class AikitCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("ai-devkit 0.3.1", result.stdout)
+        self.assertIn("ai-devkit 0.3.2", result.stdout)
 
 
 if __name__ == "__main__":

@@ -97,16 +97,67 @@ class AgenticWave2ContractsTest(unittest.TestCase):
             rename_flag = self.run_agent("personality", "edit", "--rename", "Ianota", "--json", env=env)
             natural = self.run_agent("--json", "mude", "seu", "nome", "para", "ianota10", env=env)
             identity = self.run_agent("--json", "qual", "seu", "nome?", env=env)
+            ianota_alias_exists = (Path(tmpdir) / "bin" / "Ianota").is_file()
+            natural_alias_exists = (Path(tmpdir) / "bin" / "ianota10").is_file()
 
             self.assertEqual(rename_flag.returncode, 0, rename_flag.stderr)
             self.assertEqual(natural.returncode, 0, natural.stderr)
             self.assertEqual(identity.returncode, 0, identity.stderr)
-            self.assertEqual(json.loads(rename_flag.stdout)["agent_name"], "Ianota")
+            rename_payload = json.loads(rename_flag.stdout)
+            self.assertEqual(rename_payload["agent_name"], "Ianota")
+            self.assertEqual(rename_payload["alias"]["name"], "Ianota")
+            self.assertTrue(ianota_alias_exists)
             natural_payload = json.loads(natural.stdout)
             self.assertFalse(natural_payload["requires_llm"])
             self.assertEqual(natural_payload["action"], "rename")
             self.assertEqual(natural_payload["identity"]["name"], "ianota10")
+            self.assertEqual(natural_payload["alias"]["name"], "ianota10")
+            self.assertTrue(natural_alias_exists)
             self.assertIn("ianota10", json.loads(identity.stdout)["response"])
+
+    def test_personality_rename_with_spaced_name_creates_safe_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir}
+            renamed = self.run_agent("personality", "edit", "--rename", "Meu Assistente", "--json", env=env)
+            alias_exists = (Path(tmpdir) / "bin" / "Meu-Assistente").is_file()
+
+        self.assertEqual(renamed.returncode, 0, renamed.stderr)
+        payload = json.loads(renamed.stdout)
+        self.assertEqual(payload["agent_name"], "Meu Assistente")
+        self.assertEqual(payload["alias"]["name"], "Meu-Assistente")
+        self.assertTrue(alias_exists)
+
+    def test_alias_path_command_is_confirmation_gated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            env = {"AI_DEVKIT_CONFIG_HOME": tmpdir, "PATH": os.environ.get("PATH", "")}
+            result = self.run_agent("alias", "path", "--json", env=env)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "alias-path")
+        self.assertEqual(payload["status"], "needs-confirmation")
+        self.assertFalse(payload["executed"])
+
+    def test_alias_path_yes_updates_posix_shell_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            home = root / "home"
+            app_home = root / "app"
+            home.mkdir()
+            env = {
+                "AI_DEVKIT_CONFIG_HOME": str(app_home),
+                "HOME": str(home),
+                "SHELL": "/bin/zsh",
+                "PATH": os.environ.get("PATH", ""),
+            }
+            result = self.run_agent("alias", "path", "--yes", "--json", env=env)
+            profile_text = (home / ".zshrc").read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "updated")
+        self.assertTrue(payload["executed"])
+        self.assertIn(str(app_home / "bin"), profile_text)
 
     def test_alias_add_creates_executable_that_preserves_invoked_name(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

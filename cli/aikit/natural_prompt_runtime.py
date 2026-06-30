@@ -62,6 +62,21 @@ def clean_requested_name(value: str) -> str | None:
     return cleaned[:80]
 
 
+def rename_response(updated: dict[str, Any]) -> str:
+    name = updated.get("agent_name")
+    alias = updated.get("alias") if isinstance(updated.get("alias"), dict) else {}
+    alias_name = alias.get("name") or alias.get("suggested_name")
+    path_status = alias.get("path_status") if isinstance(alias.get("path_status"), dict) else {}
+    if alias_name and path_status.get("setup_required"):
+        return (
+            f"Pronto. Meu nome local agora e {name}, e criei o comando {alias_name}. "
+            "Para chama-lo diretamente em novas sessoes do shell, execute `agent alias path --yes`."
+        )
+    if alias_name:
+        return f"Pronto. Meu nome local agora e {name}, e voce tambem pode me chamar com o comando {alias_name}."
+    return f"Pronto. Meu nome local agora e {name}."
+
+
 def is_capabilities_help_prompt(prompt: str) -> bool:
     normalized = normalize_text(prompt)
     if normalized in {"ajuda", "help", "o que voce faz", "o que voce consegue fazer"}:
@@ -220,7 +235,8 @@ def run_agent_prompt_request(request: AgentPromptRequest) -> dict[str, Any]:
             "prompt_length": len(prompt),
             "identity": {"name": updated.get("agent_name"), "source": "local"},
             "action": "rename",
-            "response": f"Pronto. Meu nome local agora e {updated.get('agent_name')}.",
+            "response": rename_response(updated),
+            "alias": updated.get("alias"),
         }
         return finalize_agent_session(result, session, prompt, backend=request.llm)
     if is_identity_question(prompt):

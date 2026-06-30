@@ -115,6 +115,8 @@ def print_human(result: dict[str, Any]) -> None:
         print_aliases(result)
     elif kind == "alias":
         print_alias(result)
+    elif kind == "alias-path":
+        print_alias_path(result)
     elif kind == "sessions":
         print_sessions(result)
     elif kind == "session":
@@ -630,6 +632,9 @@ def print_architecture(result: dict[str, Any]) -> None:
 def print_agent_response(result: dict[str, Any]) -> None:
     if result.get("status") == "ok":
         print(result.get("response", ""))
+        alias = result.get("alias") if isinstance(result.get("alias"), dict) else None
+        if alias:
+            print_alias_path_hint(alias.get("path_status") if isinstance(alias.get("path_status"), dict) else None)
         return
     print(result.get("message") or result.get("response") or "Agent execution did not complete.")
     question = result.get("next_question") or ((result.get("setup_wizard") or {}).get("next_question") if isinstance(result.get("setup_wizard"), dict) else None)
@@ -815,6 +820,12 @@ def print_personality(result: dict[str, Any]) -> None:
         print("Setup questions:")
         for question in result["questions"]:
             print(f"- {question}")
+    alias = result.get("alias") if isinstance(result.get("alias"), dict) else None
+    if alias:
+        print(f"Alias: {alias.get('name') or alias.get('suggested_name') or '-'} ({alias.get('status')})")
+        if alias.get("path"):
+            print(f"Alias path: {alias['path']}")
+        print_alias_path_hint(alias.get("path_status") if isinstance(alias.get("path_status"), dict) else None)
 
 
 def print_aliases(result: dict[str, Any]) -> None:
@@ -824,6 +835,7 @@ def print_aliases(result: dict[str, Any]) -> None:
         return
     for item in result["items"]:
         print(f"- {item['name']}: {item['path']}")
+        print_alias_path_hint(item.get("path_status") if isinstance(item.get("path_status"), dict) else None, indent="  ")
 
 
 def print_alias(result: dict[str, Any]) -> None:
@@ -835,6 +847,26 @@ def print_alias(result: dict[str, Any]) -> None:
         for path in result["removed_paths"]:
             print(f"- {path}")
     print(f"Config: {result['config_path']}")
+    print_alias_path_hint(result.get("path_status") if isinstance(result.get("path_status"), dict) else None)
+
+
+def print_alias_path(result: dict[str, Any]) -> None:
+    print(f"Alias PATH: {result.get('status')}")
+    print(f"Bin: {result.get('bin_dir') or '-'}")
+    if result.get("profile"):
+        print(f"Profile: {result['profile']}")
+    if result.get("message"):
+        print(result["message"])
+
+
+def print_alias_path_hint(path_status: dict[str, Any] | None, *, indent: str = "") -> None:
+    if not path_status or not path_status.get("setup_required"):
+        return
+    setup = path_status.get("setup") if isinstance(path_status.get("setup"), dict) else {}
+    print(f"{indent}PATH: {path_status.get('bin_dir')} is not active in this shell.")
+    command = setup.get("command")
+    if command:
+        print(f"{indent}Run: {command}")
 
 
 def print_sessions(result: dict[str, Any]) -> None:

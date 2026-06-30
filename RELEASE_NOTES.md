@@ -1,3 +1,31 @@
+# v0.3.2
+
+Alias and onboarding usability patch release.
+
+## Highlights
+
+- Automatically creates a local command alias when the public agent name is
+  changed through onboarding, `agent --rename`, `agent personality edit
+  --rename` or a natural-language rename prompt.
+- Keeps `agent` as the canonical command while allowing the configured public
+  name, such as `Jarvis`, to call the same runtime once `.agent-devkit/bin` is
+  on PATH.
+- Adds `agent alias path --yes` as an explicit opt-in setup helper for making
+  local aliases available in future macOS/Linux shell sessions and Windows user
+  PATH sessions.
+- Improves alias status output so users can see whether the alias exists,
+  where it was written and whether PATH setup is still required.
+- Updates the interactive onboarding mode menu to mark the minimal mode as
+  recommended, remove the misleading default prompt text and support arrow-key
+  navigation with text/number fallback.
+
+## Validation
+
+- Focused identity, personality, alias and onboarding tests pass locally.
+- Manual smoke confirms renaming to `Jarvis` creates the alias shims and that
+  `Jarvis --json qual seu nome` works when `.agent-devkit/bin` is on PATH.
+- Package build and package verification must pass before npm publish.
+
 # v0.3.1
 
 Embedded mini-brain patch release.

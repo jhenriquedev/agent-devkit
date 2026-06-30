@@ -30,7 +30,7 @@ agent doctor
 Expected version for this release:
 
 ```text
-agent 0.3.1
+agent 0.3.2
 ```
 
 ## Quick Start
@@ -45,10 +45,13 @@ agent llm list
 agent commands list
 ```
 
-Agent DevKit `v0.3.1` also includes the embedded Qwen2.5-0.5B mini-brain
+Agent DevKit `v0.3.2` includes the embedded Qwen2.5-0.5B mini-brain
 contract for local bootstrap conversations without Ollama, Claude, Codex or API
 keys. The npm package stays small; `agent setup mini-brain --yes` downloads the
 GGUF into `.agent-devkit/models` after explicit opt-in.
+When you rename the local agent, Agent DevKit now creates a matching command
+alias under `.agent-devkit/bin` and can add that directory to PATH with
+`agent alias path --yes`.
 The `v0.3.0` deterministic runtime discovery and integration commands remain
 available:
 

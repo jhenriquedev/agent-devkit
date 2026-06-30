@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from cli.aikit.aliases import ensure_alias_for_agent_name
 from cli.aikit.identity import DEFAULT_PUBLIC_NAME
 from cli.aikit.memory import MEMORY_FILE_TEMPLATES, ensure_memory, memory_home
 
@@ -60,6 +61,8 @@ def update_personality(
     path.write_text(render_personality(values), encoding="utf-8")
     payload = load_personality()
     payload["status"] = "updated"
+    if agent_name is not None and payload.get("agent_name") != DEFAULT_PUBLIC_NAME:
+        payload["alias"] = ensure_alias_for_agent_name(str(payload["agent_name"]))
     return payload
 
 

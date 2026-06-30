@@ -1,6 +1,6 @@
 {
   "schema_version": "ai-devkit.release-catalog-snapshot/v1",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "summary": {
     "agents": 48,
     "capabilities": 397,

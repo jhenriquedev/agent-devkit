@@ -251,9 +251,10 @@ def build_parser(prog: str | None = None) -> argparse.ArgumentParser:
 
     alias_parser = subparsers.add_parser("alias", help="manage local command aliases for agent")
     alias_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
-    alias_parser.add_argument("action", nargs="?", default="list", choices=["add", "list", "remove", "sync"])
+    alias_parser.add_argument("action", nargs="?", default="list", choices=["add", "list", "remove", "sync", "path"])
     alias_parser.add_argument("name", nargs="?")
     alias_parser.add_argument("--force", action="store_true", help="allow replacing an existing local alias file")
+    alias_parser.add_argument("--yes", action="store_true", help="confirm alias PATH setup")
 
     session_parser = subparsers.add_parser("session", help="manage local conversation sessions")
     session_parser.add_argument("--json", action="store_true", default=argparse.SUPPRESS, help=argparse.SUPPRESS)
