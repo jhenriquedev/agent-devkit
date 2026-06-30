@@ -36,6 +36,69 @@ describe("EncryptedSecretStore", () => {
     }
   });
 
+  it("audits secret lifecycle changes without storing plaintext", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-secrets-"));
+    let now = new Date("2026-06-30T12:00:00.000Z");
+    const store = new EncryptedSecretStore({
+      clock: () => now,
+      crypto: new LocalSecretCrypto({ keyProvider: { getKey: async () => key } }),
+      stateDirectory: join(root, ".agent-devkit"),
+    });
+
+    try {
+      await store.set("openai.apiKey", "sk-created", { service: "openai" });
+      now = new Date("2026-06-30T12:05:00.000Z");
+      await store.set("openai.apiKey", "sk-updated", { service: "openai" });
+      now = new Date("2026-06-30T12:10:00.000Z");
+      await store.rotate("openai.apiKey", "sk-rotated");
+      now = new Date("2026-06-30T12:15:00.000Z");
+      await store.reveal("openai.apiKey");
+      now = new Date("2026-06-30T12:20:00.000Z");
+      await store.remove("openai.apiKey");
+
+      const audit = await store.audit("openai.apiKey");
+      const raw = await readFile(join(root, ".agent-devkit", "secrets", "vault.json"), "utf8");
+
+      expect(audit.unwrap()).toEqual([
+        {
+          action: "created",
+          name: "openai.apiKey",
+          service: "openai",
+          timestamp: "2026-06-30T12:00:00.000Z",
+        },
+        {
+          action: "updated",
+          name: "openai.apiKey",
+          service: "openai",
+          timestamp: "2026-06-30T12:05:00.000Z",
+        },
+        {
+          action: "rotated",
+          name: "openai.apiKey",
+          service: "openai",
+          timestamp: "2026-06-30T12:10:00.000Z",
+        },
+        {
+          action: "revealed",
+          name: "openai.apiKey",
+          service: "openai",
+          timestamp: "2026-06-30T12:15:00.000Z",
+        },
+        {
+          action: "removed",
+          name: "openai.apiKey",
+          service: "openai",
+          timestamp: "2026-06-30T12:20:00.000Z",
+        },
+      ]);
+      expect(raw).not.toContain("sk-created");
+      expect(raw).not.toContain("sk-updated");
+      expect(raw).not.toContain("sk-rotated");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("removes a stored secret", async () => {
     const root = await mkdtemp(join(tmpdir(), "agent-devkit-secrets-"));
     const store = new EncryptedSecretStore({

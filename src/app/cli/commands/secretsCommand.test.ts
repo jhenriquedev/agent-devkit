@@ -67,4 +67,56 @@ describe("agent secrets", () => {
       await rm(home, { force: true, recursive: true });
     }
   });
+
+  it("rotates credentials and prints audit events without plaintext", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-secrets-cli-"));
+
+    try {
+      await runAgent(home, [
+        "secrets",
+        "set",
+        "openai.apiKey",
+        "--service",
+        "openai",
+        "--value",
+        "sk-test-secret",
+        "--json",
+      ]);
+      const rotated = JSON.parse(
+        (
+          await runAgent(home, [
+            "secrets",
+            "rotate",
+            "openai.apiKey",
+            "--value",
+            "sk-rotated-secret",
+            "--json",
+          ])
+        ).stdout,
+      );
+      const audit = JSON.parse(
+        (await runAgent(home, ["secrets", "audit", "openai.apiKey", "--json"])).stdout,
+      );
+      const revealed = JSON.parse(
+        (await runAgent(home, ["secrets", "show", "openai.apiKey", "--reveal", "--json"])).stdout,
+      );
+
+      expect(rotated).toMatchObject({
+        action: "rotate",
+        secret: { name: "openai.apiKey", value: "********" },
+      });
+      expect(audit).toMatchObject({
+        action: "audit",
+        events: [
+          expect.objectContaining({ action: "created", name: "openai.apiKey" }),
+          expect.objectContaining({ action: "rotated", name: "openai.apiKey" }),
+        ],
+      });
+      expect(revealed.secret.value).toBe("sk-rotated-secret");
+      expect(JSON.stringify(audit)).not.toContain("sk-test-secret");
+      expect(JSON.stringify(audit)).not.toContain("sk-rotated-secret");
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
 });

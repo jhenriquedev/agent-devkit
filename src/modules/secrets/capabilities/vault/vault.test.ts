@@ -56,4 +56,46 @@ describe("secrets.vault", () => {
       await rm(root, { force: true, recursive: true });
     }
   });
+
+  it("rotates credentials and exposes a timestamped audit trail", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-secrets-module-"));
+    const vault = service(root);
+
+    try {
+      const saved = await vault.execute({
+        action: "set",
+        name: "openai.apiKey",
+        service: "openai",
+        value: "sk-test-secret",
+      });
+      const rotated = await vault.execute({
+        action: "rotate",
+        name: "openai.apiKey",
+        value: "sk-rotated-secret",
+      });
+      const audit = await vault.execute({ action: "audit", name: "openai.apiKey" });
+      const revealed = await vault.execute({ action: "show", name: "openai.apiKey", reveal: true });
+
+      expect(saved.isOk()).toBe(true);
+      expect(rotated.unwrap()).toMatchObject({
+        action: "rotate",
+        secret: { name: "openai.apiKey", service: "openai", value: "********" },
+      });
+      expect(audit.unwrap()).toMatchObject({
+        action: "audit",
+        events: [
+          expect.objectContaining({ action: "created", name: "openai.apiKey" }),
+          expect.objectContaining({ action: "rotated", name: "openai.apiKey" }),
+        ],
+      });
+      expect(revealed.unwrap()).toMatchObject({
+        action: "show",
+        secret: { name: "openai.apiKey", value: "sk-rotated-secret" },
+      });
+      expect(JSON.stringify(audit.unwrap())).not.toContain("sk-test-secret");
+      expect(JSON.stringify(audit.unwrap())).not.toContain("sk-rotated-secret");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
 });

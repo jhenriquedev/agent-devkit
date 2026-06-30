@@ -12,6 +12,15 @@ export type SecretMetadata = {
   updatedAt: string;
 };
 
+export type SecretAuditAction = "created" | "removed" | "revealed" | "rotated" | "updated";
+
+export type SecretAuditEntry = {
+  action: SecretAuditAction;
+  name: string;
+  service?: string;
+  timestamp: string;
+};
+
 export type StoredSecret = SecretMetadata & {
   encrypted: EncryptedPayload;
 };
@@ -19,11 +28,13 @@ export type StoredSecret = SecretMetadata & {
 export type SecretSummary = SecretMetadata;
 
 type VaultFile = {
+  audit: SecretAuditEntry[];
   schema: "agent-devkit.secret-vault/v1";
   secrets: StoredSecret[];
 };
 
 export type EncryptedSecretStoreOptions = {
+  clock?: () => Date;
   crypto: SecretCrypto;
   stateDirectory?: string;
 };
@@ -34,16 +45,19 @@ function defaultStateDirectory(): string {
 
 function defaultVault(): VaultFile {
   return {
+    audit: [],
     schema: "agent-devkit.secret-vault/v1",
     secrets: [],
   };
 }
 
 export class EncryptedSecretStore {
+  readonly #clock: () => Date;
   readonly #crypto: SecretCrypto;
   readonly #vaultPath: string;
 
   constructor(options: EncryptedSecretStoreOptions) {
+    this.#clock = options.clock ?? (() => new Date());
     this.#crypto = options.crypto;
     this.#vaultPath = join(
       options.stateDirectory ?? defaultStateDirectory(),
@@ -72,6 +86,34 @@ export class EncryptedSecretStore {
     return this.#crypto.decryptString(secret.encrypted);
   }
 
+  async reveal(name: string): Promise<Result<AgentDevKitErrorCode, string>> {
+    const vault = await this.#readVault();
+
+    if (vault.isErr()) {
+      return Result.fail(vault.unwrapError());
+    }
+
+    const existing = vault.unwrap();
+    const secret = existing.secrets.find((candidate) => candidate.name === name);
+
+    if (secret === undefined) {
+      return Result.fail(ErrorCodes.InvalidInput);
+    }
+
+    const value = await this.#crypto.decryptString(secret.encrypted);
+
+    if (value.isErr()) {
+      return Result.fail(value.unwrapError());
+    }
+
+    const save = await this.#writeVault({
+      ...existing,
+      audit: [...existing.audit, this.#auditEntry("revealed", secret)],
+    });
+
+    return save.isOk() ? value : Result.fail(save.unwrapError());
+  }
+
   async list(): Promise<Result<AgentDevKitErrorCode, SecretSummary[]>> {
     const vault = await this.#readVault();
 
@@ -92,6 +134,21 @@ export class EncryptedSecretStore {
     );
   }
 
+  async audit(name?: string): Promise<Result<AgentDevKitErrorCode, SecretAuditEntry[]>> {
+    const vault = await this.#readVault();
+
+    if (vault.isErr()) {
+      return Result.fail(vault.unwrapError());
+    }
+
+    const events = vault
+      .unwrap()
+      .audit.filter((entry) => name === undefined || entry.name === name)
+      .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+
+    return Result.ok(events);
+  }
+
   async remove(name: string): Promise<Result<AgentDevKitErrorCode, { removed: boolean }>> {
     const vault = await this.#readVault();
 
@@ -100,8 +157,13 @@ export class EncryptedSecretStore {
     }
 
     const existing = vault.unwrap();
+    const removed = existing.secrets.find((secret) => secret.name === name);
     const next: VaultFile = {
       ...existing,
+      audit:
+        removed === undefined
+          ? existing.audit
+          : [...existing.audit, this.#auditEntry("removed", removed)],
       secrets: existing.secrets.filter((secret) => secret.name !== name),
     };
     const save = await this.#writeVault(next);
@@ -111,6 +173,60 @@ export class EncryptedSecretStore {
     }
 
     return Result.ok({ removed: next.secrets.length !== existing.secrets.length });
+  }
+
+  async rotate(
+    name: string,
+    value: string,
+    metadata: { service?: string } = {},
+  ): Promise<Result<AgentDevKitErrorCode, SecretSummary>> {
+    if (name.trim().length === 0 || value.length === 0) {
+      return Result.fail(ErrorCodes.InvalidInput);
+    }
+
+    const vault = await this.#readVault();
+
+    if (vault.isErr()) {
+      return Result.fail(vault.unwrapError());
+    }
+
+    const existing = vault.unwrap().secrets.find((secret) => secret.name === name);
+
+    if (existing === undefined) {
+      return Result.fail(ErrorCodes.InvalidInput);
+    }
+
+    const encrypted = await this.#crypto.encryptString(value);
+
+    if (encrypted.isErr()) {
+      return Result.fail(encrypted.unwrapError());
+    }
+
+    const now = this.#now();
+    const secret: StoredSecret = {
+      createdAt: existing.createdAt,
+      encrypted: encrypted.unwrap(),
+      name,
+      service: metadata.service ?? existing.service,
+      updatedAt: now,
+    };
+    const next: VaultFile = {
+      schema: "agent-devkit.secret-vault/v1",
+      audit: [...vault.unwrap().audit, this.#auditEntry("rotated", secret, now)],
+      secrets: [...vault.unwrap().secrets.filter((candidate) => candidate.name !== name), secret],
+    };
+    const save = await this.#writeVault(next);
+
+    if (save.isErr()) {
+      return Result.fail(save.unwrapError());
+    }
+
+    return Result.ok({
+      createdAt: secret.createdAt,
+      name: secret.name,
+      service: secret.service,
+      updatedAt: secret.updatedAt,
+    });
   }
 
   async set(
@@ -134,17 +250,21 @@ export class EncryptedSecretStore {
       return Result.fail(encrypted.unwrapError());
     }
 
-    const now = new Date().toISOString();
+    const now = this.#now();
     const existing = vault.unwrap().secrets.find((secret) => secret.name === name);
     const secret: StoredSecret = {
       createdAt: existing?.createdAt ?? now,
       encrypted: encrypted.unwrap(),
       name,
-      service: metadata.service,
+      service: metadata.service ?? existing?.service,
       updatedAt: now,
     };
     const next: VaultFile = {
       schema: "agent-devkit.secret-vault/v1",
+      audit: [
+        ...vault.unwrap().audit,
+        this.#auditEntry(existing === undefined ? "created" : "updated", secret, now),
+      ],
       secrets: [...vault.unwrap().secrets.filter((candidate) => candidate.name !== name), secret],
     };
     const save = await this.#writeVault(next);
@@ -169,13 +289,17 @@ export class EncryptedSecretStore {
     }
 
     try {
-      const payload = JSON.parse(await readFile(this.#vaultPath, "utf8")) as VaultFile;
+      const payload = JSON.parse(await readFile(this.#vaultPath, "utf8")) as Partial<VaultFile>;
 
       if (payload.schema !== "agent-devkit.secret-vault/v1" || !Array.isArray(payload.secrets)) {
         return Result.fail(ErrorCodes.InvalidInput);
       }
 
-      return Result.ok(payload);
+      return Result.ok({
+        audit: Array.isArray(payload.audit) ? payload.audit : [],
+        schema: payload.schema,
+        secrets: payload.secrets,
+      });
     } catch {
       return Result.fail(ErrorCodes.FileReadFailed);
     }
@@ -189,5 +313,18 @@ export class EncryptedSecretStore {
     } catch {
       return Result.fail(ErrorCodes.FileWriteFailed);
     }
+  }
+
+  #auditEntry(action: SecretAuditAction, secret: SecretMetadata, timestamp = this.#now()) {
+    return {
+      action,
+      name: secret.name,
+      service: secret.service,
+      timestamp,
+    };
+  }
+
+  #now(): string {
+    return this.#clock().toISOString();
   }
 }

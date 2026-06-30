@@ -161,6 +161,66 @@ export function registerSecretsCommand(
     ),
   );
 
+  const rotateCommand = secretsCommand
+    .command("rotate")
+    .argument("<name>", options.translator.t("cli.secrets.argument.name"))
+    .description(options.translator.t("cli.secrets.rotate.description"))
+    .requiredOption("--value <value>", options.translator.t("cli.secrets.set.option.value"))
+    .option("--json", options.translator.t("cli.secrets.option.json"))
+    .option("--service <service>", options.translator.t("cli.secrets.set.option.service"));
+
+  rotateCommand.action(
+    options.usageLogging.track(
+      {
+        area: "system",
+        command: "secrets.rotate",
+        options: () => rotateCommand.opts(),
+        redactOptions: ["--value"],
+      },
+      async (name: string) => {
+        const commandOptions = rotateCommand.opts<{
+          json?: boolean;
+          service?: string;
+          value: string;
+        }>();
+        await printResult(
+          await secretsCapability().execute({
+            action: "rotate",
+            name,
+            service: commandOptions.service,
+            value: commandOptions.value,
+          }),
+          options.translator,
+          wantsJson(commandOptions),
+        );
+      },
+    ),
+  );
+
+  const auditCommand = secretsCommand
+    .command("audit")
+    .argument("[name]", options.translator.t("cli.secrets.audit.argument.name"))
+    .description(options.translator.t("cli.secrets.audit.description"))
+    .option("--json", options.translator.t("cli.secrets.option.json"));
+
+  auditCommand.action(
+    options.usageLogging.track(
+      {
+        area: "system",
+        command: "secrets.audit",
+        options: () => auditCommand.opts(),
+      },
+      async (name: string | undefined) => {
+        const commandOptions = auditCommand.opts<{ json?: boolean }>();
+        await printResult(
+          await secretsCapability().execute({ action: "audit", name }),
+          options.translator,
+          wantsJson(commandOptions),
+        );
+      },
+    ),
+  );
+
   const removeCommand = secretsCommand
     .command("remove")
     .alias("rm")

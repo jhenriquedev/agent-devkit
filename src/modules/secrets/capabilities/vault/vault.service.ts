@@ -38,6 +38,18 @@ export class SecretsVaultService extends BaseCapabilityService<
   async execute(
     options: SecretsVaultOptions,
   ): Promise<Result<AgentDevKitErrorCode, SecretsVaultResult>> {
+    if (options.action === "audit") {
+      const events = await this.#repository.audit(options.name);
+
+      return events.isOk()
+        ? Result.ok({
+            action: "audit",
+            events: events.unwrap(),
+            path: this.#repository.path(),
+          })
+        : Result.fail(events.unwrapError());
+    }
+
     if (options.action === "list") {
       const secrets = await this.#repository.list();
 
@@ -58,6 +70,20 @@ export class SecretsVaultService extends BaseCapabilityService<
       return secret.isOk()
         ? Result.ok({
             action: "set",
+            path: this.#repository.path(),
+            secret: masked(secret.unwrap()),
+          })
+        : Result.fail(secret.unwrapError());
+    }
+
+    if (options.action === "rotate") {
+      const secret = await this.#repository.rotate(options.name, options.value, {
+        service: options.service,
+      });
+
+      return secret.isOk()
+        ? Result.ok({
+            action: "rotate",
             path: this.#repository.path(),
             secret: masked(secret.unwrap()),
           })
@@ -90,7 +116,7 @@ export class SecretsVaultService extends BaseCapabilityService<
     }
 
     if (options.reveal === true) {
-      const value = await this.#repository.get(options.name);
+      const value = await this.#repository.reveal(options.name);
 
       return value.isOk()
         ? Result.ok({
