@@ -24,12 +24,6 @@ export class UpdateRepository implements UpdateRepositoryPort {
     packageName: string,
   ): Promise<Result<AgentDevKitErrorCode, PackageVersions>> {
     try {
-      const testPayload = process.env.AGENT_DEVKIT_TEST_NPM_VIEW;
-
-      if (testPayload) {
-        return Result.ok(JSON.parse(testPayload) as PackageVersions);
-      }
-
       const [{ stdout: versionsOutput }, { stdout: distTagsOutput }] = await Promise.all([
         execFileAsync("npm", ["view", packageName, "versions", "--json"]),
         execFileAsync("npm", ["view", packageName, "dist-tags", "--json"]),

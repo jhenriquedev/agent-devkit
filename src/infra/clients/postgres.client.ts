@@ -5,9 +5,13 @@ import type {
   PostgresReadableClient,
 } from "../bases/database";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
+import type { Logger } from "../bases/logger";
+import { NullLogger } from "../bases/logger";
 import { Result } from "../bases/result";
+import { errorCause } from "../helpers/error_cause";
 
 export type PostgresClientOptions = {
+  logger?: Logger;
   timeoutMs?: number;
 };
 
@@ -32,10 +36,12 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 export class PostgresClient implements PostgresReadableClient {
   readonly #executor: PostgresQueryExecutor;
+  readonly #logger: Logger;
   readonly #timeoutMs: number;
 
   constructor(executor: PostgresQueryExecutor, options: PostgresClientOptions = {}) {
     this.#executor = executor;
+    this.#logger = options.logger ?? new NullLogger();
     this.#timeoutMs = options.timeoutMs ?? defaultTimeoutMs;
   }
 
@@ -49,7 +55,10 @@ export class PostgresClient implements PostgresReadableClient {
       );
       return Result.ok(result.rows);
     } catch (error) {
-      void error;
+      this.#logger.write("error", "Postgres query failed.", {
+        error: errorCause(error),
+        sql: query.sql,
+      });
       return Result.fail(ErrorCodes.DatabaseReadFailed);
     }
   }

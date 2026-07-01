@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AssetLoader } from "./asset_loader";
@@ -45,6 +45,29 @@ describe("AssetLoader", () => {
       expect(result.isErr()).toBe(true);
     } finally {
       await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects symlinked assets that resolve outside the configured asset root", async () => {
+    if (process.platform === "win32") {
+      return;
+    }
+
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-assets-"));
+    const outside = await mkdtemp(join(tmpdir(), "agent-devkit-assets-outside-"));
+
+    try {
+      await mkdir(join(root, "i18n"), { recursive: true });
+      await writeFile(join(outside, "secret.txt"), "hidden");
+      await symlink(join(outside, "secret.txt"), join(root, "i18n", "secret.txt"));
+
+      const loader = new AssetLoader({ rootDirectory: root });
+      const result = await loader.loadText("i18n", "secret.txt");
+
+      expect(result.isErr()).toBe(true);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+      await rm(outside, { force: true, recursive: true });
     }
   });
 });

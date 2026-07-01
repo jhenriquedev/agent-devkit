@@ -1,8 +1,12 @@
 import type { RedisKeyValueExecutor, RedisReadableClient } from "../bases/database";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
+import type { Logger } from "../bases/logger";
+import { NullLogger } from "../bases/logger";
 import { Result } from "../bases/result";
+import { errorCause } from "../helpers/error_cause";
 
 export type RedisClientOptions = {
+  logger?: Logger;
   timeoutMs?: number;
 };
 
@@ -27,10 +31,12 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 export class RedisClient implements RedisReadableClient {
   readonly #executor: RedisKeyValueExecutor;
+  readonly #logger: Logger;
   readonly #timeoutMs: number;
 
   constructor(executor: RedisKeyValueExecutor, options: RedisClientOptions = {}) {
     this.#executor = executor;
+    this.#logger = options.logger ?? new NullLogger();
     this.#timeoutMs = options.timeoutMs ?? defaultTimeoutMs;
   }
 
@@ -38,7 +44,10 @@ export class RedisClient implements RedisReadableClient {
     try {
       return Result.ok(await withTimeout(this.#executor.hGetAll(key), this.#timeoutMs));
     } catch (error) {
-      void error;
+      this.#logger.write("error", "Redis hash read failed.", {
+        error: errorCause(error),
+        key,
+      });
       return Result.fail(ErrorCodes.CacheReadFailed);
     }
   }
@@ -47,7 +56,10 @@ export class RedisClient implements RedisReadableClient {
     try {
       return Result.ok(await withTimeout(this.#executor.get(key), this.#timeoutMs));
     } catch (error) {
-      void error;
+      this.#logger.write("error", "Redis string read failed.", {
+        error: errorCause(error),
+        key,
+      });
       return Result.fail(ErrorCodes.CacheReadFailed);
     }
   }

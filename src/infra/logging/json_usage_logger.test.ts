@@ -65,6 +65,34 @@ describe("json usage logger", () => {
     expect(result.isErr()).toBe(true);
   });
 
+  it("redacts sensitive option fields before writing usage logs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-logs-"));
+    const logger = new JsonUsageLogger({
+      clock: () => new Date("2026-06-30T12:00:00.000Z"),
+      stateDirectory: join(root, ".agent-devkit"),
+    });
+
+    const result = await logger.writeUsage({
+      area: "user",
+      argv: ["secrets", "set"],
+      command: "secrets.set",
+      durationMs: 1,
+      interface: "cli",
+      options: { service: "openai", value: "sk-test" },
+      status: "succeeded",
+    });
+
+    expect(result.isOk()).toBe(true);
+
+    const content = await readFile(
+      join(root, ".agent-devkit", "logs", "usage-2026-06-30.jsonl"),
+      "utf8",
+    );
+    const event = JSON.parse(content.trim());
+
+    expect(event.options).toEqual({ service: "openai", value: "[redacted]" });
+  });
+
   it("removes usage log files older than the configured retention window", async () => {
     const root = await mkdtemp(join(tmpdir(), "agent-devkit-logs-"));
     const logsDirectory = join(root, ".agent-devkit", "logs");

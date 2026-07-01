@@ -44,6 +44,39 @@ describe("json technical logger", () => {
     });
   });
 
+  it("redacts sensitive metadata before writing technical logs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-technical-logs-"));
+    const logger = new JsonTechnicalLogger({
+      clock: () => new Date("2026-06-30T12:00:00.000Z"),
+      stateDirectory: join(root, ".agent-devkit"),
+    });
+
+    const result = await logger.writeTechnical({
+      area: "user",
+      command: "secrets.set",
+      event: "command.succeeded",
+      interface: "cli",
+      level: "info",
+      message: "CLI command succeeded",
+      metadata: {
+        options: { nested: { apiKey: "sk-test" }, value: "secret-value" },
+      },
+    });
+
+    expect(result.isOk()).toBe(true);
+
+    const content = await readFile(
+      join(root, ".agent-devkit", "logs", "technical-2026-06-30.jsonl"),
+      "utf8",
+    );
+    const event = JSON.parse(content.trim());
+
+    expect(event.metadata.options).toEqual({
+      nested: { apiKey: "[redacted]" },
+      value: "[redacted]",
+    });
+  });
+
   it("removes technical log files older than the configured retention window", async () => {
     const root = await mkdtemp(join(tmpdir(), "agent-devkit-technical-logs-"));
     const logsDirectory = join(root, ".agent-devkit", "logs");

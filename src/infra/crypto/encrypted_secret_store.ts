@@ -4,7 +4,10 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { EncryptedPayload, SecretCrypto } from "../bases/crypto";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
+import type { Logger } from "../bases/logger";
+import { NullLogger } from "../bases/logger";
 import { Result } from "../bases/result";
+import { errorCause } from "../helpers/error_cause";
 
 export type SecretMetadata = {
   createdAt: string;
@@ -27,6 +30,10 @@ export type StoredSecret = SecretMetadata & {
 };
 
 export type SecretSummary = SecretMetadata;
+export type RevealedSecret = {
+  secret: SecretSummary;
+  value: string;
+};
 
 type VaultFile = {
   audit: SecretAuditEntry[];
@@ -37,6 +44,7 @@ type VaultFile = {
 export type EncryptedSecretStoreOptions = {
   clock?: () => Date;
   crypto: SecretCrypto;
+  logger?: Logger;
   stateDirectory?: string;
 };
 
@@ -52,14 +60,20 @@ function defaultVault(): VaultFile {
   };
 }
 
+function sortSecrets(left: SecretSummary, right: SecretSummary): number {
+  return left.name.localeCompare(right.name);
+}
+
 export class EncryptedSecretStore {
   readonly #clock: () => Date;
   readonly #crypto: SecretCrypto;
+  readonly #logger: Logger;
   readonly #vaultPath: string;
 
   constructor(options: EncryptedSecretStoreOptions) {
     this.#clock = options.clock ?? (() => new Date());
     this.#crypto = options.crypto;
+    this.#logger = options.logger ?? new NullLogger();
     this.#vaultPath = join(
       options.stateDirectory ?? defaultStateDirectory(),
       "secrets",
@@ -87,7 +101,7 @@ export class EncryptedSecretStore {
     return this.#crypto.decryptString(secret.encrypted);
   }
 
-  async reveal(name: string): Promise<Result<AgentDevKitErrorCode, string>> {
+  async reveal(name: string): Promise<Result<AgentDevKitErrorCode, RevealedSecret>> {
     const vault = await this.#readVault();
 
     if (vault.isErr()) {
@@ -112,7 +126,12 @@ export class EncryptedSecretStore {
       audit: [...existing.audit, this.#auditEntry("revealed", secret)],
     });
 
-    return save.isOk() ? value : Result.fail(save.unwrapError());
+    return save.isOk()
+      ? Result.ok({
+          secret: this.#summary(secret),
+          value: value.unwrap(),
+        })
+      : Result.fail(save.unwrapError());
   }
 
   async list(): Promise<Result<AgentDevKitErrorCode, SecretSummary[]>> {
@@ -125,13 +144,8 @@ export class EncryptedSecretStore {
     return Result.ok(
       vault
         .unwrap()
-        .secrets.map(({ createdAt, name, service, updatedAt }) => ({
-          createdAt,
-          name,
-          service,
-          updatedAt,
-        }))
-        .sort((left, right) => left.name.localeCompare(right.name)),
+        .secrets.map((secret) => this.#summary(secret))
+        .sort(sortSecrets),
     );
   }
 
@@ -301,7 +315,11 @@ export class EncryptedSecretStore {
         schema: payload.schema,
         secrets: payload.secrets,
       });
-    } catch {
+    } catch (error) {
+      this.#logger.write("error", "Secret vault read failed.", {
+        error: errorCause(error),
+        path: this.#vaultPath,
+      });
       return Result.fail(ErrorCodes.FileReadFailed);
     }
   }
@@ -323,9 +341,21 @@ export class EncryptedSecretStore {
       return Result.ok(undefined);
     } catch (error) {
       await unlink(tempPath).catch(() => undefined);
-      void error;
+      this.#logger.write("error", "Secret vault write failed.", {
+        error: errorCause(error),
+        path: this.#vaultPath,
+      });
       return Result.fail(ErrorCodes.FileWriteFailed);
     }
+  }
+
+  #summary(secret: SecretMetadata): SecretSummary {
+    return {
+      createdAt: secret.createdAt,
+      name: secret.name,
+      service: secret.service,
+      updatedAt: secret.updatedAt,
+    };
   }
 
   #auditEntry(action: SecretAuditAction, secret: SecretMetadata, timestamp = this.#now()) {

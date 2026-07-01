@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
 import type { UsageLogEvent, UsageLogger, UsageLogInput } from "../bases/logger";
 import { Result } from "../bases/result";
+import { redactRecord } from "../helpers/redaction";
 
 export type JsonUsageLoggerOptions = {
   clock?: () => Date;
@@ -61,7 +62,7 @@ export class JsonUsageLogger implements UsageLogger {
       ...logInput,
       category: "usage",
       level: input.status === "failed" ? "error" : "info",
-      options: normalizeOptions(input.options),
+      options: redactRecord(normalizeOptions(input.options)),
       schema: "agent-devkit.usage-log/v1",
       timestamp: timestamp.toISOString(),
     };

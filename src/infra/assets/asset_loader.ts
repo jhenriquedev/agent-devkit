@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import type { AssetKind, AssetReader } from "../bases/assets";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
@@ -21,7 +21,7 @@ export class AssetLoader implements AssetReader {
     kind: AssetKind,
     name: string,
   ): Promise<Result<AgentDevKitErrorCode, Uint8Array>> {
-    const target = this.#resolve(kind, name);
+    const target = await this.#resolve(kind, name);
 
     if (target.isErr()) {
       return Result.fail(target.unwrapError());
@@ -61,7 +61,7 @@ export class AssetLoader implements AssetReader {
     return Result.ok(textDecoder.decode(binary.unwrap()));
   }
 
-  #resolve(kind: AssetKind, name: string): Result<AgentDevKitErrorCode, string> {
+  async #resolve(kind: AssetKind, name: string): Promise<Result<AgentDevKitErrorCode, string>> {
     const target = resolve(join(this.#rootDirectory, kind, name));
     const pathFromRoot = relative(this.#rootDirectory, target);
 
@@ -69,6 +69,20 @@ export class AssetLoader implements AssetReader {
       return Result.fail(ErrorCodes.InvalidInput);
     }
 
-    return Result.ok(target);
+    try {
+      const [realRoot, realTarget] = await Promise.all([
+        realpath(this.#rootDirectory),
+        realpath(target),
+      ]);
+      const realPathFromRoot = relative(realRoot, realTarget);
+
+      if (realPathFromRoot.startsWith("..") || realPathFromRoot === "") {
+        return Result.fail(ErrorCodes.InvalidInput);
+      }
+
+      return Result.ok(realTarget);
+    } catch {
+      return Result.fail(ErrorCodes.AssetReadFailed);
+    }
   }
 }

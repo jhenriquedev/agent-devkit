@@ -1,6 +1,35 @@
 import type { DatabaseRow } from "../bases/database";
+import { FetchHttpClient } from "./http.client";
 import { PostgresClient } from "./postgres.client";
 import { RedisClient } from "./redis.client";
+
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
+
+describe("HTTP infra client", () => {
+  it("reads JSON responses from successful HTTP requests", async () => {
+    globalThis.fetch = async () => new Response(JSON.stringify({ ok: true }), { status: 200 });
+    const client = new FetchHttpClient({ timeoutMs: 100 });
+
+    const result = await client.getJson<{ ok: boolean }>("https://example.test/status");
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ body: { ok: true }, status: 200 });
+  });
+
+  it("returns Result failures for non-success HTTP status codes", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "failed" }), { status: 500 });
+    const client = new FetchHttpClient({ timeoutMs: 100 });
+
+    const result = await client.getJson("https://example.test/status");
+
+    expect(result.isErr()).toBe(true);
+  });
+});
 
 describe("database infra clients", () => {
   it("reads Postgres rows through an injected query executor", async () => {

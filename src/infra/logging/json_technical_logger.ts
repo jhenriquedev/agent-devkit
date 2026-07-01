@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
 import type { TechnicalLogEvent, TechnicalLogger, TechnicalLogInput } from "../bases/logger";
 import { Result } from "../bases/result";
+import { redactRecord } from "../helpers/redaction";
 
 export type JsonTechnicalLoggerOptions = {
   clock?: () => Date;
@@ -46,7 +47,7 @@ function normalizeMetadata(
     ),
   );
 
-  return Object.keys(normalized).length > 0 ? normalized : undefined;
+  return Object.keys(normalized).length > 0 ? redactRecord(normalized) : undefined;
 }
 
 export class JsonTechnicalLogger implements TechnicalLogger {

@@ -3,6 +3,7 @@ import type { AgentDevKitErrorCode } from "../../../../infra/bases/errors";
 import type { Result } from "../../../../infra/bases/result";
 import type {
   EncryptedSecretStore,
+  RevealedSecret,
   SecretAuditEntry,
   SecretSummary,
 } from "../../../../infra/crypto/encrypted_secret_store";
@@ -12,7 +13,7 @@ export interface SecretsVaultRepositoryPort extends CapabilityRepositoryPort {
   get(name: string): Promise<Result<AgentDevKitErrorCode, string>>;
   list(): Promise<Result<AgentDevKitErrorCode, SecretSummary[]>>;
   path(): string;
-  reveal(name: string): Promise<Result<AgentDevKitErrorCode, string>>;
+  reveal(name: string): Promise<Result<AgentDevKitErrorCode, RevealedSecret>>;
   remove(name: string): Promise<Result<AgentDevKitErrorCode, { removed: boolean }>>;
   rotate(
     name: string,
@@ -58,7 +59,7 @@ export class SecretsVaultRepository implements SecretsVaultRepositoryPort {
     return this.#store.remove(name);
   }
 
-  reveal(name: string): Promise<Result<AgentDevKitErrorCode, string>> {
+  reveal(name: string): Promise<Result<AgentDevKitErrorCode, RevealedSecret>> {
     return this.#store.reveal(name);
   }
 

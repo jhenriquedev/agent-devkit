@@ -47,6 +47,7 @@ function interpolate(value: string, variables: Record<string, string | number | 
 export class I18nCatalog {
   readonly #directory: string;
   readonly #fallbackLanguage: LanguageId;
+  #languages?: LanguageDefinition[];
 
   constructor(options: I18nCatalogOptions = {}) {
     this.#directory = options.directory ?? defaultI18nDirectory();
@@ -54,6 +55,10 @@ export class I18nCatalog {
   }
 
   async loadLanguages(): Promise<Result<AgentDevKitErrorCode, LanguageDefinition[]>> {
+    if (this.#languages !== undefined) {
+      return Result.ok(this.#languages);
+    }
+
     try {
       const files = (await readdir(this.#directory)).filter((file) => file.endsWith(".json"));
       const languages: LanguageDefinition[] = [];
@@ -70,13 +75,18 @@ export class I18nCatalog {
         languages.push(parsed.data);
       }
 
-      return Result.ok(sortLanguages(languages));
+      this.#languages = sortLanguages(languages);
+      return Result.ok(this.#languages);
     } catch {
       return Result.fail(ErrorCodes.AssetReadFailed);
     }
   }
 
   loadLanguagesSync(): Result<AgentDevKitErrorCode, LanguageDefinition[]> {
+    if (this.#languages !== undefined) {
+      return Result.ok(this.#languages);
+    }
+
     try {
       const files = readdirSync(this.#directory).filter((file) => file.endsWith(".json"));
       const languages: LanguageDefinition[] = [];
@@ -93,7 +103,8 @@ export class I18nCatalog {
         languages.push(parsed.data);
       }
 
-      return Result.ok(sortLanguages(languages));
+      this.#languages = sortLanguages(languages);
+      return Result.ok(this.#languages);
     } catch {
       return Result.fail(ErrorCodes.AssetReadFailed);
     }

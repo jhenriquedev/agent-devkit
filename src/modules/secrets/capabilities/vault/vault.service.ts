@@ -111,6 +111,18 @@ export class SecretsVaultService extends BaseCapabilityService<
         : Result.fail(removed.unwrapError());
     }
 
+    if (options.reveal === true) {
+      const revealed = await this.#repository.reveal(options.name);
+
+      return revealed.isOk()
+        ? Result.ok({
+            action: "show",
+            path: this.#repository.path(),
+            secret: { ...revealed.unwrap().secret, value: revealed.unwrap().value },
+          })
+        : Result.fail(revealed.unwrapError());
+    }
+
     const summaries = await this.#repository.list();
 
     if (summaries.isErr()) {
@@ -121,18 +133,6 @@ export class SecretsVaultService extends BaseCapabilityService<
 
     if (summary === undefined) {
       return Result.fail(ErrorCodes.InvalidInput);
-    }
-
-    if (options.reveal === true) {
-      const value = await this.#repository.reveal(options.name);
-
-      return value.isOk()
-        ? Result.ok({
-            action: "show",
-            path: this.#repository.path(),
-            secret: { ...summary, value: value.unwrap() },
-          })
-        : Result.fail(value.unwrapError());
     }
 
     return Result.ok({

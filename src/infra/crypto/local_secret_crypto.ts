@@ -1,11 +1,15 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import type { EncryptedPayload, SecretCrypto, SecretKeyProvider } from "../bases/crypto";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
+import type { Logger } from "../bases/logger";
+import { NullLogger } from "../bases/logger";
 import { Result } from "../bases/result";
+import { errorCause } from "../helpers/error_cause";
 
 export type LocalSecretCryptoOptions = {
   clock?: () => Date;
   keyProvider: SecretKeyProvider;
+  logger?: Logger;
 };
 
 function keyId(provider: SecretKeyProvider): string {
@@ -20,10 +24,12 @@ async function resolveKey(provider: SecretKeyProvider): Promise<Buffer> {
 export class LocalSecretCrypto implements SecretCrypto {
   readonly #clock: () => Date;
   readonly #keyProvider: SecretKeyProvider;
+  readonly #logger: Logger;
 
   constructor(options: LocalSecretCryptoOptions) {
     this.#clock = options.clock ?? (() => new Date());
     this.#keyProvider = options.keyProvider;
+    this.#logger = options.logger ?? new NullLogger();
   }
 
   async encryptString(value: string): Promise<Result<AgentDevKitErrorCode, EncryptedPayload>> {
@@ -48,7 +54,8 @@ export class LocalSecretCrypto implements SecretCrypto {
         keyId: keyId(this.#keyProvider),
         schema: "agent-devkit.encrypted-payload/v1",
       });
-    } catch {
+    } catch (error) {
+      this.#logger.write("error", "Secret encryption failed.", { error: errorCause(error) });
       return Result.fail(ErrorCodes.EncryptionFailed);
     }
   }
@@ -74,7 +81,8 @@ export class LocalSecretCrypto implements SecretCrypto {
       ]);
 
       return Result.ok(decrypted.toString("utf8"));
-    } catch {
+    } catch (error) {
+      this.#logger.write("error", "Secret decryption failed.", { error: errorCause(error) });
       return Result.fail(ErrorCodes.DecryptionFailed);
     }
   }

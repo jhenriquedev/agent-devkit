@@ -3,8 +3,12 @@ import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { SecretKeyProvider } from "../bases/crypto";
+import type { Logger } from "../bases/logger";
+import { NullLogger } from "../bases/logger";
+import { errorCause } from "../helpers/error_cause";
 
 export type LocalMasterKeyProviderOptions = {
+  logger?: Logger;
   stateDirectory?: string;
 };
 
@@ -14,9 +18,11 @@ function defaultStateDirectory(): string {
 
 export class LocalMasterKeyProvider implements SecretKeyProvider {
   readonly #keyPath: string;
+  readonly #logger: Logger;
 
   constructor(options: LocalMasterKeyProviderOptions = {}) {
     this.#keyPath = join(options.stateDirectory ?? defaultStateDirectory(), "keys", "local.key");
+    this.#logger = options.logger ?? new NullLogger();
   }
 
   keyId(): string {
@@ -28,6 +34,10 @@ export class LocalMasterKeyProvider implements SecretKeyProvider {
       return Buffer.from((await readFile(this.#keyPath, "utf8")).trim(), "base64");
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        this.#logger.write("error", "Local master key read failed.", {
+          error: errorCause(error),
+          path: this.#keyPath,
+        });
         throw error;
       }
     }
@@ -42,6 +52,10 @@ export class LocalMasterKeyProvider implements SecretKeyProvider {
         return Buffer.from((await readFile(this.#keyPath, "utf8")).trim(), "base64");
       }
 
+      this.#logger.write("error", "Local master key creation failed.", {
+        error: errorCause(error),
+        path: this.#keyPath,
+      });
       throw error;
     }
 
