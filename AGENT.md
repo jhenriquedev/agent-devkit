@@ -33,6 +33,9 @@ Keep boundaries strict:
 - `src/modules`: product modules and isolated capabilities.
 - `src/infra`: global low-level bases only, such as `Result`, error codes, logger, HTTP client and helpers.
 - `src/assets`: shared UI/runtime assets.
+- The shared tool runtime is the canonical socket for generic capability discovery and execution.
+- External dependency lifecycle belongs to the `environment.dependencies`
+  capability and provider contract, not to one-off CLI code.
 
 Each module must follow this shape:
 
@@ -95,6 +98,12 @@ assets by a module surface.
 Do not put capability rules in the TUI or CLI parser. `app` must call module
 bindings and remain thin.
 
+Generic tool execution must go through `src/modules/capability_tool_runtime.ts`.
+The runtime wraps the central capability registry and returns a stable envelope
+with `status`, `capabilityId`, `input`, `output`, `error`, `risk`, approval data
+and audit timing. CLI, MCP, TUI and future agent loops should consume that
+runtime instead of each interface inventing its own capability invocation path.
+
 ## Version Scope
 
 `0.4.0` should become a real publishable package with a minimal CLI/TUI shell
@@ -110,6 +119,12 @@ Initial commands should stay intentionally small:
 - `agent init`
 - `agent reset`
 - `agent update`
+- `agent install <dependency>`
+- `agent tools`
+- `agent run <capabilityId> --input '<json>'`
+- `agent mcp`
+- `agent mcp stdio`
+- `agent mcp http --host 127.0.0.1 --port 3333`
 
 ## Repository Notes
 
@@ -128,5 +143,11 @@ Initial commands should stay intentionally small:
 - Docker is available for local validation without installing the CLI on the
   host. Prefer `npm run docker:check` for isolated gates and
   `npm run docker:agent -- --help` for containerized CLI/TUI execution.
+- MCP stdio must never write human text to stdout; stdout belongs to the MCP
+  protocol. Operational messages belong on stderr or in logs.
+- MCP HTTP must default to localhost and validate `Origin` when one is sent.
+- MCP approval metadata uses `_agent.approved` and must be removed before
+  capability input validation.
+- `agent run --input` and MCP tool inputs must never be persisted as raw logs.
 - Avoid compatibility hacks from the legacy `0.3.x` implementation unless they
   are explicitly part of the new design.

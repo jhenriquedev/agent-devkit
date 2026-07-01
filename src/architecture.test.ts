@@ -48,6 +48,7 @@ describe("canonical architecture", () => {
       "config.ts",
       "crypto.ts",
       "database.ts",
+      "dependency.ts",
       "errors.ts",
       "i18n.ts",
       "logger.ts",
@@ -56,6 +57,7 @@ describe("canonical architecture", () => {
       "serializer.ts",
       "surface.ts",
       "theme.ts",
+      "tool_runtime.ts",
     ]) {
       await expect(exists(join(process.cwd(), "src", "infra", "bases", baseFile))).resolves.toBe(
         true,

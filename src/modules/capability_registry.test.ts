@@ -22,6 +22,7 @@ describe("agent capability registry", () => {
     const capabilities = result.unwrap().list();
 
     expect(capabilities.map((capability) => capability.id)).toEqual([
+      "environment.dependencies",
       "logs.analysis",
       "project.doctor",
       "project.init",
@@ -32,6 +33,15 @@ describe("agent capability registry", () => {
     ]);
     expect(capabilities).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          id: "environment.dependencies",
+          approval: {
+            reason: "Capability is read-only.",
+            required: false,
+          },
+          inputSchema: expect.objectContaining({ type: "object" }),
+          risk: "read-only",
+        }),
         expect.objectContaining({
           id: "project.init",
           approval: {

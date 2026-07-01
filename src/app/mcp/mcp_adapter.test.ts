@@ -3,21 +3,21 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ErrorCodes } from "../../infra/bases/errors";
-import { createAgentCapabilityRegistry } from "../../modules/capability_registry";
+import { createCapabilityToolRuntime } from "../../modules/capability_tool_runtime";
 import { AgentMcpAdapter } from "./mcp_adapter";
 
 function adapter() {
-  const registry = createAgentCapabilityRegistry({
+  const runtime = createCapabilityToolRuntime({
     appVersion: "0.4.0",
     currentVersion: "0.4.0",
     packageName: "agent-devkit",
   });
 
-  if (registry.isErr()) {
-    throw new Error(registry.unwrapError());
+  if (runtime.isErr()) {
+    throw new Error(runtime.unwrapError());
   }
 
-  return new AgentMcpAdapter({ registry: registry.unwrap() });
+  return new AgentMcpAdapter({ runtime: runtime.unwrap() });
 }
 
 describe("AgentMcpAdapter", () => {
@@ -40,8 +40,8 @@ describe("AgentMcpAdapter", () => {
 
     expect(result).toMatchObject({
       capabilityId: "project.doctor",
-      data: { status: expect.any(String) },
-      ok: true,
+      output: { status: expect.any(String) },
+      status: "succeeded",
     });
   });
 
@@ -66,7 +66,7 @@ describe("AgentMcpAdapter", () => {
         error: {
           code: ErrorCodes.ApprovalRequired,
         },
-        ok: false,
+        status: "approval_required",
       });
       expect(existsSync(join(projectRoot, ".agent-devkit"))).toBe(true);
     } finally {
@@ -97,8 +97,8 @@ describe("AgentMcpAdapter", () => {
 
       expect(result).toMatchObject({
         capabilityId: "project.reset",
-        data: { removed: true },
-        ok: true,
+        output: { removed: true },
+        status: "succeeded",
       });
       expect(existsSync(join(projectRoot, ".agent-devkit"))).toBe(false);
     } finally {

@@ -1,0 +1,13 @@
+{
+  "moduleId": "environment",
+  "purpose": "Inspect and plan lifecycle operations for external dependencies known by Agent DevKit.",
+  "whenToUse": [
+    "The user asks whether a required external dependency is installed or compatible.",
+    "The user wants to plan installation, configuration, upgrade, downgrade, or uninstall steps for a known dependency.",
+    "The agent needs to verify runtime prerequisites before using a module."
+  ],
+  "whenNotToUse": [
+    "The user wants to run arbitrary shell commands.",
+    "The dependency is not registered as an Agent DevKit dependency provider."
+  ]
+}

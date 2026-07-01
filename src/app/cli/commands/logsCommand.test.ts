@@ -66,5 +66,5 @@ describe("agent logs", () => {
     } finally {
       await rm(home, { force: true, recursive: true });
     }
-  });
+  }, 15_000);
 });

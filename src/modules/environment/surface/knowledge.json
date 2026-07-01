@@ -1,0 +1,9 @@
+{
+  "moduleId": "environment",
+  "summary": "Environment dependencies are managed through registered providers. The capability exposes lifecycle actions but must not execute arbitrary commands.",
+  "facts": [
+    "The initial dependency provider is node and it is read-only.",
+    "Dependency lifecycle actions are check, plan, configure, install, upgrade, downgrade, uninstall, and verify.",
+    "Future providers such as aws-cli, docker, gh-cli, and ollama should implement the same provider contract."
+  ]
+}

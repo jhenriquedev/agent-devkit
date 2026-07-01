@@ -1,0 +1,10 @@
+{
+  "moduleId": "environment",
+  "templates": [
+    {
+      "id": "environment.dependencies",
+      "template": "Explain this dependency lifecycle result and highlight required approval or unsupported operations: {{result}}",
+      "variables": ["result"]
+    }
+  ]
+}

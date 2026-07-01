@@ -56,8 +56,10 @@ npm run docker:check
 npm run docker:agent -- --help
 npm run --silent docker:agent -- doctor --json
 npm run --silent docker:agent -- init --dry-run
+npm run --silent docker:agent -- install node --verify --json
 npm run --silent docker:agent -- reset --dry-run
 npm run --silent docker:agent -- update --latest --dry-run
+npm run --silent docker:agent -- tools --json
 ```
 
 Interactive TUI runs are also executed through the container:
@@ -121,10 +123,12 @@ src/
 Rules:
 
 - `app` owns entrypoints and presentation adapters: CLI, TUI and MCP.
+- `app` must execute capabilities through the shared tool runtime when exposing generic tools.
 - `modules` owns product capabilities as isolated vertical slices.
 - A module groups capabilities from the same functional domain; it is not an agent.
 - A module surface is the canonical agentic interface for that domain.
 - Surface capability metadata is derived from capability configs to avoid drift.
+- The tool runtime is the canonical execution socket for CLI, MCP, TUI and future agent loops.
 - A capability owns its entities, service, repository implementation, view model and tests.
 - `infra` contains only global low-level bases and reusable helpers.
 - Capability services must return `Result<left, right>` from `infra/bases/result.ts`.
@@ -175,6 +179,16 @@ agent preferences --json
 agent preferences themes
 agent preferences set-theme forest-teal
 agent preferences update --theme ocean-blue
+agent tools
+agent tools --json
+agent install node --dry-run
+agent install node --verify
+agent run project.doctor --input '{}' --json
+agent run environment.dependencies --input '{"action":"verify","dependency":"node"}' --json
+agent run project.reset --input '{"confirmed":true,"dryRun":false,"homeDirectory":"/tmp/home","projectRoot":"/tmp/project","scope":"project"}' --approve --json
+agent mcp
+agent mcp stdio
+agent mcp http --port 3333 --origin http://localhost:3333
 ```
 
 Initial themes:
@@ -190,6 +204,102 @@ Initial themes:
 `reset` removes only Agent DevKit state folders and executes destructive work
 only with `--yes`. `update` plans an npm global install by default and executes
 it only with `--yes`.
+
+## Tool Runtime
+
+The generic tool runtime lets any interface discover and invoke capabilities
+without importing command-specific code.
+
+```bash
+agent tools --json
+agent run <capabilityId> --input '<json>' --json
+```
+
+`agent tools --json` returns each capability id, module, risk, approval rule,
+input JSON Schema and output JSON Schema. `agent run` validates the JSON input,
+checks approval requirements, executes the capability and returns a structured
+runtime envelope:
+
+```json
+{
+  "status": "succeeded",
+  "capabilityId": "project.doctor",
+  "risk": "read-only",
+  "input": {},
+  "output": {}
+}
+```
+
+Risky capabilities return `approval_required` unless `--approve` is passed. MCP
+uses the same runtime contract, so future TUI and agent-loop execution should
+also plug into this layer instead of calling capabilities directly.
+
+## MCP Server
+
+Agent DevKit exposes its runtime tools through a real MCP server.
+
+For local MCP hosts that launch a subprocess, use stdio:
+
+```bash
+agent mcp
+agent mcp stdio
+```
+
+For local HTTP clients, use Streamable HTTP on the single `/mcp` endpoint:
+
+```bash
+agent mcp http --host 127.0.0.1 --port 3333
+```
+
+HTTP binds to `127.0.0.1` by default. If the client sends an `Origin` header,
+that origin must be explicitly allowed:
+
+```bash
+agent mcp http --port 3333 --origin http://localhost:3333
+```
+
+MCP tools are derived from `ToolRuntime.listTools()`. Calls execute through
+`ToolRuntime.execute()` and return the same structured runtime envelope in a
+text JSON MCP result.
+
+Risky tools require explicit approval. MCP callers can pass control metadata
+that is removed before capability validation:
+
+```json
+{
+  "_agent": {
+    "approved": true
+  },
+  "confirmed": true,
+  "dryRun": true,
+  "homeDirectory": "/tmp/home",
+  "projectRoot": "/tmp/project",
+  "scope": "project"
+}
+```
+
+CLI and MCP logging must not persist raw tool inputs. Sensitive CLI flags such
+as `agent run --input` are redacted before usage and technical logs are written.
+
+## Environment Dependencies
+
+Agent DevKit has a provider-based dependency lifecycle module exposed as the
+`environment.dependencies` capability.
+
+```bash
+agent install node --dry-run
+agent install node --verify --json
+agent install --node --verify
+```
+
+The first provider is `node`. It is read-only: it checks the current Node.js
+runtime, compatibility and environment, but does not install, upgrade,
+downgrade or uninstall Node.js. Mutating lifecycle actions currently return
+planned or unsupported results without side effects.
+
+Future providers such as `aws-cli`, `docker`, `gh-cli` and `ollama` should
+implement the same provider contract instead of adding one-off installer logic
+to CLI, TUI, MCP or agent loops.
 
 ## Internal Docs
 

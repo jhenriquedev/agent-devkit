@@ -1,8 +1,4 @@
-import type {
-  CapabilityInvocationContext,
-  CapabilityInvocationResult,
-} from "../../infra/bases/capability";
-import type { CapabilityRegistry } from "../../infra/capabilities/capability_registry";
+import type { ToolRuntime, ToolRuntimeResult } from "../../infra/bases/tool_runtime";
 
 export type AgentMcpTool = {
   description: string;
@@ -11,29 +7,35 @@ export type AgentMcpTool = {
 };
 
 export type AgentMcpAdapterOptions = {
-  registry: CapabilityRegistry;
+  runtime: ToolRuntime;
 };
 
 export class AgentMcpAdapter {
-  readonly #registry: CapabilityRegistry;
+  readonly #runtime: ToolRuntime;
 
   constructor(options: AgentMcpAdapterOptions) {
-    this.#registry = options.registry;
+    this.#runtime = options.runtime;
   }
 
   listTools(): AgentMcpTool[] {
-    return this.#registry.list().map((capability) => ({
-      description: capability.description,
-      inputSchema: capability.inputSchema,
-      name: capability.id,
+    return this.#runtime.listTools().map((tool) => ({
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      name: tool.id,
     }));
   }
 
   callTool(
     name: string,
     input: unknown,
-    context: Partial<CapabilityInvocationContext> = {},
-  ): Promise<CapabilityInvocationResult> {
-    return this.#registry.invoke(name, input, { ...context, interface: "mcp" });
+    context: { approved?: boolean; requestedBy?: string } = {},
+  ): Promise<ToolRuntimeResult> {
+    return this.#runtime.execute({
+      approved: context.approved,
+      capabilityId: name,
+      input,
+      interface: "mcp",
+      requestedBy: context.requestedBy,
+    });
   }
 }

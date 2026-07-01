@@ -1,0 +1,15 @@
+{
+  "moduleId": "environment",
+  "mode": "plan-before-mutating",
+  "allowedActions": [
+    "List registered dependency providers.",
+    "Check dependency environment, installation, compatibility, and verification status.",
+    "Generate plans before install, configure, upgrade, downgrade, or uninstall operations."
+  ],
+  "forbiddenActions": [
+    "Execute arbitrary shell commands.",
+    "Install unregistered dependencies.",
+    "Persist raw credentials or dependency configuration secrets in logs."
+  ],
+  "approvalRequired": true
+}
