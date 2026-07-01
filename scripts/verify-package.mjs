@@ -109,12 +109,18 @@ try {
     throw new Error("Packaged MCP command is missing stdio/http subcommands.");
   }
 
+  const models = await assertJsonCommand(agentBin, ["models", "list", "--json"], env);
+  if (!Array.isArray(models.models) || models.models.length === 0) {
+    throw new Error("Packaged models list returned an invalid payload.");
+  }
+
   for (const file of [
     "src/assets/i18n/pt-BR.json",
     "src/assets/i18n/en-US.json",
     "src/assets/themes/default-purple.json",
     "src/assets/design/kit.json",
     "src/assets/design/semantics.json",
+    "src/assets/models/catalog.json",
     "src/assets/characters/kit/character.json",
     "src/assets/characters/kit/sprite.js",
     "src/assets/characters/yuki/character.json",

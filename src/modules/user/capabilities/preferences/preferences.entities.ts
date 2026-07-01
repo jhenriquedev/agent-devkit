@@ -6,6 +6,7 @@ import {
   type LanguageSummary,
 } from "../../../../infra/bases/i18n";
 import { type ThemeDefinition, ThemeDefinitionSchema } from "../../../../infra/bases/theme";
+import { type CliAliasState, CliAliasStateSchema } from "../cliAlias/cliAlias.entities";
 
 export const PreferencesServiceOptionsSchema = z
   .object({
@@ -25,6 +26,7 @@ export const PreferencesServiceOptionsSchema = z
 
 export type UserPreferences = {
   schema: "agent-devkit.user-preferences/v1";
+  cliAlias?: CliAliasState;
   language: LanguageId;
   logRetentionDays: number;
   theme: string;
@@ -71,6 +73,7 @@ export const PreferencesResultSchema = z.object({
   path: z.string().min(1),
   preferences: z.object({
     schema: z.literal("agent-devkit.user-preferences/v1"),
+    cliAlias: CliAliasStateSchema.optional(),
     language: z.enum(["pt-BR", "en-US", "fr-FR", "zh-CN", "ja-JP"]),
     logRetentionDays: z.number().int().min(1).max(3650),
     theme: z.string().min(1),

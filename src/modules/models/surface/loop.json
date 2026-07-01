@@ -1,0 +1,13 @@
+{
+  "moduleId": "models",
+  "mode": "model-lifecycle",
+  "allowedActions": [
+    "List catalog and installed local models.",
+    "Install, update, remove and select local models on explicit request."
+  ],
+  "forbiddenActions": [
+    "Download a model without an explicit user request.",
+    "Remove an installed model without explicit confirmation."
+  ],
+  "approvalRequired": true
+}

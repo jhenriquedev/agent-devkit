@@ -27,11 +27,13 @@ describe("agent capability registry", () => {
       "conversation.chat",
       "environment.dependencies",
       "logs.analysis",
+      "models.registry",
       "project.doctor",
       "project.init",
       "project.reset",
       "secrets.vault",
       "self.update",
+      "user.cliAlias",
       "user.personalization",
       "user.preferences",
     ]);
@@ -112,6 +114,15 @@ describe("agent capability registry", () => {
           },
         }),
         expect.objectContaining({
+          id: "user.cliAlias",
+          approval: {
+            reason: "Capability writes global state.",
+            required: true,
+          },
+          inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          risk: "writes-global-state",
+        }),
+        expect.objectContaining({
           id: "user.personalization",
           approval: {
             reason: "Capability writes global state.",
@@ -174,6 +185,23 @@ describe("agent capability registry", () => {
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+
+  it("allows read-only model registry actions without approval", async () => {
+    const result = registry();
+    const invocation = await result.unwrap().invoke(
+      "models.registry",
+      {
+        action: "list",
+      },
+      { interface: "agent" },
+    );
+
+    expect(invocation).toMatchObject({
+      ok: true,
+      capabilityId: "models.registry",
+      effects: [{ operation: "read", scope: "none" }],
+    });
   });
 
   it("invokes dangerous capabilities after explicit approval", async () => {

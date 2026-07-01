@@ -28,6 +28,13 @@ export const DoctorReportSchema = z.object({
       exists: z.boolean(),
     }),
   }),
+  models: z
+    .object({
+      directory: z.string().min(1),
+      installed: z.number().int().nonnegative(),
+      ids: z.array(z.string().min(1)),
+    })
+    .optional(),
 });
 
 export type DoctorStatePath = {
@@ -52,5 +59,10 @@ export type DoctorReport = {
   runtime: {
     globalState: DoctorStatePath;
     projectState: DoctorStatePath;
+  };
+  models?: {
+    directory: string;
+    installed: number;
+    ids: string[];
   };
 };

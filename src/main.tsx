@@ -3,12 +3,14 @@ import { Command } from "commander";
 import { render } from "ink";
 import React from "react";
 import packageJson from "../package.json";
+import { registerAliasCommand } from "./app/cli/commands/aliasCommand";
 import { registerChatCommand } from "./app/cli/commands/chatCommand";
 import { registerDoctorCommand } from "./app/cli/commands/doctorCommand";
 import { registerInitCommand } from "./app/cli/commands/initCommand";
 import { registerInstallCommand } from "./app/cli/commands/installCommand";
 import { registerLogsCommand } from "./app/cli/commands/logsCommand";
 import { registerMcpCommand } from "./app/cli/commands/mcpCommand";
+import { registerModelsCommand } from "./app/cli/commands/modelsCommand";
 import { registerPersonalizationCommand } from "./app/cli/commands/personalizationCommand";
 import { registerPreferencesCommand } from "./app/cli/commands/preferencesCommand";
 import { registerProjectsCommand } from "./app/cli/commands/projectsCommand";
@@ -18,6 +20,7 @@ import { registerSecretsCommand } from "./app/cli/commands/secretsCommand";
 import { registerSessionsCommand } from "./app/cli/commands/sessionsCommand";
 import { registerToolsCommand } from "./app/cli/commands/toolsCommand";
 import { registerUpdateCommand } from "./app/cli/commands/updateCommand";
+import { ensureFirstRunModel } from "./app/cli/firstRun";
 import {
   configureLocalizedHelp,
   createCliTranslator,
@@ -43,8 +46,9 @@ program
   .version(packageJson.version, "-v, --version", translator.t("cli.version.option"))
   .argument("[prompt...]", translator.t("cli.root.promptArgument"))
   .action(
-    usageLogging.track({ area: "user", command: "tui" }, (promptParts: string[]) => {
+    usageLogging.track({ area: "user", command: "tui" }, async (promptParts: string[]) => {
       const initialPrompt = promptParts.join(" ").trim();
+      await ensureFirstRunModel(translator);
       render(
         React.createElement(App, {
           initialPrompt: initialPrompt.length > 0 ? initialPrompt : undefined,
@@ -55,6 +59,7 @@ program
   );
 
 registerDoctorCommand(program, { appVersion: packageJson.version, translator, usageLogging });
+registerAliasCommand(program, { translator, usageLogging });
 registerInitCommand(program, { appVersion: packageJson.version, translator, usageLogging });
 registerInstallCommand(program, {
   currentVersion: packageJson.version,
@@ -69,6 +74,7 @@ registerMcpCommand(program, {
   translator,
   usageLogging,
 });
+registerModelsCommand(program, { translator, usageLogging });
 registerPersonalizationCommand(program, { translator, usageLogging });
 registerPreferencesCommand(program, { translator, usageLogging });
 registerProjectsCommand(program, { translator, usageLogging });

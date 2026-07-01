@@ -1,0 +1,61 @@
+{
+  "schema": "agent-devkit.model-catalog/v1",
+  "models": [
+    {
+      "id": "qwen2.5-0.5b-instruct-q4_k_m",
+      "name": "Qwen2.5 0.5B Instruct (Q4_K_M)",
+      "family": "qwen2.5",
+      "parameters": "0.5B",
+      "quantization": "Q4_K_M",
+      "format": "gguf",
+      "contextLength": 32768,
+      "sizeBytes": 491400032,
+      "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+      "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+      "license": "Apache-2.0",
+      "recommended": true
+    },
+    {
+      "id": "qwen2.5-0.5b-instruct-q8_0",
+      "name": "Qwen2.5 0.5B Instruct (Q8_0)",
+      "family": "qwen2.5",
+      "parameters": "0.5B",
+      "quantization": "Q8_0",
+      "format": "gguf",
+      "contextLength": 32768,
+      "sizeBytes": 675710816,
+      "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf",
+      "sha256": "ca59ca7f13d0e15a8cfa77bd17e65d24f6844b554a7b6c12e07a5f89ff76844e",
+      "license": "Apache-2.0",
+      "recommended": false
+    },
+    {
+      "id": "qwen3-0.6b-q8_0",
+      "name": "Qwen3 0.6B (Q8_0)",
+      "family": "qwen3",
+      "parameters": "0.6B",
+      "quantization": "Q8_0",
+      "format": "gguf",
+      "contextLength": 32768,
+      "sizeBytes": 639446688,
+      "url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q8_0.gguf",
+      "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+      "license": "Apache-2.0",
+      "recommended": false
+    },
+    {
+      "id": "smollm2-360m-instruct-q8_0",
+      "name": "SmolLM2 360M Instruct (Q8_0)",
+      "family": "smollm2",
+      "parameters": "360M",
+      "quantization": "Q8_0",
+      "format": "gguf",
+      "contextLength": 8192,
+      "sizeBytes": 386404992,
+      "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/resolve/main/smollm2-360m-instruct-q8_0.gguf",
+      "sha256": "48ab3034d0dd401fbc721eb1df3217902fee7dab9078992d66431f09b7750201",
+      "license": "Apache-2.0",
+      "recommended": false
+    }
+  ]
+}

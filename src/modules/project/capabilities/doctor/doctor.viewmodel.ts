@@ -121,5 +121,8 @@ export function formatDoctorText(
       path: report.runtime.projectState.path,
       status: projectStatusLabel,
     }),
+    ...(report.models === undefined
+      ? []
+      : [t("doctor.line.models", { count: String(report.models.installed) })]),
   ].join("\n");
 }

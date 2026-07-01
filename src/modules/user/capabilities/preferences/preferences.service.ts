@@ -179,6 +179,7 @@ export class PreferencesService
   ): UserPreferences {
     return {
       schema: "agent-devkit.user-preferences/v1",
+      cliAlias: preferences.cliAlias,
       language,
       logRetentionDays: preferences.logRetentionDays,
       theme,

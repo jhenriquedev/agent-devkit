@@ -65,6 +65,22 @@ export class DoctorService
       return Result.fail(projectStateExists.unwrapError());
     }
 
+    let models: DoctorReport["models"];
+
+    if (this.#repository.installedModels !== undefined) {
+      const installedModels = await this.#repository.installedModels(homeDirectory.unwrap());
+
+      if (installedModels.isErr()) {
+        return Result.fail(installedModels.unwrapError());
+      }
+
+      models = {
+        directory: installedModels.unwrap().directory,
+        installed: installedModels.unwrap().ids.length,
+        ids: installedModels.unwrap().ids,
+      };
+    }
+
     return Result.ok({
       status: globalStateExists.unwrap() || projectStateExists.unwrap() ? "ok" : "warning",
       version: this.#appVersion,
@@ -89,6 +105,7 @@ export class DoctorService
           exists: projectStateExists.unwrap(),
         },
       },
+      models,
     });
   }
 

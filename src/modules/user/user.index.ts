@@ -1,3 +1,6 @@
+export type { CliAliasResult } from "./capabilities/cliAlias/cliAlias.entities";
+export { CliAliasService } from "./capabilities/cliAlias/cliAlias.service";
+export { formatCliAliasText } from "./capabilities/cliAlias/cliAlias.viewmodel";
 export type { PersonalizationResult } from "./capabilities/personalization/personalization.entities";
 export { PersonalizationService } from "./capabilities/personalization/personalization.service";
 export { formatPersonalizationText } from "./capabilities/personalization/personalization.viewmodel";

@@ -29,11 +29,13 @@ describe("CapabilityToolRuntime", () => {
       "conversation.chat",
       "environment.dependencies",
       "logs.analysis",
+      "models.registry",
       "project.doctor",
       "project.init",
       "project.reset",
       "secrets.vault",
       "self.update",
+      "user.cliAlias",
       "user.personalization",
       "user.preferences",
     ]);

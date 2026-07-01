@@ -1,0 +1,12 @@
+{
+  "moduleId": "models",
+  "purpose": "Manage the local catalog and lifecycle of downloadable LLM model artifacts.",
+  "whenToUse": [
+    "The user wants to list available or installed local models.",
+    "The user wants to install, update, remove or select a local model."
+  ],
+  "whenNotToUse": [
+    "The user wants to send a chat message or run model inference.",
+    "The user wants to configure a hosted LLM API credential."
+  ]
+}

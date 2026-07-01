@@ -1,0 +1,10 @@
+{
+  "moduleId": "models",
+  "templates": [
+    {
+      "id": "models.registry",
+      "template": "Summarize this Agent DevKit local model operation for the user: {{operation}}",
+      "variables": ["operation"]
+    }
+  ]
+}

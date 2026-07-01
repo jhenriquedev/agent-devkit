@@ -10,6 +10,8 @@ export const ErrorCodes = {
   FileReadFailed: "FILE_READ_FAILED",
   FileWriteFailed: "FILE_WRITE_FAILED",
   InvalidInput: "INVALID_INPUT",
+  ModelNotFound: "MODEL_NOT_FOUND",
+  ModelVerificationFailed: "MODEL_VERIFICATION_FAILED",
   NetworkRequestFailed: "NETWORK_REQUEST_FAILED",
   PackageInstallFailed: "PACKAGE_INSTALL_FAILED",
   PackageRegistryFailed: "PACKAGE_REGISTRY_FAILED",

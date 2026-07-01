@@ -11,6 +11,7 @@ import type { LanguageDefinition } from "../../../../infra/bases/i18n";
 import { Result } from "../../../../infra/bases/result";
 import { type ThemeDefinition, ThemeDefinitionSchema } from "../../../../infra/bases/theme";
 import { LocalAgentDataStore } from "../../../../infra/data/local_agent_data_store";
+import { CliAliasStateSchema } from "../cliAlias/cliAlias.entities";
 import type { UserPreferences } from "./preferences.entities";
 
 export type PreferencesRepositoryOptions = {
@@ -141,6 +142,12 @@ export class PreferencesRepository implements PreferencesRepositoryPort {
 
     return Result.ok({
       schema: "agent-devkit.user-preferences/v1",
+      cliAlias:
+        payload.cliAlias === undefined
+          ? undefined
+          : CliAliasStateSchema.safeParse(payload.cliAlias).success
+            ? CliAliasStateSchema.parse(payload.cliAlias)
+            : undefined,
       language: payload.language ?? defaultLanguage,
       logRetentionDays: payload.logRetentionDays ?? defaultLogRetentionDays,
       theme: payload.theme ?? defaultTheme,

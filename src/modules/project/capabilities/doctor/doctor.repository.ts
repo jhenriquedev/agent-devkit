@@ -1,13 +1,22 @@
-import { access } from "node:fs/promises";
+import { access, readdir } from "node:fs/promises";
 import { homedir, platform } from "node:os";
+import { basename, join } from "node:path";
 import type { CapabilityRepositoryPort } from "../../../../infra/bases/capability";
-import type { AgentDevKitErrorCode } from "../../../../infra/bases/errors";
+import { type AgentDevKitErrorCode, ErrorCodes } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
+
+export type DoctorInstalledModels = {
+  directory: string;
+  ids: string[];
+};
 
 export interface DoctorRepositoryPort extends CapabilityRepositoryPort {
   cwd(): Result<AgentDevKitErrorCode, string>;
   exists(path: string): Promise<Result<AgentDevKitErrorCode, boolean>>;
   homeDirectory(): Result<AgentDevKitErrorCode, string>;
+  installedModels?(
+    homeDirectory: string,
+  ): Promise<Result<AgentDevKitErrorCode, DoctorInstalledModels>>;
   nodeVersion(): Result<AgentDevKitErrorCode, string>;
   platform(): Result<AgentDevKitErrorCode, string>;
   stdinIsTTY(): Result<AgentDevKitErrorCode, boolean>;
@@ -32,6 +41,29 @@ export class DoctorRepository implements DoctorRepositoryPort {
 
   homeDirectory(): Result<AgentDevKitErrorCode, string> {
     return Result.ok(homedir());
+  }
+
+  async installedModels(
+    homeDirectory: string,
+  ): Promise<Result<AgentDevKitErrorCode, DoctorInstalledModels>> {
+    const directory = join(homeDirectory, ".agent-devkit", "models");
+
+    try {
+      const files = await readdir(directory);
+      return Result.ok({
+        directory,
+        ids: files
+          .filter((file) => file.endsWith(".gguf"))
+          .map((file) => basename(file, ".gguf"))
+          .sort(),
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return Result.ok({ directory, ids: [] });
+      }
+
+      return Result.fail(ErrorCodes.FileReadFailed);
+    }
   }
 
   nodeVersion(): Result<AgentDevKitErrorCode, string> {

@@ -2,6 +2,11 @@ import { defineModuleBinding, ModuleBinder, type ModuleBinding } from "../../inf
 import type { AgentDevKitErrorCode } from "../../infra/bases/errors";
 import type { Result } from "../../infra/bases/result";
 import {
+  CliAliasRepository,
+  type CliAliasRepositoryPort,
+} from "./capabilities/cliAlias/cliAlias.repository";
+import { CliAliasService } from "./capabilities/cliAlias/cliAlias.service";
+import {
   PersonalizationRepository,
   type PersonalizationRepositoryPort,
 } from "./capabilities/personalization/personalization.repository";
@@ -18,6 +23,7 @@ export type UserModuleBindOptions = {
 };
 
 export type UserModuleCapabilities = {
+  cliAlias: CliAliasService;
   personalization: PersonalizationService;
   preferences: PreferencesService;
 };
@@ -25,11 +31,17 @@ export type UserModuleCapabilities = {
 export type UserModuleBinding = ModuleBinding<typeof userModuleConfig, UserModuleCapabilities>;
 
 type UserModuleBinderDependencies = {
+  cliAliasRepository: (options: UserModuleBindOptions) => CliAliasRepositoryPort;
   personalizationRepository: (options: UserModuleBindOptions) => PersonalizationRepositoryPort;
   preferencesRepository: (options: UserModuleBindOptions) => PreferencesRepositoryPort;
 };
 
 const defaultDependencies: UserModuleBinderDependencies = {
+  cliAliasRepository: (options) =>
+    new CliAliasRepository({
+      homeDirectory: options.homeDirectory,
+      preferencesRepository: new PreferencesRepository(options),
+    }),
   personalizationRepository: (options) => new PersonalizationRepository(options),
   preferencesRepository: (options) => new PreferencesRepository(options),
 };
@@ -50,6 +62,9 @@ export class UserModuleBinder extends ModuleBinder<
     return defineModuleBinding({
       config: userModuleConfig,
       capabilities: {
+        cliAlias: new CliAliasService({
+          repository: this.#dependencies.cliAliasRepository(options),
+        }),
         personalization: new PersonalizationService({
           repository: this.#dependencies.personalizationRepository(options),
         }),

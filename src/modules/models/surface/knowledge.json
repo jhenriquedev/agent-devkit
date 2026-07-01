@@ -1,0 +1,9 @@
+{
+  "moduleId": "models",
+  "summary": "Local models are downloaded on demand into ~/.agent-devkit/models. The bundled catalog lists compatible GGUF models; nothing is downloaded at package install time.",
+  "facts": [
+    "Model artifacts are stored under ~/.agent-devkit/models as <id>.gguf with an <id>.json sidecar.",
+    "Downloads are verified against the catalog sha256 when it is present.",
+    "The default model id is stored in ~/.agent-devkit/models/default."
+  ]
+}

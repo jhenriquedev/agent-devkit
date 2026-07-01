@@ -21,6 +21,9 @@ import { createEnvironmentSurface } from "./environment/environment.surface";
 import { createLogsModuleBindings, type LogsModuleBindOptions } from "./logs/logs.bind";
 import { logsModuleConfig } from "./logs/logs.config";
 import { createLogsSurface } from "./logs/logs.surface";
+import { createModelsModuleBindings, type ModelsModuleBindOptions } from "./models/models.bind";
+import { modelsModuleConfig } from "./models/models.config";
+import { createModelsSurface } from "./models/models.surface";
 import { createProjectModuleBindings, type ProjectModuleBindOptions } from "./project/project.bind";
 import { projectModuleConfig } from "./project/project.config";
 import { createProjectSurface } from "./project/project.surface";
@@ -40,6 +43,7 @@ export type AgentModuleRegistryOptions = ProjectModuleBindOptions &
     context?: ContextModuleBindOptions;
     environment?: EnvironmentModuleBindOptions;
     logs?: LogsModuleBindOptions;
+    models?: ModelsModuleBindOptions;
     secrets?: SecretsModuleBindOptions;
     user?: UserModuleBindOptions;
   };
@@ -103,6 +107,14 @@ export const agentModuleDefinitions: AgentModuleDefinition[] = [
     surface: createLogsSurface,
     bind: (options) =>
       createLogsModuleBindings(options.logs ?? {}).map((binding) => bindingView(binding)),
+    capabilities,
+  },
+  {
+    id: "models",
+    config: modelsModuleConfig,
+    surface: createModelsSurface,
+    bind: (options) =>
+      createModelsModuleBindings(options.models ?? {}).map((binding) => bindingView(binding)),
     capabilities,
   },
   {

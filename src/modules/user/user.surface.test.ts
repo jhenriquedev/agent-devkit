@@ -10,7 +10,10 @@ describe("user module surface", () => {
     expect(capabilities.isOk()).toBe(true);
     expect(skill.unwrap()).toMatchObject({ moduleId: "user" });
     expect(capabilities.unwrap()).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: "user.preferences" })]),
+      expect.arrayContaining([
+        expect.objectContaining({ id: "user.cliAlias" }),
+        expect.objectContaining({ id: "user.preferences" }),
+      ]),
     );
   });
 });
