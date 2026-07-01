@@ -1,4 +1,5 @@
 import { homedir } from "node:os";
+import { text } from "node:stream/consumers";
 import type { Command } from "commander";
 import type { AgentDevKitErrorCode } from "../../../infra/bases/errors";
 import type { Translator } from "../../../infra/bases/i18n";
@@ -27,6 +28,28 @@ function secretsCapability() {
 
 function wantsJson(options?: { json?: boolean }): boolean {
   return options?.json === true || process.argv.includes("--json");
+}
+
+async function resolveSecretValue(options: { stdin?: boolean; value?: string }): Promise<string> {
+  if (options.stdin === true && options.value !== undefined) {
+    throw new Error("Use --stdin or --value, not both.");
+  }
+
+  if (options.stdin === true) {
+    const value = (await text(process.stdin)).replace(/\r?\n$/, "");
+
+    if (value.length === 0) {
+      throw new Error("Secret value from stdin cannot be empty.");
+    }
+
+    return value;
+  }
+
+  if (options.value === undefined || options.value.length === 0) {
+    throw new Error("Secret value is required. Use --stdin or --value.");
+  }
+
+  return options.value;
 }
 
 function printResult(
@@ -100,9 +123,10 @@ export function registerSecretsCommand(
     .command("set")
     .argument("<name>", options.translator.t("cli.secrets.argument.name"))
     .description(options.translator.t("cli.secrets.set.description"))
-    .requiredOption("--value <value>", options.translator.t("cli.secrets.set.option.value"))
     .option("--json", options.translator.t("cli.secrets.option.json"))
-    .option("--service <service>", options.translator.t("cli.secrets.set.option.service"));
+    .option("--service <service>", options.translator.t("cli.secrets.set.option.service"))
+    .option("--stdin", options.translator.t("cli.secrets.set.option.stdin"))
+    .option("--value <value>", options.translator.t("cli.secrets.set.option.value"));
 
   setCommand.action(
     options.usageLogging.track(
@@ -116,14 +140,16 @@ export function registerSecretsCommand(
         const commandOptions = setCommand.opts<{
           json?: boolean;
           service?: string;
-          value: string;
+          stdin?: boolean;
+          value?: string;
         }>();
+        const value = await resolveSecretValue(commandOptions);
         await printResult(
           await secretsCapability().execute({
             action: "set",
             name,
             service: commandOptions.service,
-            value: commandOptions.value,
+            value,
           }),
           options.translator,
           wantsJson(commandOptions),
@@ -165,9 +191,10 @@ export function registerSecretsCommand(
     .command("rotate")
     .argument("<name>", options.translator.t("cli.secrets.argument.name"))
     .description(options.translator.t("cli.secrets.rotate.description"))
-    .requiredOption("--value <value>", options.translator.t("cli.secrets.set.option.value"))
     .option("--json", options.translator.t("cli.secrets.option.json"))
-    .option("--service <service>", options.translator.t("cli.secrets.set.option.service"));
+    .option("--service <service>", options.translator.t("cli.secrets.set.option.service"))
+    .option("--stdin", options.translator.t("cli.secrets.set.option.stdin"))
+    .option("--value <value>", options.translator.t("cli.secrets.set.option.value"));
 
   rotateCommand.action(
     options.usageLogging.track(
@@ -181,14 +208,16 @@ export function registerSecretsCommand(
         const commandOptions = rotateCommand.opts<{
           json?: boolean;
           service?: string;
-          value: string;
+          stdin?: boolean;
+          value?: string;
         }>();
+        const value = await resolveSecretValue(commandOptions);
         await printResult(
           await secretsCapability().execute({
             action: "rotate",
             name,
             service: commandOptions.service,
-            value: commandOptions.value,
+            value,
           }),
           options.translator,
           wantsJson(commandOptions),

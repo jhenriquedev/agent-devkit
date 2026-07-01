@@ -43,7 +43,6 @@ src/modules/<module>/
   <module>.bind.ts
   <module>.surface.ts
   surface/
-    capabilities.json
     knowledge.json
     loop.json
     prompt.json
@@ -87,10 +86,11 @@ tests through `tests.include`. `npm run test:modules` must use those bindings;
 do not add module tests through package-level glob shortcuts.
 
 Module-level surface files define the canonical agentic interface for skill,
-knowledge, prompt, loop behavior and capability registry. They must validate
-against `src/infra/bases/surface.ts`; do not add ad hoc prompt or knowledge
-files directly inside capabilities unless they are explicitly referenced as
-optional assets by a module surface.
+knowledge, prompt and loop behavior. Capability metadata is derived from
+capability configs to avoid drift. Surface files must validate against
+`src/infra/bases/surface.ts`; do not add ad hoc prompt or knowledge files
+directly inside capabilities unless they are explicitly referenced as optional
+assets by a module surface.
 
 Do not put capability rules in the TUI or CLI parser. `app` must call module
 bindings and remain thin.

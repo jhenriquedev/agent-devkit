@@ -26,6 +26,7 @@ export function registerDoctorCommand(
       {
         area: "project",
         command: "doctor",
+        createStateIfMissing: false,
         options: () => doctorCommand.opts(),
       },
       async (commandOptions: { json?: boolean }) => {

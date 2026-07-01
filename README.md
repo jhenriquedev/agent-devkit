@@ -91,7 +91,6 @@ src/
       <module>.bind.ts
       <module>.surface.ts
       surface/
-        capabilities.json
         knowledge.json
         loop.json
         prompt.json
@@ -125,6 +124,7 @@ Rules:
 - `modules` owns product capabilities as isolated vertical slices.
 - A module groups capabilities from the same functional domain; it is not an agent.
 - A module surface is the canonical agentic interface for that domain.
+- Surface capability metadata is derived from capability configs to avoid drift.
 - A capability owns its entities, service, repository implementation, view model and tests.
 - `infra` contains only global low-level bases and reusable helpers.
 - Capability services must return `Result<left, right>` from `infra/bases/result.ts`.

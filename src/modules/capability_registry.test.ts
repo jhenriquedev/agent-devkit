@@ -1,3 +1,7 @@
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ErrorCodes } from "../infra/bases/errors";
 import { createAgentCapabilityRegistry } from "./capability_registry";
 
@@ -71,7 +75,7 @@ describe("agent capability registry", () => {
     const result = registry();
     const invocation = await result
       .unwrap()
-      .invoke("project.init", { dryRun: true }, { interface: "agent" });
+      .invoke("project.init", { dryRun: true }, { approved: true, interface: "agent" });
 
     expect(invocation).toMatchObject({
       ok: false,
@@ -79,6 +83,91 @@ describe("agent capability registry", () => {
       error: {
         code: ErrorCodes.InvalidInput,
         recoverable: true,
+      },
+    });
+  });
+
+  it("rejects dangerous capabilities without explicit approval before side effects", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-registry-reset-"));
+    const projectRoot = join(root, "project");
+    const homeDirectory = join(root, "home");
+
+    try {
+      await mkdir(join(projectRoot, ".agent-devkit"), { recursive: true });
+      await mkdir(homeDirectory, { recursive: true });
+
+      const result = registry();
+      const invocation = await result.unwrap().invoke(
+        "project.reset",
+        {
+          dryRun: false,
+          homeDirectory,
+          projectRoot,
+          scope: "project",
+        },
+        { interface: "agent" },
+      );
+
+      expect(invocation).toMatchObject({
+        ok: false,
+        capabilityId: "project.reset",
+        error: {
+          code: ErrorCodes.ApprovalRequired,
+          recoverable: true,
+        },
+      });
+      expect(existsSync(join(projectRoot, ".agent-devkit"))).toBe(true);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("invokes dangerous capabilities after explicit approval", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-registry-approved-reset-"));
+    const projectRoot = join(root, "project");
+    const homeDirectory = join(root, "home");
+
+    try {
+      await mkdir(join(projectRoot, ".agent-devkit"), { recursive: true });
+      await mkdir(homeDirectory, { recursive: true });
+
+      const result = registry();
+      const invocation = await result.unwrap().invoke(
+        "project.reset",
+        {
+          dryRun: false,
+          homeDirectory,
+          projectRoot,
+          scope: "project",
+        },
+        { approved: true, interface: "agent" },
+      );
+
+      expect(invocation).toMatchObject({
+        ok: true,
+        capabilityId: "project.reset",
+        data: {
+          removed: true,
+          status: "reset",
+        },
+      });
+      expect(existsSync(join(projectRoot, ".agent-devkit"))).toBe(false);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects global-state capabilities without explicit approval", async () => {
+    const result = registry();
+    const invocation = await result
+      .unwrap()
+      .invoke("secrets.vault", { action: "list" }, { interface: "agent" });
+
+    expect(invocation).toMatchObject({
+      ok: false,
+      capabilityId: "secrets.vault",
+      error: {
+        code: ErrorCodes.ApprovalRequired,
       },
     });
   });

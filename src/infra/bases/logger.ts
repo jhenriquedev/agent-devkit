@@ -14,6 +14,7 @@ export type UsageLogInput = {
   area: UsageLogArea;
   argv: string[];
   command: string;
+  createStateIfMissing?: boolean;
   durationMs: number;
   error?: {
     message: string;
@@ -38,6 +39,7 @@ export interface UsageLogger {
 export type TechnicalLogInput = {
   area: UsageLogArea;
   command?: string;
+  createStateIfMissing?: boolean;
   durationMs?: number;
   error?: {
     message: string;

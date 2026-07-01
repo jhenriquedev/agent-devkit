@@ -84,7 +84,10 @@ function failure(
       code,
       hint,
       message,
-      recoverable: code === ErrorCodes.InvalidInput || code === ErrorCodes.CapabilityNotFound,
+      recoverable:
+        code === ErrorCodes.InvalidInput ||
+        code === ErrorCodes.CapabilityNotFound ||
+        code === ErrorCodes.ApprovalRequired,
     },
     ok: false,
   };
@@ -132,6 +135,19 @@ export class CapabilityRegistry {
         audit(startedAt, endedAt),
         ErrorCodes.CapabilityNotFound,
         `Capability ${capabilityId} was not found.`,
+      );
+    }
+
+    const approval = approvalFor(capability);
+
+    if (approval.required && context.approved !== true) {
+      const endedAt = this.#clock();
+      return failure(
+        capabilityId,
+        audit(startedAt, endedAt),
+        ErrorCodes.ApprovalRequired,
+        `Capability ${capabilityId} requires explicit approval.`,
+        approval.reason,
       );
     }
 

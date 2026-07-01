@@ -1,4 +1,7 @@
-import type { CapabilityInvocationResult } from "../../infra/bases/capability";
+import type {
+  CapabilityInvocationContext,
+  CapabilityInvocationResult,
+} from "../../infra/bases/capability";
 import type { CapabilityRegistry } from "../../infra/capabilities/capability_registry";
 
 export type AgentMcpTool = {
@@ -26,7 +29,11 @@ export class AgentMcpAdapter {
     }));
   }
 
-  callTool(name: string, input: unknown): Promise<CapabilityInvocationResult> {
-    return this.#registry.invoke(name, input, { interface: "mcp" });
+  callTool(
+    name: string,
+    input: unknown,
+    context: Partial<CapabilityInvocationContext> = {},
+  ): Promise<CapabilityInvocationResult> {
+    return this.#registry.invoke(name, input, { ...context, interface: "mcp" });
   }
 }

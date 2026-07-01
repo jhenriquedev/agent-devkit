@@ -15,6 +15,7 @@ type CliUsageLoggingMiddlewareOptions = {
 type CliUsageMetadata = {
   area: UsageLogArea;
   command: string;
+  createStateIfMissing?: boolean;
   options?: () => Record<string, unknown>;
   redactOptions?: string[];
 };
@@ -136,6 +137,7 @@ export class CliUsageLoggingMiddleware {
       area: metadata.area,
       argv: redactArgv(this.#argv, metadata.redactOptions),
       command: metadata.command,
+      createStateIfMissing: metadata.createStateIfMissing,
       durationMs: Math.max(0, durationMs),
       error: error === undefined ? undefined : serializeError(error),
       interface: "cli",
@@ -159,6 +161,7 @@ export class CliUsageLoggingMiddleware {
     await this.#technicalLogger.writeTechnical({
       area: metadata.area,
       command: metadata.command,
+      createStateIfMissing: metadata.createStateIfMissing,
       durationMs: durationMs === undefined ? undefined : Math.max(0, durationMs),
       error: error === undefined ? undefined : serializeError(error),
       event,

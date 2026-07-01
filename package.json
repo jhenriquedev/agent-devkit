@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "src/assets",
+    "src/modules/*/surface/*.json",
     "README.md",
     "LICENSE"
   ],

@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readdir, unlink } from "node:fs/promises";
+import { access, appendFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
@@ -54,9 +54,11 @@ export class JsonUsageLogger implements UsageLogger {
 
   async writeUsage(input: UsageLogInput): Promise<Result<AgentDevKitErrorCode, void>> {
     const timestamp = this.#clock();
-    const logPath = join(this.#stateDirectory, "logs", logFileName(timestamp));
+    const logsDirectory = join(this.#stateDirectory, "logs");
+    const logPath = join(logsDirectory, logFileName(timestamp));
+    const { createStateIfMissing, ...logInput } = input;
     const event: UsageLogEvent = {
-      ...input,
+      ...logInput,
       category: "usage",
       level: input.status === "failed" ? "error" : "info",
       options: normalizeOptions(input.options),
@@ -65,6 +67,14 @@ export class JsonUsageLogger implements UsageLogger {
     };
 
     try {
+      if (createStateIfMissing === false) {
+        try {
+          await access(logsDirectory);
+        } catch {
+          return Result.ok(undefined);
+        }
+      }
+
       await mkdir(dirname(logPath), { recursive: true });
       await appendFile(logPath, `${JSON.stringify(event)}\n`, "utf8");
       await this.#cleanupOldLogs(timestamp);

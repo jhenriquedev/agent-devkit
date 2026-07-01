@@ -1,10 +1,9 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
 import { Result } from "../bases/result";
 import {
-  SurfaceCapabilitiesSchema,
-  type SurfaceCapability,
   type SurfaceKnowledge,
   SurfaceKnowledgeSchema,
   type SurfaceLoop,
@@ -21,19 +20,6 @@ export class SurfaceLoader {
 
   constructor(surfaceDirectory: string) {
     this.#surfaceDirectory = surfaceDirectory;
-  }
-
-  async capabilities(): Promise<Result<AgentDevKitErrorCode, SurfaceCapability[]>> {
-    const payload = await this.#readJson("capabilities.json");
-
-    if (payload.isErr()) {
-      return Result.fail(payload.unwrapError());
-    }
-
-    const parsed = SurfaceCapabilitiesSchema.safeParse(payload.unwrap());
-    return parsed.success
-      ? Result.ok(parsed.data.capabilities)
-      : Result.fail(ErrorCodes.InvalidInput);
   }
 
   async knowledge(): Promise<Result<AgentDevKitErrorCode, SurfaceKnowledge>> {
@@ -111,4 +97,15 @@ export class SurfaceLoader {
       template,
     );
   }
+}
+
+export function resolveModuleSurfaceDirectory(moduleId: string, moduleDirectory: string): string {
+  const localSurfaceDirectory = join(moduleDirectory, "surface");
+  const candidates = [
+    localSurfaceDirectory,
+    resolve(moduleDirectory, "../src/modules", moduleId, "surface"),
+    resolve(process.cwd(), "src/modules", moduleId, "surface"),
+  ];
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? localSurfaceDirectory;
 }

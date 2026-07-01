@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,7 +29,7 @@ describe("agent doctor", () => {
     }
   });
 
-  it("prints doctor JSON and creates only the global state directory", async () => {
+  it("prints doctor JSON without creating global state", async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), "agent-devkit-home-"));
     const projectDirectory = await mkdtemp(join(tmpdir(), "agent-devkit-project-"));
 
@@ -45,12 +46,13 @@ describe("agent doctor", () => {
       expect(report.version).toBe("0.4.0");
       expect(report.runtime.globalState).toEqual({
         path: join(homeDirectory, ".agent-devkit"),
-        exists: true,
+        exists: false,
       });
       expect(report.runtime.projectState).toEqual({
         path: join(resolvedProjectDirectory, ".agent-devkit"),
         exists: false,
       });
+      expect(existsSync(join(homeDirectory, ".agent-devkit"))).toBe(false);
     } finally {
       await rm(homeDirectory, { force: true, recursive: true });
       await rm(projectDirectory, { force: true, recursive: true });

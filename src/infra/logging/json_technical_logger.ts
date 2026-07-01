@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readdir, unlink } from "node:fs/promises";
+import { access, appendFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
@@ -62,9 +62,11 @@ export class JsonTechnicalLogger implements TechnicalLogger {
 
   async writeTechnical(input: TechnicalLogInput): Promise<Result<AgentDevKitErrorCode, void>> {
     const timestamp = this.#clock();
-    const logPath = join(this.#stateDirectory, "logs", logFileName(timestamp));
+    const logsDirectory = join(this.#stateDirectory, "logs");
+    const logPath = join(logsDirectory, logFileName(timestamp));
+    const { createStateIfMissing, ...logInput } = input;
     const event: TechnicalLogEvent = {
-      ...input,
+      ...logInput,
       category: "technical",
       metadata: normalizeMetadata(input.metadata),
       schema: "agent-devkit.technical-log/v1",
@@ -72,6 +74,14 @@ export class JsonTechnicalLogger implements TechnicalLogger {
     };
 
     try {
+      if (createStateIfMissing === false) {
+        try {
+          await access(logsDirectory);
+        } catch {
+          return Result.ok(undefined);
+        }
+      }
+
       await mkdir(dirname(logPath), { recursive: true });
       await appendFile(logPath, `${JSON.stringify(event)}\n`, "utf8");
       await this.#cleanupOldLogs(timestamp);

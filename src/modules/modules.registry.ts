@@ -1,5 +1,6 @@
 import type { InvokableCapabilityService } from "../infra/bases/capability";
 import type { AgentDevKitErrorCode } from "../infra/bases/errors";
+import type { AgentDevKitModuleConfig } from "../infra/bases/module";
 import type { Result } from "../infra/bases/result";
 import type { IModuleSurface } from "../infra/bases/surface";
 import { createLogsModuleBindings, type LogsModuleBindOptions } from "./logs/logs.bind";
@@ -34,9 +35,7 @@ export type AgentModuleDefinition = {
     options: AgentModuleRegistryOptions,
   ) => Result<AgentDevKitErrorCode, AgentModuleBindingView>;
   capabilities: (binding: AgentModuleBindingView) => InvokableCapabilityService[];
-  config: {
-    id: string;
-  };
+  config: AgentDevKitModuleConfig;
   id: string;
   surface: () => IModuleSurface;
 };

@@ -1,13 +1,22 @@
 import { homedir } from "node:os";
 import type { Command } from "commander";
 import type { Translator } from "../../../infra/bases/i18n";
-import type { LogsAnalysisOptions, LogsAnalysisResult } from "../../../modules/logs/logs.index";
+import type {
+  LogCategorySelection,
+  LogsAnalysisOptions,
+  LogsAnalysisResult,
+} from "../../../modules/logs/logs.index";
 import { createLogsModuleBindings, formatLogsAnalysisText } from "../../../modules/logs/logs.index";
 import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 type RegisterLogsCommandOptions = {
   translator: Translator;
   usageLogging: CliUsageLoggingMiddleware;
+};
+
+type LogsCategoryCommandOptions = {
+  all?: boolean;
+  technical?: boolean;
 };
 
 function logsCapability() {
@@ -31,6 +40,20 @@ function parseLimit(value?: string): number | undefined {
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function categoryFromOptions(
+  options: LogsCategoryCommandOptions,
+): LogCategorySelection | undefined {
+  if (options.all === true || process.argv.includes("--all")) {
+    return "all";
+  }
+
+  if (options.technical === true || process.argv.includes("--technical")) {
+    return "technical";
+  }
+
+  return undefined;
 }
 
 async function printLogsResult(
@@ -58,6 +81,8 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
   const logsCommand = program
     .command("logs")
     .description(options.translator.t("cli.logs.description"))
+    .option("--all", options.translator.t("cli.logs.option.all"))
+    .option("--technical", options.translator.t("cli.logs.option.technical"))
     .option("--json", options.translator.t("cli.logs.option.json"));
 
   logsCommand.action(
@@ -67,8 +92,11 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
         command: "logs",
         options: () => logsCommand.opts(),
       },
-      async (commandOptions: { json?: boolean }) => {
-        await printLogsResult(commandOptions, options.translator, { action: "list" });
+      async (commandOptions: { all?: boolean; json?: boolean; technical?: boolean }) => {
+        await printLogsResult(commandOptions, options.translator, {
+          action: "list",
+          category: categoryFromOptions(commandOptions),
+        });
       },
     ),
   );
@@ -77,8 +105,10 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
     .command("show")
     .argument("[date]", options.translator.t("cli.logs.show.argument.date"))
     .description(options.translator.t("cli.logs.show.description"))
+    .option("--all", options.translator.t("cli.logs.option.all"))
     .option("--json", options.translator.t("cli.logs.option.json"))
-    .option("--limit <limit>", options.translator.t("cli.logs.option.limit"));
+    .option("--limit <limit>", options.translator.t("cli.logs.option.limit"))
+    .option("--technical", options.translator.t("cli.logs.option.technical"));
 
   showCommand.action(
     options.usageLogging.track(
@@ -87,10 +117,18 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
         command: "logs.show",
         options: () => showCommand.opts(),
       },
-      async (date: string | undefined) => {
-        const commandOptions = showCommand.opts<{ json?: boolean; limit?: string }>();
+      async (
+        date: string | undefined,
+        commandOptions: {
+          all?: boolean;
+          json?: boolean;
+          limit?: string;
+          technical?: boolean;
+        },
+      ) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "read",
+          category: categoryFromOptions(commandOptions),
           date,
           limit: parseLimit(commandOptions.limit),
         });
@@ -101,9 +139,11 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
   const tailCommand = logsCommand
     .command("tail")
     .description(options.translator.t("cli.logs.tail.description"))
+    .option("--all", options.translator.t("cli.logs.option.all"))
     .option("--date <date>", options.translator.t("cli.logs.option.date"))
     .option("--json", options.translator.t("cli.logs.option.json"))
-    .option("--limit <limit>", options.translator.t("cli.logs.option.limit"));
+    .option("--limit <limit>", options.translator.t("cli.logs.option.limit"))
+    .option("--technical", options.translator.t("cli.logs.option.technical"));
 
   tailCommand.action(
     options.usageLogging.track(
@@ -112,14 +152,16 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
         command: "logs.tail",
         options: () => tailCommand.opts(),
       },
-      async () => {
-        const commandOptions = tailCommand.opts<{
-          date?: string;
-          json?: boolean;
-          limit?: string;
-        }>();
+      async (commandOptions: {
+        all?: boolean;
+        date?: string;
+        json?: boolean;
+        limit?: string;
+        technical?: boolean;
+      }) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "read",
+          category: categoryFromOptions(commandOptions),
           date: commandOptions.date,
           limit: parseLimit(commandOptions.limit),
           tail: true,
@@ -132,9 +174,11 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
     .command("search")
     .argument("<query>", options.translator.t("cli.logs.search.argument.query"))
     .description(options.translator.t("cli.logs.search.description"))
+    .option("--all", options.translator.t("cli.logs.option.all"))
     .option("--date <date>", options.translator.t("cli.logs.option.date"))
     .option("--json", options.translator.t("cli.logs.option.json"))
-    .option("--limit <limit>", options.translator.t("cli.logs.option.limit"));
+    .option("--limit <limit>", options.translator.t("cli.logs.option.limit"))
+    .option("--technical", options.translator.t("cli.logs.option.technical"));
 
   searchCommand.action(
     options.usageLogging.track(
@@ -143,14 +187,19 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
         command: "logs.search",
         options: () => searchCommand.opts(),
       },
-      async (query: string) => {
-        const commandOptions = searchCommand.opts<{
+      async (
+        query: string,
+        commandOptions: {
+          all?: boolean;
           date?: string;
           json?: boolean;
           limit?: string;
-        }>();
+          technical?: boolean;
+        },
+      ) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "search",
+          category: categoryFromOptions(commandOptions),
           date: commandOptions.date,
           limit: parseLimit(commandOptions.limit),
           query,
@@ -162,8 +211,10 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
   const summaryCommand = logsCommand
     .command("summary")
     .description(options.translator.t("cli.logs.summary.description"))
+    .option("--all", options.translator.t("cli.logs.option.all"))
     .option("--date <date>", options.translator.t("cli.logs.option.date"))
-    .option("--json", options.translator.t("cli.logs.option.json"));
+    .option("--json", options.translator.t("cli.logs.option.json"))
+    .option("--technical", options.translator.t("cli.logs.option.technical"));
 
   summaryCommand.action(
     options.usageLogging.track(
@@ -172,10 +223,15 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
         command: "logs.summary",
         options: () => summaryCommand.opts(),
       },
-      async () => {
-        const commandOptions = summaryCommand.opts<{ date?: string; json?: boolean }>();
+      async (commandOptions: {
+        all?: boolean;
+        date?: string;
+        json?: boolean;
+        technical?: boolean;
+      }) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "summary",
+          category: categoryFromOptions(commandOptions),
           date: commandOptions.date,
         });
       },

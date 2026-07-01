@@ -31,6 +31,13 @@ describe("agent logs", () => {
         (await runAgent(home, ["logs", "search", "preferences", "--json"])).stdout,
       );
       const summary = JSON.parse((await runAgent(home, ["logs", "summary", "--json"])).stdout);
+      const technicalSearch = JSON.parse(
+        (await runAgent(home, ["logs", "search", "command.started", "--technical", "--json"]))
+          .stdout,
+      );
+      const allSummary = JSON.parse(
+        (await runAgent(home, ["logs", "summary", "--all", "--json"])).stdout,
+      );
 
       expect(list.action).toBe("list");
       expect(list.files[0].eventCount).toBeGreaterThanOrEqual(2);
@@ -47,6 +54,15 @@ describe("agent logs", () => {
       expect(summary.action).toBe("summary");
       expect(summary.byCommand.preferences).toBeGreaterThanOrEqual(1);
       expect(summary.byCommand.doctor).toBeGreaterThanOrEqual(1);
+      expect(technicalSearch.action).toBe("search");
+      expect(
+        technicalSearch.events.some(
+          (event: { category: string; event: string }) =>
+            event.category === "technical" && event.event === "command.started",
+        ),
+      ).toBe(true);
+      expect(allSummary.byCategory.usage).toBeGreaterThanOrEqual(1);
+      expect(allSummary.byCategory.technical).toBeGreaterThanOrEqual(1);
     } finally {
       await rm(home, { force: true, recursive: true });
     }
