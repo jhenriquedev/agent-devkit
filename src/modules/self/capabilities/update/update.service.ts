@@ -82,12 +82,16 @@ export class UpdateService
     const latestVersion =
       versionsPayload.distTags.latest ?? versionsPayload.versions.at(-1) ?? this.#currentVersion;
     const explicitVersion = options.version !== undefined;
-    const selectedVersion = options.version ?? (options.latest ? latestVersion : latestVersion);
+    const selectedVersion =
+      options.version ?? (options.latest === true ? latestVersion : this.#currentVersion);
     const listedVersions = Array.from(
       new Set([...versionsPayload.versions, this.#currentVersion, selectedVersion]),
     );
 
-    if (!explicitVersion && compareVersions(latestVersion, this.#currentVersion) <= 0) {
+    if (
+      selectedVersion === this.#currentVersion ||
+      (!explicitVersion && compareVersions(latestVersion, this.#currentVersion) <= 0)
+    ) {
       return Result.ok({
         status: "current",
         packageName: this.#packageName,

@@ -2,7 +2,6 @@ import { access } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import type { CapabilityRepositoryPort } from "../../../../infra/bases/capability";
 import type { AgentDevKitErrorCode } from "../../../../infra/bases/errors";
-import { ErrorCodes } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
 
 export interface DoctorRepositoryPort extends CapabilityRepositoryPort {
@@ -50,8 +49,4 @@ export class DoctorRepository implements DoctorRepositoryPort {
   stdoutIsTTY(): Result<AgentDevKitErrorCode, boolean> {
     return Result.ok(process.stdout.isTTY === true);
   }
-}
-
-export function doctorRepositoryError(): Result<AgentDevKitErrorCode, never> {
-  return Result.fail(ErrorCodes.CapabilityExecutionFailed);
 }

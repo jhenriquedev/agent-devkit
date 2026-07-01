@@ -35,7 +35,6 @@ export function registerResetCommand(program: Command, options: RegisterResetCom
         json?: boolean;
         yes?: boolean;
       }) => {
-        const dryRun = commandOptions.dryRun === true || commandOptions.yes !== true;
         const bindings = createProjectModuleBindings({
           appVersion: options.appVersion,
         });
@@ -45,7 +44,8 @@ export function registerResetCommand(program: Command, options: RegisterResetCom
         }
 
         const result = await bindings.unwrap().capabilities.reset.execute({
-          dryRun,
+          confirmed: commandOptions.yes === true,
+          dryRun: commandOptions.dryRun === true,
           homeDirectory: homedir(),
           projectRoot: process.cwd(),
           scope: commandOptions.global === true ? "global" : "project",

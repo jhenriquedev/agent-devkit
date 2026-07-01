@@ -1,25 +1,8 @@
+import { I18nCatalog } from "../../../../infra/assets/i18n_catalog";
 import type { Translator } from "../../../../infra/bases/i18n";
 import type { PreferencesResult } from "./preferences.entities";
 
-const fallbackTranslator: Translator = {
-  language: "pt-BR",
-  t: (key, values = {}) => {
-    const fallback: Record<string, string> = {
-      "preferences.command": "> agent preferences",
-      "preferences.field.file": "arquivo",
-      "preferences.field.language": "idioma",
-      "preferences.field.logRetentionDays": "retencao",
-      "preferences.field.theme": "tema",
-      "preferences.section.languages": "idiomas",
-      "preferences.section.themes": "temas",
-      "preferences.status": "{{status}} preferencias do usuario",
-      "preferences.title": "Preferencias do Agent DevKit",
-    };
-    return (fallback[key] ?? key).replaceAll(/\{\{([a-zA-Z0-9_.-]+)\}\}/g, (_, name: string) =>
-      values[name] === undefined ? `{{${name}}}` : String(values[name]),
-    );
-  },
-};
+const fallbackTranslator = new I18nCatalog().translator("pt-BR");
 
 export function formatPreferencesText(
   result: PreferencesResult,

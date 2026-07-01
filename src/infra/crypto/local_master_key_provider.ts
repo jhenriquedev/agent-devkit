@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -25,13 +24,26 @@ export class LocalMasterKeyProvider implements SecretKeyProvider {
   }
 
   async getKey(): Promise<Buffer> {
-    if (existsSync(this.#keyPath)) {
+    try {
       return Buffer.from((await readFile(this.#keyPath, "utf8")).trim(), "base64");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
     }
 
     const key = randomBytes(32);
     await mkdir(dirname(this.#keyPath), { recursive: true, mode: 0o700 });
-    await writeFile(this.#keyPath, `${key.toString("base64")}\n`, { mode: 0o600 });
+
+    try {
+      await writeFile(this.#keyPath, `${key.toString("base64")}\n`, { flag: "wx", mode: 0o600 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        return Buffer.from((await readFile(this.#keyPath, "utf8")).trim(), "base64");
+      }
+
+      throw error;
+    }
 
     if (process.platform !== "win32") {
       await chmod(dirname(this.#keyPath), 0o700);

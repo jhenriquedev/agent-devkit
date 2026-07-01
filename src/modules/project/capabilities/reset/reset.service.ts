@@ -41,6 +41,7 @@ export class ResetService
   }
 
   async execute(options: ResetServiceOptions): Promise<Result<AgentDevKitErrorCode, ResetResult>> {
+    const shouldPlan = options.dryRun || options.confirmed !== true;
     const path =
       options.scope === "global"
         ? join(options.homeDirectory, ".agent-devkit")
@@ -61,7 +62,7 @@ export class ResetService
       });
     }
 
-    if (options.dryRun) {
+    if (shouldPlan) {
       return Result.ok({
         scope: options.scope,
         status: "planned",

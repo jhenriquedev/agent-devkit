@@ -28,4 +28,18 @@ describe("LocalSecretCrypto", () => {
 
     expect(decrypted.isErr()).toBe(true);
   });
+
+  it("fails to decrypt payloads encrypted with another key id", async () => {
+    const crypto = new LocalSecretCrypto({
+      keyProvider: { getKey: async () => key, keyId: () => "local-a" },
+    });
+    const encrypted = await crypto.encryptString("sk-test-secret");
+    const rotatedKeyCrypto = new LocalSecretCrypto({
+      keyProvider: { getKey: async () => key, keyId: () => "local-b" },
+    });
+
+    const decrypted = await rotatedKeyCrypto.decryptString(encrypted.unwrap());
+
+    expect(decrypted.isErr()).toBe(true);
+  });
 });

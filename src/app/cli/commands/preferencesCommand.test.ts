@@ -109,6 +109,20 @@ describe("agent preferences", () => {
     }
   });
 
+  it("rejects invalid log retention values before saving preferences", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-cli-home-"));
+
+    try {
+      await expect(
+        execFileAsync(tsxBin, [mainEntrypoint, "preferences", "set-log-retention", "abc"], {
+          env: { ...process.env, HOME: home },
+        }),
+      ).rejects.toThrow("Expected a positive integer");
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
+
   it("restores default user preferences from the CLI", async () => {
     const home = await mkdtemp(join(tmpdir(), "agent-devkit-cli-home-"));
 

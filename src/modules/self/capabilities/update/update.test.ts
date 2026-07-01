@@ -68,4 +68,35 @@ describe("self.update", () => {
       selected: true,
     });
   });
+
+  it("keeps the current version selected unless latest or an explicit version is requested", async () => {
+    const result = await new UpdateService({
+      currentVersion: "0.4.0",
+      packageName: "agent-devkit",
+      repository: {
+        repositoryId: "test.update.repository",
+        installGlobal: async () => {
+          throw new Error("install should not be planned");
+        },
+        getPackageVersions: async () =>
+          Result.ok({
+            distTags: { latest: "0.4.2" },
+            versions: ["0.4.0", "0.4.1", "0.4.2"],
+          }),
+      },
+    }).execute({ dryRun: true, latest: false, yes: false });
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toMatchObject({
+      status: "current",
+      selectedVersion: "0.4.0",
+      command: "",
+      executed: false,
+    });
+    expect(result.unwrap().versions).toEqual([
+      { version: "0.4.2", current: false, latest: true, selected: false },
+      { version: "0.4.1", current: false, latest: false, selected: false },
+      { version: "0.4.0", current: true, latest: false, selected: true },
+    ]);
+  });
 });

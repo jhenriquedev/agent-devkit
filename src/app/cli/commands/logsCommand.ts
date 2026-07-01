@@ -1,22 +1,14 @@
 import { homedir } from "node:os";
 import type { Command } from "commander";
 import type { Translator } from "../../../infra/bases/i18n";
-import type {
-  LogCategorySelection,
-  LogsAnalysisOptions,
-  LogsAnalysisResult,
-} from "../../../modules/logs/logs.index";
+import type { LogsAnalysisOptions, LogsAnalysisResult } from "../../../modules/logs/logs.index";
 import { createLogsModuleBindings, formatLogsAnalysisText } from "../../../modules/logs/logs.index";
+import { logCategoryFromOptions, parseNonNegativeInteger, wantsJson } from "../command_options";
 import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 type RegisterLogsCommandOptions = {
   translator: Translator;
   usageLogging: CliUsageLoggingMiddleware;
-};
-
-type LogsCategoryCommandOptions = {
-  all?: boolean;
-  technical?: boolean;
 };
 
 function logsCapability() {
@@ -27,33 +19,6 @@ function logsCapability() {
   }
 
   return bindings.unwrap().capabilities.analysis;
-}
-
-function wantsJson(options?: { json?: boolean }): boolean {
-  return options?.json === true || process.argv.includes("--json");
-}
-
-function parseLimit(value?: string): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-}
-
-function categoryFromOptions(
-  options: LogsCategoryCommandOptions,
-): LogCategorySelection | undefined {
-  if (options.all === true || process.argv.includes("--all")) {
-    return "all";
-  }
-
-  if (options.technical === true || process.argv.includes("--technical")) {
-    return "technical";
-  }
-
-  return undefined;
 }
 
 async function printLogsResult(
@@ -95,7 +60,7 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
       async (commandOptions: { all?: boolean; json?: boolean; technical?: boolean }) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "list",
-          category: categoryFromOptions(commandOptions),
+          category: logCategoryFromOptions(commandOptions),
         });
       },
     ),
@@ -128,9 +93,9 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
       ) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "read",
-          category: categoryFromOptions(commandOptions),
+          category: logCategoryFromOptions(commandOptions),
           date,
-          limit: parseLimit(commandOptions.limit),
+          limit: parseNonNegativeInteger(commandOptions.limit),
         });
       },
     ),
@@ -161,9 +126,9 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
       }) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "read",
-          category: categoryFromOptions(commandOptions),
+          category: logCategoryFromOptions(commandOptions),
           date: commandOptions.date,
-          limit: parseLimit(commandOptions.limit),
+          limit: parseNonNegativeInteger(commandOptions.limit),
           tail: true,
         });
       },
@@ -199,9 +164,9 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
       ) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "search",
-          category: categoryFromOptions(commandOptions),
+          category: logCategoryFromOptions(commandOptions),
           date: commandOptions.date,
-          limit: parseLimit(commandOptions.limit),
+          limit: parseNonNegativeInteger(commandOptions.limit),
           query,
         });
       },
@@ -231,7 +196,7 @@ export function registerLogsCommand(program: Command, options: RegisterLogsComma
       }) => {
         await printLogsResult(commandOptions, options.translator, {
           action: "summary",
-          category: categoryFromOptions(commandOptions),
+          category: logCategoryFromOptions(commandOptions),
           date: commandOptions.date,
         });
       },

@@ -100,6 +100,7 @@ describe("agent capability registry", () => {
       const invocation = await result.unwrap().invoke(
         "project.reset",
         {
+          confirmed: true,
           dryRun: false,
           homeDirectory,
           projectRoot,
@@ -135,6 +136,7 @@ describe("agent capability registry", () => {
       const invocation = await result.unwrap().invoke(
         "project.reset",
         {
+          confirmed: true,
           dryRun: false,
           homeDirectory,
           projectRoot,
@@ -180,7 +182,7 @@ describe("agent capability registry", () => {
       ok: true,
       capabilityId: "project.doctor",
       data: {
-        status: "ok",
+        status: expect.any(String),
         version: "0.4.0",
       },
       effects: [

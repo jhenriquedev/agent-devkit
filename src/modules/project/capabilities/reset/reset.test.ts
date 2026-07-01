@@ -34,7 +34,13 @@ describe("project.reset", () => {
     try {
       const result = await new ResetService({
         repository: new ResetRepository(),
-      }).execute({ dryRun: false, homeDirectory: "/home/tester", projectRoot, scope: "project" });
+      }).execute({
+        confirmed: true,
+        dryRun: false,
+        homeDirectory: "/home/tester",
+        projectRoot,
+        scope: "project",
+      });
 
       expect(result.isOk()).toBe(true);
       expect(result.unwrap().status).toBe("reset");

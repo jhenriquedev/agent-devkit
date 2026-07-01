@@ -29,7 +29,7 @@ describe("project.doctor", () => {
       expect(result.isOk()).toBe(true);
       const report = result.unwrap();
 
-      expect(report.status).toBe("ok");
+      expect(report.status).toBe("warning");
       expect(report.version).toBe("0.4.0");
       expect(report.node.version).toBe("v20.0.0");
       expect(report.runtime.globalState.path).toBe(join(homeDirectory, ".agent-devkit"));
@@ -40,6 +40,25 @@ describe("project.doctor", () => {
       await rm(homeDirectory, { force: true, recursive: true });
       await rm(projectDirectory, { force: true, recursive: true });
     }
+  });
+
+  it("reports ok when Agent DevKit state exists", async () => {
+    const result = await new DoctorService({
+      appVersion: "0.4.0",
+      repository: {
+        repositoryId: "test.doctor.repository",
+        cwd: () => Result.ok("/workspace/project"),
+        exists: async (path) => Result.ok(path.endsWith(".agent-devkit")),
+        homeDirectory: () => Result.ok("/home/user"),
+        nodeVersion: () => Result.ok("v20.0.0"),
+        platform: () => Result.ok("test-platform"),
+        stdinIsTTY: () => Result.ok(true),
+        stdoutIsTTY: () => Result.ok(false),
+      },
+    }).execute();
+
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap().status).toBe("ok");
   });
 
   it("formats a branded terminal-style doctor report", () => {

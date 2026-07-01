@@ -5,6 +5,7 @@ export type ResetStatus = "missing" | "planned" | "reset";
 
 export const ResetServiceOptionsSchema = z
   .object({
+    confirmed: z.boolean().optional(),
     dryRun: z.boolean(),
     homeDirectory: z.string().min(1),
     projectRoot: z.string().min(1),

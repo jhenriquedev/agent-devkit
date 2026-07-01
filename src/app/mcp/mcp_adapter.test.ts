@@ -40,7 +40,7 @@ describe("AgentMcpAdapter", () => {
 
     expect(result).toMatchObject({
       capabilityId: "project.doctor",
-      data: { status: "ok" },
+      data: { status: expect.any(String) },
       ok: true,
     });
   });
@@ -86,6 +86,7 @@ describe("AgentMcpAdapter", () => {
       const result = await adapter().callTool(
         "project.reset",
         {
+          confirmed: true,
           dryRun: false,
           homeDirectory,
           projectRoot,

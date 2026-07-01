@@ -52,4 +52,25 @@ describe("database infra clients", () => {
     expect((await postgres.queryRows({ sql: "select 1" })).isErr()).toBe(true);
     expect((await redis.getString("missing")).isErr()).toBe(true);
   });
+
+  it("returns Result failures when database executors time out", async () => {
+    const never = new Promise<never>(() => undefined);
+    const postgres = new PostgresClient(
+      {
+        query: async () => never,
+      },
+      { timeoutMs: 1 },
+    );
+    const redis = new RedisClient(
+      {
+        get: async () => never,
+        hGetAll: async () => never,
+      },
+      { timeoutMs: 1 },
+    );
+
+    expect((await postgres.queryRows({ sql: "select 1" })).isErr()).toBe(true);
+    expect((await redis.getString("missing")).isErr()).toBe(true);
+    expect((await redis.getHash("missing")).isErr()).toBe(true);
+  });
 });

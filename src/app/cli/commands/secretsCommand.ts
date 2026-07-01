@@ -9,6 +9,7 @@ import {
   createSecretsModuleBindings,
   formatSecretsVaultText,
 } from "../../../modules/secrets/secrets.index";
+import { wantsJson } from "../command_options";
 import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 type RegisterSecretsCommandOptions = {
@@ -24,10 +25,6 @@ function secretsCapability() {
   }
 
   return bindings.unwrap().capabilities.vault;
-}
-
-function wantsJson(options?: { json?: boolean }): boolean {
-  return options?.json === true || process.argv.includes("--json");
 }
 
 async function resolveSecretValue(options: { stdin?: boolean; value?: string }): Promise<string> {

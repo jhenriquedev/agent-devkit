@@ -1,4 +1,5 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { access, chmod, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { EncryptedPayload, SecretCrypto } from "../bases/crypto";
@@ -306,11 +307,23 @@ export class EncryptedSecretStore {
   }
 
   async #writeVault(vault: VaultFile): Promise<Result<AgentDevKitErrorCode, void>> {
+    const directory = dirname(this.#vaultPath);
+    const tempPath = join(directory, `.vault-${process.pid}-${randomBytes(6).toString("hex")}.tmp`);
+
     try {
-      await mkdir(dirname(this.#vaultPath), { recursive: true, mode: 0o700 });
-      await writeFile(this.#vaultPath, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+      await mkdir(directory, { recursive: true, mode: 0o700 });
+      await writeFile(tempPath, `${JSON.stringify(vault, null, 2)}\n`, {
+        flag: "wx",
+        mode: 0o600,
+      });
+      if (process.platform !== "win32") {
+        await chmod(tempPath, 0o600);
+      }
+      await rename(tempPath, this.#vaultPath);
       return Result.ok(undefined);
-    } catch {
+    } catch (error) {
+      await unlink(tempPath).catch(() => undefined);
+      void error;
       return Result.fail(ErrorCodes.FileWriteFailed);
     }
   }

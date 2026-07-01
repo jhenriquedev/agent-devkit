@@ -42,7 +42,7 @@ describe("agent doctor", () => {
 
       const report = JSON.parse(stdout);
 
-      expect(report.status).toBe("ok");
+      expect(report.status).toBe("warning");
       expect(report.version).toBe("0.4.0");
       expect(report.runtime.globalState).toEqual({
         path: join(homeDirectory, ".agent-devkit"),

@@ -66,18 +66,18 @@ export class DoctorService
     }
 
     return Result.ok({
-      status: "ok",
+      status: globalStateExists.unwrap() || projectStateExists.unwrap() ? "ok" : "warning",
       version: this.#appVersion,
       node: {
-        version: nodeVersion.unwrap() as string,
+        version: nodeVersion.unwrap(),
       },
       system: {
-        platform: platform.unwrap() as string,
-        cwd: cwd.unwrap() as string,
+        platform: platform.unwrap(),
+        cwd: cwd.unwrap(),
       },
       terminal: {
-        stdinIsTTY: stdinIsTTY.unwrap() as boolean,
-        stdoutIsTTY: stdoutIsTTY.unwrap() as boolean,
+        stdinIsTTY: stdinIsTTY.unwrap(),
+        stdoutIsTTY: stdoutIsTTY.unwrap(),
       },
       runtime: {
         globalState: {

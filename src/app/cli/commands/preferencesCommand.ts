@@ -5,6 +5,7 @@ import type { LanguageId, Translator } from "../../../infra/bases/i18n";
 import type { Result } from "../../../infra/bases/result";
 import type { PreferencesResult } from "../../../modules/user/user.index";
 import { createUserModuleBindings, formatPreferencesText } from "../../../modules/user/user.index";
+import { parsePositiveInteger, wantsJson } from "../command_options";
 import type { CliUsageLoggingMiddleware } from "../usageLogging";
 
 function preferencesCapability() {
@@ -15,14 +16,6 @@ function preferencesCapability() {
   }
 
   return bindings.unwrap().capabilities.preferences;
-}
-
-function wantsJson(options?: { json?: boolean }): boolean {
-  return options?.json === true || process.argv.includes("--json");
-}
-
-function parseRetentionDays(value: string): number {
-  return Number.parseInt(value, 10);
 }
 
 type RegisterPreferencesCommandOptions = {
@@ -189,7 +182,7 @@ export function registerPreferencesCommand(
         await printResult(
           await preferencesCapability().execute({
             action: "set-log-retention",
-            logRetentionDays: parseRetentionDays(days),
+            logRetentionDays: parsePositiveInteger(days),
           }),
           registerOptions.translator,
           wantsJson(options),
@@ -234,7 +227,7 @@ export function registerPreferencesCommand(
             logRetentionDays:
               options.logRetentionDays === undefined
                 ? undefined
-                : parseRetentionDays(options.logRetentionDays),
+                : parsePositiveInteger(options.logRetentionDays),
             theme: options.theme,
           }),
           registerOptions.translator,

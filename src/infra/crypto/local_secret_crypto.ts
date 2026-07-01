@@ -57,7 +57,11 @@ export class LocalSecretCrypto implements SecretCrypto {
     try {
       const key = await resolveKey(this.#keyProvider);
 
-      if (key.length !== 32 || payload.algorithm !== "aes-256-gcm") {
+      if (
+        key.length !== 32 ||
+        payload.algorithm !== "aes-256-gcm" ||
+        payload.keyId !== keyId(this.#keyProvider)
+      ) {
         return Result.fail(ErrorCodes.DecryptionFailed);
       }
 
