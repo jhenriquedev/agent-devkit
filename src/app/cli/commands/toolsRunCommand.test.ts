@@ -37,6 +37,16 @@ describe("agent tools/run", () => {
       expect(result.tools).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
+            id: "context.projects",
+            inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+            risk: "writes-global-state",
+          }),
+          expect.objectContaining({
+            id: "context.sessions",
+            inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+            risk: "writes-global-state",
+          }),
+          expect.objectContaining({
             id: "project.doctor",
             inputSchema: expect.objectContaining({ type: "object" }),
             risk: "read-only",
@@ -162,7 +172,7 @@ describe("agent tools/run", () => {
         "--json",
       ]);
 
-      const logDirectory = join(home, ".agent-devkit", "logs");
+      const logDirectory = join(home, ".agent-devkit", "data", "logs");
       const logFiles = await readdir(logDirectory);
       const logs = (
         await Promise.all(logFiles.map((logFile) => readFile(join(logDirectory, logFile), "utf8")))

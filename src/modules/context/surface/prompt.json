@@ -1,0 +1,15 @@
+{
+  "moduleId": "context",
+  "templates": [
+    {
+      "id": "context.projects",
+      "template": "Use context projects to group related sessions and durable knowledge areas. Project input: {{project}}",
+      "variables": ["project"]
+    },
+    {
+      "id": "context.sessions",
+      "template": "Use context sessions to persist operational memory, messages and searchable indexes. Do not promote knowledge automatically. Session input: {{session}}",
+      "variables": ["session"]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ToolRuntime } from "../../infra/bases/tool_runtime";
 import {
+  hasObjectOutputSchema,
   inputSchemaWithAgentControl,
   runtimeResultToMcpContent,
   splitMcpToolInput,
@@ -18,7 +19,7 @@ export type AgentMcpServerOptions = {
 };
 
 function mcpToolFromRuntimeTool(tool: ReturnType<ToolRuntime["listTools"]>[number]): Tool {
-  return {
+  const mcpTool: Tool = {
     name: tool.id,
     title: tool.name,
     description: tool.description,
@@ -34,6 +35,12 @@ function mcpToolFromRuntimeTool(tool: ReturnType<ToolRuntime["listTools"]>[numbe
       "agent-devkit/risk": tool.risk,
     },
   };
+
+  if (hasObjectOutputSchema(tool)) {
+    return { ...mcpTool, outputSchema: tool.outputSchema as Tool["outputSchema"] };
+  }
+
+  return mcpTool;
 }
 
 export function createAgentMcpServer(options: AgentMcpServerOptions): Server {
@@ -64,8 +71,9 @@ export function createAgentMcpServer(options: AgentMcpServerOptions): Server {
       interface: "mcp",
       requestedBy: "mcp.tools.call",
     });
+    const tool = options.runtime.getTool(request.params.name);
 
-    return runtimeResultToMcpContent(result);
+    return runtimeResultToMcpContent(result, tool.isOk() && hasObjectOutputSchema(tool.unwrap()));
   });
 
   return server;

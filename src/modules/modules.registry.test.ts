@@ -9,6 +9,7 @@ const moduleOptions = {
 describe("agent module definitions", () => {
   it("lists modules from one central manifest", () => {
     expect(agentModuleDefinitions.map((module) => module.id)).toEqual([
+      "context",
       "environment",
       "logs",
       "project",
@@ -30,6 +31,8 @@ describe("agent module definitions", () => {
     });
 
     expect(capabilityIds).toEqual([
+      "context.projects",
+      "context.sessions",
       "environment.dependencies",
       "logs.analysis",
       "project.doctor",

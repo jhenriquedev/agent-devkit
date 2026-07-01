@@ -3,6 +3,9 @@ import type { AgentDevKitErrorCode } from "../infra/bases/errors";
 import type { AgentDevKitModuleConfig } from "../infra/bases/module";
 import type { Result } from "../infra/bases/result";
 import type { IModuleSurface } from "../infra/bases/surface";
+import { type ContextModuleBindOptions, createContextModuleBindings } from "./context/context.bind";
+import { contextModuleConfig } from "./context/context.config";
+import { createContextSurface } from "./context/context.surface";
 import {
   createEnvironmentModuleBindings,
   type EnvironmentModuleBindOptions,
@@ -27,6 +30,7 @@ import { createUserSurface } from "./user/user.surface";
 
 export type AgentModuleRegistryOptions = ProjectModuleBindOptions &
   SelfModuleBindOptions & {
+    context?: ContextModuleBindOptions;
     environment?: EnvironmentModuleBindOptions;
     logs?: LogsModuleBindOptions;
     secrets?: SecretsModuleBindOptions;
@@ -58,6 +62,14 @@ function bindingView<TBinding extends { capabilities: Record<string, InvokableCa
 }
 
 export const agentModuleDefinitions: AgentModuleDefinition[] = [
+  {
+    id: "context",
+    config: contextModuleConfig,
+    surface: createContextSurface,
+    bind: (options) =>
+      createContextModuleBindings(options.context ?? {}).map((binding) => bindingView(binding)),
+    capabilities,
+  },
   {
     id: "environment",
     config: environmentModuleConfig,

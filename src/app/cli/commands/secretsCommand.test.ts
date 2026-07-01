@@ -72,13 +72,13 @@ describe("agent secrets", () => {
         (await runAgent(home, ["secrets", "show", "openai.apiKey", "--reveal", "--json"])).stdout,
       );
       const vaultBeforeRemove = await readFile(
-        join(home, ".agent-devkit", "secrets", "vault.json"),
+        join(home, ".agent-devkit", "data", "secrets", "vault.json"),
         "utf8",
       );
       const removed = JSON.parse(
         (await runAgent(home, ["secrets", "remove", "openai.apiKey", "--json"])).stdout,
       );
-      const logDirectory = join(home, ".agent-devkit", "logs");
+      const logDirectory = join(home, ".agent-devkit", "data", "logs");
       const logFiles = await readdir(logDirectory);
 
       if (logFiles.length === 0) {
@@ -178,7 +178,7 @@ describe("agent secrets", () => {
       const revealed = JSON.parse(
         (await runAgent(home, ["secrets", "show", "openai.apiKey", "--reveal", "--json"])).stdout,
       );
-      const logDirectory = join(home, ".agent-devkit", "logs");
+      const logDirectory = join(home, ".agent-devkit", "data", "logs");
       const logFiles = await readdir(logDirectory);
       const logs = (
         await Promise.all(logFiles.map((logFile) => readFile(join(logDirectory, logFile), "utf8")))

@@ -1,0 +1,11 @@
+{
+  "moduleId": "context",
+  "summary": "Context stores projects and sessions under ~/.agent-devkit/data/context. Sessions record what happened; knowledge stores durable reusable project facts.",
+  "facts": [
+    "Projects live under data/context/projects/<project-id>.",
+    "Standalone sessions live under data/context/sessions/<session-id>.",
+    "Project sessions live under data/context/projects/<project-id>/sessions/<session-id>.",
+    "messages.jsonl is append-only.",
+    "Knowledge promotion is documented but not automated in this phase."
+  ]
+}

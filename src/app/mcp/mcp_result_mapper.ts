@@ -13,9 +13,18 @@ export function inputSchemaWithAgentControl(tool: ToolRuntimeTool): Record<strin
       ? (schema.properties as Record<string, unknown>)
       : {};
 
-  return {
+  const normalized = {
     ...schema,
     type: "object",
+    properties: { ...properties },
+  };
+
+  if (!tool.approval.required) {
+    return normalized;
+  }
+
+  return {
+    ...normalized,
     properties: {
       ...properties,
       _agent: {
@@ -53,14 +62,29 @@ export function splitMcpToolInput(input: unknown): {
   };
 }
 
-export function runtimeResultToMcpContent(result: ToolRuntimeResult) {
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(result, null, 2),
-      },
-    ],
-    isError: result.status !== "succeeded",
-  };
+function isStructuredObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function hasObjectOutputSchema(tool: ToolRuntimeTool): boolean {
+  return isStructuredObject(tool.outputSchema) && tool.outputSchema.type === "object";
+}
+
+export function runtimeResultToMcpContent(
+  result: ToolRuntimeResult,
+  includeStructuredContent = false,
+) {
+  const isError = result.status !== "succeeded";
+  const content = [
+    {
+      type: "text" as const,
+      text: JSON.stringify(result, null, 2),
+    },
+  ];
+
+  if (!isError && includeStructuredContent && isStructuredObject(result.output)) {
+    return { content, isError, structuredContent: result.output };
+  }
+
+  return { content, isError };
 }

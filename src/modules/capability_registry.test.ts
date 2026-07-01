@@ -22,6 +22,8 @@ describe("agent capability registry", () => {
     const capabilities = result.unwrap().list();
 
     expect(capabilities.map((capability) => capability.id)).toEqual([
+      "context.projects",
+      "context.sessions",
       "environment.dependencies",
       "logs.analysis",
       "project.doctor",
@@ -34,6 +36,26 @@ describe("agent capability registry", () => {
     ]);
     expect(capabilities).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          id: "context.projects",
+          approval: {
+            reason: "Capability writes global state.",
+            required: true,
+          },
+          inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          outputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          risk: "writes-global-state",
+        }),
+        expect.objectContaining({
+          id: "context.sessions",
+          approval: {
+            reason: "Capability writes global state.",
+            required: true,
+          },
+          inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          outputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          risk: "writes-global-state",
+        }),
         expect.objectContaining({
           id: "environment.dependencies",
           approval: {
@@ -191,6 +213,44 @@ describe("agent capability registry", () => {
       error: {
         code: ErrorCodes.ApprovalRequired,
       },
+    });
+  });
+
+  it("requires approval for context hard deletes through the registry", async () => {
+    const result = registry();
+    const invocation = await result
+      .unwrap()
+      .invoke(
+        "context.sessions",
+        { action: "delete", hard: true, sessionId: "ses_missing" },
+        { interface: "agent" },
+      );
+
+    expect(invocation).toMatchObject({
+      ok: false,
+      capabilityId: "context.sessions",
+      error: { code: ErrorCodes.ApprovalRequired },
+    });
+  });
+
+  it("allows context read actions without approval through the registry", async () => {
+    const result = registry();
+    const projects = await result
+      .unwrap()
+      .invoke("context.projects", { action: "list" }, { interface: "agent" });
+    const sessions = await result
+      .unwrap()
+      .invoke("context.sessions", { action: "search", query: "memory" }, { interface: "agent" });
+
+    expect(projects).toMatchObject({
+      ok: true,
+      capabilityId: "context.projects",
+      effects: [{ operation: "read", scope: "none" }],
+    });
+    expect(sessions).toMatchObject({
+      ok: true,
+      capabilityId: "context.sessions",
+      effects: [{ operation: "read", scope: "none" }],
     });
   });
 

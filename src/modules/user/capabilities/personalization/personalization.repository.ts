@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { access, copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,8 +9,10 @@ import {
   CharacterDefinitionSchema,
   type CharacterId,
 } from "../../../../infra/bases/character";
+import type { AgentDataStore } from "../../../../infra/bases/data_store";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
+import { LocalAgentDataStore } from "../../../../infra/data/local_agent_data_store";
 import {
   type CharacterListItem,
   type UserPersonalizationState,
@@ -19,6 +21,7 @@ import {
 
 export type PersonalizationRepositoryOptions = {
   assetsDirectory?: string;
+  dataStore?: AgentDataStore;
   homeDirectory?: string;
 };
 
@@ -69,11 +72,17 @@ function cloneCharacter(character: CharacterDefinition): CharacterDefinition {
 export class PersonalizationRepository implements PersonalizationRepositoryPort {
   readonly repositoryId = "user.personalization.repository";
   readonly #assetsDirectory: string;
+  readonly #dataStore: AgentDataStore;
   readonly #homeDirectory: string;
 
   constructor(options: PersonalizationRepositoryOptions = {}) {
     this.#assetsDirectory = options.assetsDirectory ?? defaultAssetsDirectory();
     this.#homeDirectory = options.homeDirectory ?? homedir();
+    this.#dataStore =
+      options.dataStore ??
+      new LocalAgentDataStore({
+        rootDirectory: join(this.#homeDirectory, ".agent-devkit", "data"),
+      });
   }
 
   charactersDirectory(): string {
@@ -81,7 +90,14 @@ export class PersonalizationRepository implements PersonalizationRepositoryPort 
   }
 
   customCharactersDirectory(): string {
-    return join(this.#homeDirectory, ".agent-devkit", "characters");
+    const resolved = this.#dataStore.resolve({
+      namespace: "personalization",
+      segments: ["characters"],
+    });
+
+    return resolved.isOk()
+      ? resolved.unwrap()
+      : join(this.#homeDirectory, ".agent-devkit", "data", "personalization", "characters");
   }
 
   async defaultState(): Promise<Result<AgentDevKitErrorCode, UserPersonalizationState>> {
@@ -174,14 +190,48 @@ export class PersonalizationRepository implements PersonalizationRepositoryPort 
   }
 
   async loadProfile(): Promise<Result<AgentDevKitErrorCode, UserPersonalizationState>> {
+    const path = { namespace: "personalization" as const, segments: ["profile.json"] };
+    const exists = await this.#dataStore.exists(path);
+
+    if (exists.isErr()) {
+      return Result.fail(exists.unwrapError());
+    }
+
+    if (exists.unwrap()) {
+      const payload = await this.#dataStore.readJson<unknown>(path);
+
+      if (payload.isErr()) {
+        return Result.fail(payload.unwrapError());
+      }
+
+      const parsed = UserPersonalizationStateSchema.safeParse(payload.unwrap());
+
+      return parsed.success ? Result.ok(parsed.data) : Result.fail(ErrorCodes.InvalidInput);
+    }
+
+    const legacy = await this.#loadLegacyProfile();
+
+    if (legacy.isOk()) {
+      await this.saveProfile(legacy.unwrap());
+      return legacy;
+    }
+
+    if (legacy.unwrapError() !== ErrorCodes.FileReadFailed) {
+      return Result.fail(legacy.unwrapError());
+    }
+
+    return this.defaultState();
+  }
+
+  async #loadLegacyProfile(): Promise<Result<AgentDevKitErrorCode, UserPersonalizationState>> {
     try {
-      await access(this.profilePath());
+      await access(this.#legacyProfilePath());
     } catch {
-      return this.defaultState();
+      return Result.fail(ErrorCodes.FileReadFailed);
     }
 
     try {
-      const payload = JSON.parse(await readFile(this.profilePath(), "utf8"));
+      const payload = JSON.parse(await readFile(this.#legacyProfilePath(), "utf8"));
       const parsed = UserPersonalizationStateSchema.safeParse(payload);
 
       if (!parsed.success) {
@@ -195,18 +245,24 @@ export class PersonalizationRepository implements PersonalizationRepositoryPort 
   }
 
   profilePath(): string {
-    return join(this.#homeDirectory, ".agent-devkit", "personalization.json");
+    const resolved = this.#dataStore.resolve({
+      namespace: "personalization",
+      segments: ["profile.json"],
+    });
+
+    return resolved.isOk()
+      ? resolved.unwrap()
+      : join(this.#homeDirectory, ".agent-devkit", "data", "personalization", "profile.json");
   }
 
   async saveCustomCharacter(
     character: CharacterDefinition,
   ): Promise<Result<AgentDevKitErrorCode, void>> {
     try {
-      const target = join(this.customCharactersDirectory(), character.id, "character.json");
-
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, `${JSON.stringify(character, null, 2)}\n`);
-      return Result.ok(undefined);
+      return await this.#dataStore.writeJson(
+        { namespace: "personalization", segments: ["characters", character.id, "character.json"] },
+        character,
+      );
     } catch {
       return Result.fail(ErrorCodes.FileWriteFailed);
     }
@@ -216,15 +272,27 @@ export class PersonalizationRepository implements PersonalizationRepositoryPort 
     profile: UserPersonalizationState,
   ): Promise<Result<AgentDevKitErrorCode, void>> {
     try {
-      await mkdir(dirname(this.profilePath()), { recursive: true });
-      await writeFile(this.profilePath(), `${JSON.stringify(profile, null, 2)}\n`);
-      return Result.ok(undefined);
+      return await this.#dataStore.writeJson(
+        { namespace: "personalization", segments: ["profile.json"] },
+        profile,
+      );
     } catch {
       return Result.fail(ErrorCodes.FileWriteFailed);
     }
   }
 
   async #loadCustomCharacters(): Promise<Result<AgentDevKitErrorCode, CharacterDefinition[]>> {
+    const legacy = await this.#loadLegacyCustomCharacters();
+
+    if (legacy.isOk()) {
+      for (const character of legacy.unwrap()) {
+        await this.saveCustomCharacter(character);
+        await this.#migrateLegacySprite(character.id);
+      }
+    } else if (legacy.unwrapError() !== ErrorCodes.FileReadFailed) {
+      return Result.fail(legacy.unwrapError());
+    }
+
     try {
       await access(this.customCharactersDirectory());
     } catch {
@@ -309,5 +377,50 @@ export class PersonalizationRepository implements PersonalizationRepositoryPort 
     return candidates
       .map((candidate) => join(directory, candidate))
       .find((candidate) => existsSync(candidate));
+  }
+
+  async #loadLegacyCustomCharacters(): Promise<
+    Result<AgentDevKitErrorCode, CharacterDefinition[]>
+  > {
+    try {
+      await access(this.#legacyCustomCharactersDirectory());
+    } catch {
+      return Result.fail(ErrorCodes.FileReadFailed);
+    }
+
+    return this.#loadCharactersFromDirectory(this.#legacyCustomCharactersDirectory());
+  }
+
+  async #migrateLegacySprite(characterId: CharacterId): Promise<void> {
+    const source = ["sprite.js", "sprite.svg", "sprite.png", "sprite.jpg", "sprite.jpeg"]
+      .map((candidate) => join(this.#legacyCustomCharactersDirectory(), characterId, candidate))
+      .find((candidate) => existsSync(candidate));
+
+    if (source === undefined) {
+      return;
+    }
+
+    const extension = basename(source).includes(".")
+      ? `.${basename(source).split(".").pop() ?? "sprite"}`
+      : "";
+    const target = this.#dataStore.resolve({
+      namespace: "personalization",
+      segments: ["characters", characterId, `sprite${extension}`],
+    });
+
+    if (target.isErr()) {
+      return;
+    }
+
+    await mkdir(dirname(target.unwrap()), { recursive: true });
+    await copyFile(source, target.unwrap()).catch(() => undefined);
+  }
+
+  #legacyCustomCharactersDirectory(): string {
+    return join(this.#homeDirectory, ".agent-devkit", "characters");
+  }
+
+  #legacyProfilePath(): string {
+    return join(this.#homeDirectory, ".agent-devkit", "personalization.json");
   }
 }

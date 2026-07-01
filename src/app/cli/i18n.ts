@@ -21,7 +21,17 @@ function isLogRetentionDays(value: unknown): value is number {
 }
 
 export function loadCliUserPreferences(homeDirectory: string = homedir()): CliUserPreferences {
-  const preferencesPath = join(homeDirectory, ".agent-devkit", "preferences.json");
+  const canonicalPreferencesPath = join(
+    homeDirectory,
+    ".agent-devkit",
+    "data",
+    "preferences",
+    "preferences.json",
+  );
+  const legacyPreferencesPath = join(homeDirectory, ".agent-devkit", "preferences.json");
+  const preferencesPath = existsSync(canonicalPreferencesPath)
+    ? canonicalPreferencesPath
+    : legacyPreferencesPath;
 
   if (!existsSync(preferencesPath)) {
     return { language: "pt-BR", logRetentionDays: 30 };

@@ -138,19 +138,6 @@ export class CapabilityRegistry {
       );
     }
 
-    const approval = approvalFor(capability);
-
-    if (approval.required && context.approved !== true) {
-      const endedAt = this.#clock();
-      return failure(
-        capabilityId,
-        audit(startedAt, endedAt),
-        ErrorCodes.ApprovalRequired,
-        `Capability ${capabilityId} requires explicit approval.`,
-        approval.reason,
-      );
-    }
-
     const parsed = capability.inputSchema.safeParse(input);
 
     if (!parsed.success) {
@@ -161,6 +148,19 @@ export class CapabilityRegistry {
         ErrorCodes.InvalidInput,
         "Capability input did not match the declared schema.",
         z.prettifyError(parsed.error),
+      );
+    }
+
+    const approval = capability.approvalForInput?.(parsed.data, context) ?? approvalFor(capability);
+
+    if (approval.required && context.approved !== true) {
+      const endedAt = this.#clock();
+      return failure(
+        capabilityId,
+        audit(startedAt, endedAt),
+        ErrorCodes.ApprovalRequired,
+        `Capability ${capabilityId} requires explicit approval.`,
+        approval.reason,
       );
     }
 
@@ -193,7 +193,7 @@ export class CapabilityRegistry {
       audit: auditPayload,
       capabilityId,
       data: output.data,
-      effects: effectsFor(capability),
+      effects: capability.effectsForInput?.(parsed.data, context) ?? effectsFor(capability),
       ok: true,
     };
   }

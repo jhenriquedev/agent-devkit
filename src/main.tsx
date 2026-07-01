@@ -10,9 +10,11 @@ import { registerLogsCommand } from "./app/cli/commands/logsCommand";
 import { registerMcpCommand } from "./app/cli/commands/mcpCommand";
 import { registerPersonalizationCommand } from "./app/cli/commands/personalizationCommand";
 import { registerPreferencesCommand } from "./app/cli/commands/preferencesCommand";
+import { registerProjectsCommand } from "./app/cli/commands/projectsCommand";
 import { registerResetCommand } from "./app/cli/commands/resetCommand";
 import { registerRunCommand } from "./app/cli/commands/runCommand";
 import { registerSecretsCommand } from "./app/cli/commands/secretsCommand";
+import { registerSessionsCommand } from "./app/cli/commands/sessionsCommand";
 import { registerToolsCommand } from "./app/cli/commands/toolsCommand";
 import { registerUpdateCommand } from "./app/cli/commands/updateCommand";
 import {
@@ -68,6 +70,7 @@ registerMcpCommand(program, {
 });
 registerPersonalizationCommand(program, { translator, usageLogging });
 registerPreferencesCommand(program, { translator, usageLogging });
+registerProjectsCommand(program, { translator, usageLogging });
 registerResetCommand(program, { appVersion: packageJson.version, translator, usageLogging });
 registerRunCommand(program, {
   currentVersion: packageJson.version,
@@ -76,6 +79,7 @@ registerRunCommand(program, {
   usageLogging,
 });
 registerSecretsCommand(program, { translator, usageLogging });
+registerSessionsCommand(program, { translator, usageLogging });
 registerToolsCommand(program, {
   currentVersion: packageJson.version,
   packageName: packageJson.name,

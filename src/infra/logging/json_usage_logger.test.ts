@@ -25,7 +25,7 @@ describe("json usage logger", () => {
     expect(result.isOk()).toBe(true);
 
     const content = await readFile(
-      join(root, ".agent-devkit", "logs", "usage-2026-06-30.jsonl"),
+      join(root, ".agent-devkit", "data", "logs", "usage-2026-06-30.jsonl"),
       "utf8",
     );
     const event = JSON.parse(content.trim());
@@ -85,7 +85,7 @@ describe("json usage logger", () => {
     expect(result.isOk()).toBe(true);
 
     const content = await readFile(
-      join(root, ".agent-devkit", "logs", "usage-2026-06-30.jsonl"),
+      join(root, ".agent-devkit", "data", "logs", "usage-2026-06-30.jsonl"),
       "utf8",
     );
     const event = JSON.parse(content.trim());
@@ -95,7 +95,7 @@ describe("json usage logger", () => {
 
   it("removes usage log files older than the configured retention window", async () => {
     const root = await mkdtemp(join(tmpdir(), "agent-devkit-logs-"));
-    const logsDirectory = join(root, ".agent-devkit", "logs");
+    const logsDirectory = join(root, ".agent-devkit", "data", "logs");
     const now = new Date("2026-06-30T12:00:00.000Z");
     await mkdir(logsDirectory, { recursive: true });
     await writeFile(join(logsDirectory, "usage-2026-05-30.jsonl"), "{}\n");

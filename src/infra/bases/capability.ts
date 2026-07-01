@@ -125,6 +125,10 @@ export abstract class BaseCapabilityService<
     input: TInput,
     context: CapabilityInvocationContext,
   ): Promise<Result<AgentDevKitErrorCode, TOutput>>;
+
+  approvalForInput?(input: TInput, context: CapabilityInvocationContext): CapabilityApproval;
+
+  effectsForInput?(input: TInput, context: CapabilityInvocationContext): CapabilityEffect[];
 }
 
 export function defineCapabilityConfig<TConfig extends CapabilityConfig>(config: TConfig): TConfig {

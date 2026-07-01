@@ -12,5 +12,17 @@ export async function startMcpStdioServer(options: StartMcpStdioServerOptions): 
   const server = createAgentMcpServer(options);
   const transport = new StdioServerTransport();
 
+  const shutdown = async (): Promise<void> => {
+    await server.close().catch(() => undefined);
+    await transport.close().catch(() => undefined);
+  };
+
+  process.once("SIGINT", () => {
+    void shutdown().finally(() => process.exit(0));
+  });
+  process.once("SIGTERM", () => {
+    void shutdown().finally(() => process.exit(0));
+  });
+
   await server.connect(transport);
 }

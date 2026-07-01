@@ -77,7 +77,10 @@ describe("agent personalization", () => {
       });
 
       const persisted = JSON.parse(
-        await readFile(join(home, ".agent-devkit", "personalization.json"), "utf8"),
+        await readFile(
+          join(home, ".agent-devkit", "data", "personalization", "profile.json"),
+          "utf8",
+        ),
       );
 
       expect(persisted.currentCharacter.name).toBe("Robot");
@@ -110,7 +113,7 @@ describe("agent personalization", () => {
       });
 
       await expect(
-        access(join(home, ".agent-devkit", "personalization.json")),
+        access(join(home, ".agent-devkit", "data", "personalization", "profile.json")),
       ).rejects.toMatchObject({ code: "ENOENT" });
 
       const view = JSON.parse((await runAgent(home, ["personalization", "--json"])).stdout);

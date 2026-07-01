@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 const entry = new URL(`../${packageJson.bin.agent}`, import.meta.url);
 const expectedSurfaceFiles = ["knowledge.json", "loop.json", "prompt.json", "skill.json"];
-const expectedModules = ["logs", "project", "secrets", "self", "user"];
+const expectedModules = ["context", "logs", "project", "secrets", "self", "user"];
 
 async function run(command, args, options = {}) {
   return execFileAsync(command, args, {
@@ -98,6 +98,15 @@ try {
   const preferences = await assertJsonCommand(agentBin, ["preferences", "--json"], env);
   if (preferences.preferences.theme !== "default-purple") {
     throw new Error("Packaged preferences smoke test returned an invalid payload.");
+  }
+
+  if (packageJson.dependencies?.["@modelcontextprotocol/sdk"] === undefined) {
+    throw new Error("Missing @modelcontextprotocol/sdk dependency for the MCP server.");
+  }
+
+  const { stdout: mcpHelp } = await run(agentBin, ["mcp", "--help"], { env });
+  if (!mcpHelp.includes("stdio") || !mcpHelp.includes("http")) {
+    throw new Error("Packaged MCP command is missing stdio/http subcommands.");
   }
 
   for (const file of [

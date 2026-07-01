@@ -60,6 +60,15 @@ function defaultVault(): VaultFile {
   };
 }
 
+function isNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "ENOENT"
+  );
+}
+
 function sortSecrets(left: SecretSummary, right: SecretSummary): number {
   return left.name.localeCompare(right.name);
 }
@@ -67,18 +76,17 @@ function sortSecrets(left: SecretSummary, right: SecretSummary): number {
 export class EncryptedSecretStore {
   readonly #clock: () => Date;
   readonly #crypto: SecretCrypto;
+  readonly #legacyVaultPath: string;
   readonly #logger: Logger;
   readonly #vaultPath: string;
 
   constructor(options: EncryptedSecretStoreOptions) {
+    const stateDirectory = options.stateDirectory ?? defaultStateDirectory();
     this.#clock = options.clock ?? (() => new Date());
     this.#crypto = options.crypto;
     this.#logger = options.logger ?? new NullLogger();
-    this.#vaultPath = join(
-      options.stateDirectory ?? defaultStateDirectory(),
-      "secrets",
-      "vault.json",
-    );
+    this.#vaultPath = join(stateDirectory, "data", "secrets", "vault.json");
+    this.#legacyVaultPath = join(stateDirectory, "secrets", "vault.json");
   }
 
   path(): string {
@@ -299,12 +307,55 @@ export class EncryptedSecretStore {
   async #readVault(): Promise<Result<AgentDevKitErrorCode, VaultFile>> {
     try {
       await access(this.#vaultPath);
-    } catch {
-      return Result.ok(defaultVault());
+    } catch (error) {
+      if (!isNotFoundError(error)) {
+        this.#logger.write("error", "Secret vault access failed.", {
+          error: errorCause(error),
+          path: this.#vaultPath,
+        });
+        return Result.fail(ErrorCodes.FileReadFailed);
+      }
+
+      try {
+        await access(this.#legacyVaultPath);
+      } catch (legacyError) {
+        if (!isNotFoundError(legacyError)) {
+          this.#logger.write("error", "Legacy secret vault access failed.", {
+            error: errorCause(legacyError),
+            path: this.#legacyVaultPath,
+          });
+          return Result.fail(ErrorCodes.FileReadFailed);
+        }
+
+        return Result.ok(defaultVault());
+      }
+
+      const legacy = await this.#readVaultFile(this.#legacyVaultPath);
+
+      if (legacy.isErr()) {
+        return Result.fail(legacy.unwrapError());
+      }
+
+      const migrate = await this.#writeVault(legacy.unwrap());
+
+      if (migrate.isErr()) {
+        return Result.fail(migrate.unwrapError());
+      }
+
+      this.#logger.write("info", "Secret vault migrated to canonical data directory.", {
+        from: this.#legacyVaultPath,
+        to: this.#vaultPath,
+      });
+
+      return legacy;
     }
 
+    return this.#readVaultFile(this.#vaultPath);
+  }
+
+  async #readVaultFile(path: string): Promise<Result<AgentDevKitErrorCode, VaultFile>> {
     try {
-      const payload = JSON.parse(await readFile(this.#vaultPath, "utf8")) as Partial<VaultFile>;
+      const payload = JSON.parse(await readFile(path, "utf8")) as Partial<VaultFile>;
 
       if (payload.schema !== "agent-devkit.secret-vault/v1" || !Array.isArray(payload.secrets)) {
         return Result.fail(ErrorCodes.InvalidInput);
@@ -318,7 +369,7 @@ export class EncryptedSecretStore {
     } catch (error) {
       this.#logger.write("error", "Secret vault read failed.", {
         error: errorCause(error),
-        path: this.#vaultPath,
+        path,
       });
       return Result.fail(ErrorCodes.FileReadFailed);
     }

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { I18nCatalog } from "../../../../infra/assets/i18n_catalog";
@@ -103,7 +103,10 @@ describe("PersonalizationService", () => {
       });
 
       const payload = JSON.parse(
-        await readFile(join(home, ".agent-devkit", "personalization.json"), "utf8"),
+        await readFile(
+          join(home, ".agent-devkit", "data", "personalization", "profile.json"),
+          "utf8",
+        ),
       );
 
       expect(payload).toMatchObject({
@@ -212,7 +215,7 @@ describe("PersonalizationService", () => {
       expect(yukiCharacters[0]).toMatchObject({
         custom: true,
         spritePath: expect.stringContaining(
-          join(".agent-devkit", "characters", "yuki", "sprite.js"),
+          join(".agent-devkit", "data", "personalization", "characters", "yuki", "sprite.js"),
         ),
       });
     } finally {
@@ -241,6 +244,94 @@ describe("PersonalizationService", () => {
 
       expect(reset.isOk()).toBe(true);
       expect(reset.unwrap().profile.currentCharacter.id).toBe("yuki");
+    } finally {
+      await rm(home, { force: true, recursive: true });
+    }
+  });
+
+  it("migrates legacy profile and custom characters into the canonical data directory", async () => {
+    const home = await mkdtemp(join(tmpdir(), "agent-devkit-personalization-"));
+    const legacyCharacterDirectory = join(home, ".agent-devkit", "characters", "legacy");
+    const legacyProfilePath = join(home, ".agent-devkit", "personalization.json");
+
+    try {
+      await mkdir(legacyCharacterDirectory, { recursive: true });
+      await writeFile(
+        legacyProfilePath,
+        JSON.stringify({
+          schema: "agent-devkit.agent-personalization/v2",
+          currentCharacter: {
+            active: true,
+            default: false,
+            i18n: {
+              descriptionKey: "characters.yuki.description",
+              nameKey: "characters.yuki.name",
+              taglineKey: "characters.yuki.tagline",
+            },
+            id: "legacy",
+            name: "Legacy",
+            profile: {
+              archetype: "legacy",
+              behavior: "pragmatic",
+              detailLevel: "technical",
+              gender: "female",
+              tone: "formal",
+              traits: ["legacy"],
+            },
+            schema: "agent-devkit.character/v1",
+          },
+          selectedPresetId: "yuki",
+          updatedAt: "2026-07-01T00:00:00.000Z",
+        }),
+      );
+      await writeFile(
+        join(legacyCharacterDirectory, "character.json"),
+        JSON.stringify({
+          schema: "agent-devkit.character/v1",
+          id: "legacy",
+          active: true,
+          default: false,
+          i18n: {
+            descriptionKey: "characters.yuki.description",
+            nameKey: "characters.yuki.name",
+            taglineKey: "characters.yuki.tagline",
+          },
+          name: "Legacy",
+          profile: {
+            archetype: "legacy",
+            behavior: "pragmatic",
+            detailLevel: "technical",
+            gender: "female",
+            tone: "formal",
+            traits: ["legacy"],
+          },
+        }),
+      );
+
+      const result = await (await service(home)).execute({ action: "view" });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().profile.currentCharacter.id).toBe("legacy");
+      expect(result.unwrap().characters).toEqual(
+        expect.arrayContaining([expect.objectContaining({ custom: true, id: "legacy" })]),
+      );
+      await expect(
+        readFile(join(home, ".agent-devkit", "data", "personalization", "profile.json"), "utf8"),
+      ).resolves.toContain("legacy");
+      await expect(
+        readFile(
+          join(
+            home,
+            ".agent-devkit",
+            "data",
+            "personalization",
+            "characters",
+            "legacy",
+            "character.json",
+          ),
+          "utf8",
+        ),
+      ).resolves.toContain("Legacy");
     } finally {
       await rm(home, { force: true, recursive: true });
     }

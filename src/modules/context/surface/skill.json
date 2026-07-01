@@ -1,0 +1,13 @@
+{
+  "moduleId": "context",
+  "purpose": "Manage Agent DevKit projects and sessions as structured local context.",
+  "whenToUse": [
+    "The user wants to persist or resume a conversation.",
+    "The user wants to organize sessions by project.",
+    "An external agent needs searchable context history."
+  ],
+  "whenNotToUse": [
+    "The user expects semantic vector memory.",
+    "The user asks to promote durable knowledge automatically."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "moduleId": "context",
+  "mode": "stateful-context",
+  "allowedActions": [
+    "Create and list projects.",
+    "Create, append, search and resume sessions.",
+    "Archive or soft delete context records when requested."
+  ],
+  "forbiddenActions": [
+    "Invent durable knowledge without explicit source.",
+    "Hard delete context without approval.",
+    "Treat session search as semantic vector retrieval."
+  ],
+  "approvalRequired": true
+}

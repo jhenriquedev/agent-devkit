@@ -16,7 +16,7 @@ async function runAgent(home: string, args: string[]) {
 }
 
 async function readTechnicalLog(home: string): Promise<string> {
-  const logDirectory = join(home, ".agent-devkit", "logs");
+  const logDirectory = join(home, ".agent-devkit", "data", "logs");
   const logFiles = await readdir(logDirectory);
   const technicalLogFile = logFiles.find((file) => file.startsWith("technical-"));
 

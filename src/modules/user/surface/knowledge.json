@@ -1,6 +1,6 @@
 {
   "moduleId": "user",
-  "summary": "User-level Agent DevKit preferences are stored globally under ~/.agent-devkit.",
+  "summary": "User-level Agent DevKit preferences are stored globally under ~/.agent-devkit/data/preferences.",
   "references": [
     "Themes are loaded from src/assets/themes.",
     "The default theme is default-purple."

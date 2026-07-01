@@ -29,7 +29,17 @@ function writeText(res: ServerResponse, statusCode: number, text: string): void 
 
 export async function startMcpHttpServer(options: StartMcpHttpServerOptions): Promise<Server> {
   const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
-    if (req.url === undefined || new URL(req.url, "http://127.0.0.1").pathname !== endpointPath) {
+    const pathname = req.url === undefined ? "" : new URL(req.url, "http://127.0.0.1").pathname;
+
+    if (pathname === "/health" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      res.end(
+        JSON.stringify({ name: options.packageName, status: "ok", version: options.version }),
+      );
+      return;
+    }
+
+    if (pathname !== endpointPath) {
       writeText(res, 404, "Not found");
       return;
     }
@@ -45,8 +55,17 @@ export async function startMcpHttpServer(options: StartMcpHttpServerOptions): Pr
     }
 
     try {
+      const address = httpServer.address();
+      const activePort =
+        typeof address === "object" && address !== null ? address.port : options.port;
       const server = createAgentMcpServer(options);
       const transport = new StreamableHTTPServerTransport({
+        allowedHosts: [
+          `${options.host}:${activePort}`,
+          `127.0.0.1:${activePort}`,
+          `localhost:${activePort}`,
+        ],
+        enableDnsRebindingProtection: true,
         sessionIdGenerator: undefined,
       });
 

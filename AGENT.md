@@ -76,7 +76,7 @@ traversal outside `src/assets`.
 
 Theme assets live in `src/assets/themes`. The default theme is
 `default-purple`, based on the TUI design system in `docs/ai-devkit-ui`.
-User preferences live under `~/.agent-devkit/preferences.json` and must be
+User preferences live under `~/.agent-devkit/data/preferences/preferences.json` and must be
 changed through the `user.preferences` capability.
 
 Capabilities must extend the canonical base from
@@ -120,6 +120,8 @@ Initial commands should stay intentionally small:
 - `agent reset`
 - `agent update`
 - `agent install <dependency>`
+- `agent projects`
+- `agent sessions`
 - `agent tools`
 - `agent run <capabilityId> --input '<json>'`
 - `agent mcp`
@@ -134,7 +136,9 @@ Initial commands should stay intentionally small:
 - Installing the npm package must not create `~/.agent-devkit/` or
   `<project>/.agent-devkit/`. Runtime state is created only after the user runs
   the tool and a command needs that scope.
-- Global user state belongs under `~/.agent-devkit/`.
+- Global user state belongs under `~/.agent-devkit/`, with generated runtime
+  data under `~/.agent-devkit/data/` and key material under
+  `~/.agent-devkit/keys/`.
 - Project-local state belongs under `<project>/.agent-devkit/` and should be
   created only by explicit project flows such as `agent init` or
   `agent install project`.

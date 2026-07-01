@@ -11,6 +11,7 @@ export function createCliToolRuntime(options: CliToolRuntimeOptions): ToolRuntim
   const homeDirectory = homedir();
   const runtime = createCapabilityToolRuntime({
     appVersion: options.currentVersion,
+    context: { homeDirectory },
     currentVersion: options.currentVersion,
     logs: { homeDirectory },
     packageName: options.packageName,

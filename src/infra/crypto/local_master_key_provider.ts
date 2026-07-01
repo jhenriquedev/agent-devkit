@@ -17,11 +17,18 @@ function defaultStateDirectory(): string {
 }
 
 export class LocalMasterKeyProvider implements SecretKeyProvider {
+  readonly #legacyKeyPaths: string[];
   readonly #keyPath: string;
   readonly #logger: Logger;
 
   constructor(options: LocalMasterKeyProviderOptions = {}) {
-    this.#keyPath = join(options.stateDirectory ?? defaultStateDirectory(), "keys", "local.key");
+    const stateDirectory = options.stateDirectory ?? defaultStateDirectory();
+    this.#keyPath = join(stateDirectory, "keys", "master.key");
+    this.#legacyKeyPaths = [
+      join(stateDirectory, "keys", "local.key"),
+      join(stateDirectory, "secrets", "master.key"),
+      join(stateDirectory, "master.key"),
+    ];
     this.#logger = options.logger ?? new NullLogger();
   }
 
@@ -42,7 +49,17 @@ export class LocalMasterKeyProvider implements SecretKeyProvider {
       }
     }
 
+    const legacyKey = await this.#readLegacyKey();
+
+    if (legacyKey !== undefined) {
+      return this.#persistKey(legacyKey);
+    }
+
     const key = randomBytes(32);
+    return this.#persistKey(key);
+  }
+
+  async #persistKey(key: Buffer): Promise<Buffer> {
     await mkdir(dirname(this.#keyPath), { recursive: true, mode: 0o700 });
 
     try {
@@ -65,5 +82,23 @@ export class LocalMasterKeyProvider implements SecretKeyProvider {
     }
 
     return key;
+  }
+
+  async #readLegacyKey(): Promise<Buffer | undefined> {
+    for (const path of this.#legacyKeyPaths) {
+      try {
+        return Buffer.from((await readFile(path, "utf8")).trim(), "base64");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+          this.#logger.write("error", "Legacy local master key read failed.", {
+            error: errorCause(error),
+            path,
+          });
+          throw error;
+        }
+      }
+    }
+
+    return undefined;
   }
 }

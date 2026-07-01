@@ -164,6 +164,21 @@ agent install project
 
 When `.agent-devkit/` exists, it should concentrate Agent DevKit state for that
 scope instead of spreading generated files across unrelated project paths.
+Runtime data uses a canonical local store layout:
+
+```txt
+~/.agent-devkit/
+  data/
+    preferences/
+    personalization/
+    logs/
+    secrets/
+    context/
+  keys/
+```
+
+`data/` contains generated runtime data. `keys/` contains local key material and
+is intentionally kept outside `data/`.
 
 Maintenance commands:
 
@@ -179,6 +194,12 @@ agent preferences --json
 agent preferences themes
 agent preferences set-theme forest-teal
 agent preferences update --theme ocean-blue
+agent projects
+agent projects create --name "Agent DevKit" --path .
+agent sessions
+agent sessions create --title "Planning"
+agent sessions search "memory"
+agent sessions resume <session-id>
 agent tools
 agent tools --json
 agent install node --dry-run
@@ -243,6 +264,20 @@ For local MCP hosts that launch a subprocess, use stdio:
 ```bash
 agent mcp
 agent mcp stdio
+```
+
+Add Agent DevKit to a stdio MCP host such as Claude Desktop by pointing its
+`claude_desktop_config.json` at the installed `agent` binary:
+
+```json
+{
+  "mcpServers": {
+    "agent-devkit": {
+      "command": "agent",
+      "args": ["mcp", "stdio"]
+    }
+  }
+}
 ```
 
 For local HTTP clients, use Streamable HTTP on the single `/mcp` endpoint:

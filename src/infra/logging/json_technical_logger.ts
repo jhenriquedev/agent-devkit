@@ -1,13 +1,15 @@
-import { access, appendFile, mkdir, readdir, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import type { AgentDataStore } from "../bases/data_store";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../bases/errors";
 import type { TechnicalLogEvent, TechnicalLogger, TechnicalLogInput } from "../bases/logger";
 import { Result } from "../bases/result";
+import { LocalAgentDataStore } from "../data";
 import { redactRecord } from "../helpers/redaction";
 
 export type JsonTechnicalLoggerOptions = {
   clock?: () => Date;
+  dataStore?: AgentDataStore;
   retentionDays?: number;
   stateDirectory?: string;
 };
@@ -52,19 +54,21 @@ function normalizeMetadata(
 
 export class JsonTechnicalLogger implements TechnicalLogger {
   readonly #clock: () => Date;
+  readonly #dataStore: AgentDataStore;
   readonly #retentionDays: number;
-  readonly #stateDirectory: string;
 
   constructor(options: JsonTechnicalLoggerOptions = {}) {
     this.#clock = options.clock ?? (() => new Date());
+    this.#dataStore =
+      options.dataStore ??
+      new LocalAgentDataStore({
+        rootDirectory: join(options.stateDirectory ?? defaultStateDirectory(), "data"),
+      });
     this.#retentionDays = options.retentionDays ?? 30;
-    this.#stateDirectory = options.stateDirectory ?? defaultStateDirectory();
   }
 
   async writeTechnical(input: TechnicalLogInput): Promise<Result<AgentDevKitErrorCode, void>> {
     const timestamp = this.#clock();
-    const logsDirectory = join(this.#stateDirectory, "logs");
-    const logPath = join(logsDirectory, logFileName(timestamp));
     const { createStateIfMissing, ...logInput } = input;
     const event: TechnicalLogEvent = {
       ...logInput,
@@ -76,15 +80,26 @@ export class JsonTechnicalLogger implements TechnicalLogger {
 
     try {
       if (createStateIfMissing === false) {
-        try {
-          await access(logsDirectory);
-        } catch {
+        const logsExist = await this.#dataStore.exists({ namespace: "logs", segments: [] });
+
+        if (logsExist.isErr()) {
+          return Result.fail(logsExist.unwrapError());
+        }
+
+        if (!logsExist.unwrap()) {
           return Result.ok(undefined);
         }
       }
 
-      await mkdir(dirname(logPath), { recursive: true });
-      await appendFile(logPath, `${JSON.stringify(event)}\n`, "utf8");
+      const write = await this.#dataStore.appendJsonl(
+        { namespace: "logs", segments: [logFileName(timestamp)] },
+        event,
+      );
+
+      if (write.isErr()) {
+        return Result.fail(write.unwrapError());
+      }
+
       await this.#cleanupOldLogs(timestamp);
       return Result.ok(undefined);
     } catch {
@@ -97,14 +112,17 @@ export class JsonTechnicalLogger implements TechnicalLogger {
       return;
     }
 
-    const logsDirectory = join(this.#stateDirectory, "logs");
     const cutoff = cutoffDate(timestamp, this.#retentionDays);
-    const files = await readdir(logsDirectory);
+    const entries = await this.#dataStore.list({ namespace: "logs", segments: [] });
+
+    if (entries.isErr()) {
+      return;
+    }
 
     await Promise.all(
-      files.flatMap((file) => {
-        const date = dateFromLogFile(file);
-        return date !== undefined && date < cutoff ? [unlink(join(logsDirectory, file))] : [];
+      entries.unwrap().flatMap((entry) => {
+        const date = dateFromLogFile(entry.name);
+        return date !== undefined && date < cutoff ? [this.#dataStore.remove(entry.path)] : [];
       }),
     );
   }

@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PreferencesRepository } from "./preferences.repository";
@@ -56,6 +56,44 @@ describe("user.preferences", () => {
       expect(view.unwrap().themes.find((theme) => theme.id === "forest-teal")).toMatchObject({
         selected: true,
       });
+      await expect(
+        readFile(join(root, ".agent-devkit", "data", "preferences", "preferences.json"), "utf8"),
+      ).resolves.toContain("forest-teal");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("migrates legacy user preferences into the canonical data directory", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-user-preferences-"));
+    const legacyPath = join(root, ".agent-devkit", "preferences.json");
+    const repository = new PreferencesRepository({ homeDirectory: root });
+    const service = new PreferencesService({ repository });
+
+    try {
+      await mkdir(join(root, ".agent-devkit"), { recursive: true });
+      await writeFile(
+        legacyPath,
+        JSON.stringify({
+          schema: "agent-devkit.user-preferences/v1",
+          language: "en-US",
+          logRetentionDays: 45,
+          theme: "forest-teal",
+          updatedAt: "2026-07-01T00:00:00.000Z",
+        }),
+      );
+
+      const result = await service.execute({ action: "view" });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap().preferences).toMatchObject({
+        language: "en-US",
+        logRetentionDays: 45,
+        theme: "forest-teal",
+      });
+      await expect(
+        readFile(join(root, ".agent-devkit", "data", "preferences", "preferences.json"), "utf8"),
+      ).resolves.toContain("forest-teal");
     } finally {
       await rm(root, { force: true, recursive: true });
     }

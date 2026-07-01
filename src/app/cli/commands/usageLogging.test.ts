@@ -21,7 +21,7 @@ describe("agent usage logging", () => {
 
       expect(preferences.preferences.theme).toBe("default-purple");
 
-      const logDirectory = join(home, ".agent-devkit", "logs");
+      const logDirectory = join(home, ".agent-devkit", "data", "logs");
       const logFiles = await readdir(logDirectory);
       const usageLogFile = logFiles.find((file) => file.startsWith("usage-"));
       if (usageLogFile === undefined) {

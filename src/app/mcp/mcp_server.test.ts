@@ -54,6 +54,14 @@ describe("Agent MCP server", () => {
       expect(tools.tools).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
+            name: "context.projects",
+            inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          }),
+          expect.objectContaining({
+            name: "context.sessions",
+            inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          }),
+          expect.objectContaining({
             name: "environment.dependencies",
             inputSchema: expect.objectContaining({ type: "object" }),
           }),
