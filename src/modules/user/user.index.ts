@@ -1,3 +1,6 @@
+export type { PersonalizationResult } from "./capabilities/personalization/personalization.entities";
+export { PersonalizationService } from "./capabilities/personalization/personalization.service";
+export { formatPersonalizationText } from "./capabilities/personalization/personalization.viewmodel";
 export type {
   PreferencesResult,
   UserPreferences,

@@ -1,7 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
   "files": {
-    "includes": ["**", "!dist", "!coverage", "!node_modules", "!docs"]
+    "includes": [
+      "**",
+      "!dist",
+      "!coverage",
+      "!node_modules",
+      "!docs",
+      "!src/assets/design",
+      "!src/assets/characters/**/sprite.*"
+    ]
   },
   "formatter": {
     "enabled": true,

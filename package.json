@@ -41,7 +41,7 @@
     "package:verify": "node scripts/verify-package.mjs",
     "release:verify": "node scripts/verify-release-alignment.mjs",
     "test": "npm run test:architecture && npm run test:infra && npm run test:app && npm run test:modules",
-    "test:app": "vitest run src/app/cli/commands src/app/mcp src/package.test.ts",
+    "test:app": "vitest run src/app/cli/commands src/app/mcp src/app/tui src/package.test.ts",
     "test:architecture": "vitest run src/architecture.test.ts src/modules/capability_registry.test.ts src/modules/capability_tool_runtime.test.ts src/modules/modules.registry.test.ts",
     "test:infra": "vitest run src/infra",
     "test:module": "tsx scripts/test-modules.ts",

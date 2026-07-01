@@ -104,6 +104,12 @@ try {
     "src/assets/i18n/pt-BR.json",
     "src/assets/i18n/en-US.json",
     "src/assets/themes/default-purple.json",
+    "src/assets/design/kit.json",
+    "src/assets/design/semantics.json",
+    "src/assets/characters/kit/character.json",
+    "src/assets/characters/kit/sprite.js",
+    "src/assets/characters/yuki/character.json",
+    "src/assets/characters/yuki/sprite.js",
   ]) {
     await assertExists(join(installedPackage, file));
   }

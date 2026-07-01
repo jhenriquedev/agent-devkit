@@ -31,6 +31,7 @@ describe("CapabilityToolRuntime", () => {
       "project.reset",
       "secrets.vault",
       "self.update",
+      "user.personalization",
       "user.preferences",
     ]);
     expect(tools).toEqual(

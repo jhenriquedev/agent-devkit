@@ -37,6 +37,7 @@ describe("agent module definitions", () => {
       "project.reset",
       "secrets.vault",
       "self.update",
+      "user.personalization",
       "user.preferences",
     ]);
   });

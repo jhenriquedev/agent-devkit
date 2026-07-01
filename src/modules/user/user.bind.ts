@@ -2,6 +2,11 @@ import { defineModuleBinding, ModuleBinder, type ModuleBinding } from "../../inf
 import type { AgentDevKitErrorCode } from "../../infra/bases/errors";
 import type { Result } from "../../infra/bases/result";
 import {
+  PersonalizationRepository,
+  type PersonalizationRepositoryPort,
+} from "./capabilities/personalization/personalization.repository";
+import { PersonalizationService } from "./capabilities/personalization/personalization.service";
+import {
   PreferencesRepository,
   type PreferencesRepositoryPort,
 } from "./capabilities/preferences/preferences.repository";
@@ -13,16 +18,19 @@ export type UserModuleBindOptions = {
 };
 
 export type UserModuleCapabilities = {
+  personalization: PersonalizationService;
   preferences: PreferencesService;
 };
 
 export type UserModuleBinding = ModuleBinding<typeof userModuleConfig, UserModuleCapabilities>;
 
 type UserModuleBinderDependencies = {
+  personalizationRepository: (options: UserModuleBindOptions) => PersonalizationRepositoryPort;
   preferencesRepository: (options: UserModuleBindOptions) => PreferencesRepositoryPort;
 };
 
 const defaultDependencies: UserModuleBinderDependencies = {
+  personalizationRepository: (options) => new PersonalizationRepository(options),
   preferencesRepository: (options) => new PreferencesRepository(options),
 };
 
@@ -42,6 +50,9 @@ export class UserModuleBinder extends ModuleBinder<
     return defineModuleBinding({
       config: userModuleConfig,
       capabilities: {
+        personalization: new PersonalizationService({
+          repository: this.#dependencies.personalizationRepository(options),
+        }),
         preferences: new PreferencesService({
           repository: this.#dependencies.preferencesRepository(options),
         }),

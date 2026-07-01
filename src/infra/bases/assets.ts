@@ -1,7 +1,7 @@
 import type { AgentDevKitErrorCode } from "./errors";
 import type { Result } from "./result";
 
-export type AssetKind = "fonts" | "i18n" | "images" | "themes";
+export type AssetKind = "characters" | "design" | "fonts" | "i18n" | "images" | "themes";
 
 export type LoadedAsset<TContent> = {
   readonly content: TContent;

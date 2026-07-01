@@ -31,6 +31,11 @@ describe("AgentMcpAdapter", () => {
           inputSchema: expect.objectContaining({ type: "object" }),
           name: "project.doctor",
         }),
+        expect.objectContaining({
+          description: "Read and update the local agent identity, behavior, tone and detail level.",
+          inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          name: "user.personalization",
+        }),
       ]),
     );
   });

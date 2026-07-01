@@ -29,6 +29,7 @@ describe("agent capability registry", () => {
       "project.reset",
       "secrets.vault",
       "self.update",
+      "user.personalization",
       "user.preferences",
     ]);
     expect(capabilities).toEqual(
@@ -76,6 +77,15 @@ describe("agent capability registry", () => {
             reason: "Capability can remove state and requires explicit approval.",
             required: true,
           },
+        }),
+        expect.objectContaining({
+          id: "user.personalization",
+          approval: {
+            reason: "Capability writes global state.",
+            required: true,
+          },
+          inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          risk: "writes-global-state",
         }),
       ]),
     );

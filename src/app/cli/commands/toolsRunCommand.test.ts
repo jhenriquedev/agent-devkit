@@ -41,6 +41,11 @@ describe("agent tools/run", () => {
             inputSchema: expect.objectContaining({ type: "object" }),
             risk: "read-only",
           }),
+          expect.objectContaining({
+            id: "user.personalization",
+            inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+            risk: "writes-global-state",
+          }),
         ]),
       );
     } finally {

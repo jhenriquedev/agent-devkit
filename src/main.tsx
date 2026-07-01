@@ -8,6 +8,7 @@ import { registerInitCommand } from "./app/cli/commands/initCommand";
 import { registerInstallCommand } from "./app/cli/commands/installCommand";
 import { registerLogsCommand } from "./app/cli/commands/logsCommand";
 import { registerMcpCommand } from "./app/cli/commands/mcpCommand";
+import { registerPersonalizationCommand } from "./app/cli/commands/personalizationCommand";
 import { registerPreferencesCommand } from "./app/cli/commands/preferencesCommand";
 import { registerResetCommand } from "./app/cli/commands/resetCommand";
 import { registerRunCommand } from "./app/cli/commands/runCommand";
@@ -65,6 +66,7 @@ registerMcpCommand(program, {
   translator,
   usageLogging,
 });
+registerPersonalizationCommand(program, { translator, usageLogging });
 registerPreferencesCommand(program, { translator, usageLogging });
 registerResetCommand(program, { appVersion: packageJson.version, translator, usageLogging });
 registerRunCommand(program, {

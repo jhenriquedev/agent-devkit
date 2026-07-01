@@ -1,0 +1,25 @@
+{
+  "schema": "agent-devkit.design-semantics/v1",
+  "status": {
+    "ok": "success",
+    "attention": "warning",
+    "blocked": "danger",
+    "needs-setup": "primary",
+    "pending": "textDim"
+  },
+  "risk": {
+    "destructive": "danger",
+    "external-write": "warning",
+    "read-only": "success",
+    "writes-global-state": "warning",
+    "writes-project-state": "primary"
+  },
+  "glyphs": {
+    "prompt": "❯",
+    "check": "✓",
+    "bulletActive": "●",
+    "bulletIdle": "○",
+    "progressFull": "▰",
+    "progressEmpty": "▱"
+  }
+}

@@ -33,9 +33,10 @@ function parseToolText(result: Awaited<ReturnType<Client["callTool"]>>) {
 describe("Agent MCP server", () => {
   it("lists and calls tools through MCP in-memory transport", async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const activeRuntime = runtime();
     const server = createAgentMcpServer({
       packageName: "agent-devkit",
-      runtime: runtime(),
+      runtime: activeRuntime,
       version: "0.4.0",
     });
     const client = new Client({ name: "agent-devkit-test", version: "0.0.0" });
@@ -47,7 +48,9 @@ describe("Agent MCP server", () => {
       const tools = await client.listTools();
       const doctor = await client.callTool({ name: "project.doctor", arguments: {} });
       const doctorResult = parseToolText(doctor);
+      const runtimeToolNames = activeRuntime.listTools().map((tool) => tool.id);
 
+      expect(tools.tools.map((tool) => tool.name)).toEqual(runtimeToolNames);
       expect(tools.tools).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -57,6 +60,10 @@ describe("Agent MCP server", () => {
           expect.objectContaining({
             name: "project.doctor",
             inputSchema: expect.objectContaining({ type: "object" }),
+          }),
+          expect.objectContaining({
+            name: "user.personalization",
+            inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
           }),
         ]),
       );
