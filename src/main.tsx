@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { render } from "ink";
 import React from "react";
 import packageJson from "../package.json";
+import { registerChatCommand } from "./app/cli/commands/chatCommand";
 import { registerDoctorCommand } from "./app/cli/commands/doctorCommand";
 import { registerInitCommand } from "./app/cli/commands/initCommand";
 import { registerInstallCommand } from "./app/cli/commands/installCommand";
@@ -87,5 +88,6 @@ registerToolsCommand(program, {
   usageLogging,
 });
 registerUpdateCommand(program, { translator, usageLogging });
+registerChatCommand(program, { translator, usageLogging });
 
 await program.parseAsync(process.argv);

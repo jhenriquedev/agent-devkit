@@ -1,0 +1,10 @@
+{
+  "moduleId": "conversation",
+  "templates": [
+    {
+      "id": "conversation.chat",
+      "template": "Use the active character, session memory and optional project context to answer the user. Tool calls are disabled for this phase. User message: {{message}}",
+      "variables": ["message"]
+    }
+  ]
+}

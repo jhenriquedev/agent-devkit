@@ -1,0 +1,10 @@
+{
+  "moduleId": "conversation",
+  "summary": "Conversation coordinates chat turns using canonical prompts, personalization, context projects and session memory.",
+  "facts": [
+    "conversation.chat persists user and assistant messages through context.sessions.",
+    "The initial brain provider is deterministic and local to keep the runtime testable.",
+    "Tool calling is described in the prompt policies but disabled in this phase.",
+    "Project metadata can be attached to a chat prompt when projectId is provided."
+  ]
+}

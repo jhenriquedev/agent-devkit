@@ -24,6 +24,7 @@ describe("agent capability registry", () => {
     expect(capabilities.map((capability) => capability.id)).toEqual([
       "context.projects",
       "context.sessions",
+      "conversation.chat",
       "environment.dependencies",
       "logs.analysis",
       "project.doctor",
@@ -36,6 +37,16 @@ describe("agent capability registry", () => {
     ]);
     expect(capabilities).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          id: "conversation.chat",
+          approval: {
+            reason: "Capability writes global state.",
+            required: true,
+          },
+          inputSchema: expect.objectContaining({ oneOf: expect.any(Array) }),
+          outputSchema: expect.objectContaining({ type: "object" }),
+          risk: "writes-global-state",
+        }),
         expect.objectContaining({
           id: "context.projects",
           approval: {
@@ -251,6 +262,24 @@ describe("agent capability registry", () => {
       ok: true,
       capabilityId: "context.sessions",
       effects: [{ operation: "read", scope: "none" }],
+    });
+  });
+
+  it("allows conversation chat without approval while tool calls are disabled", async () => {
+    const result = registry();
+    const invocation = await result.unwrap().invoke(
+      "conversation.chat",
+      {
+        action: "send",
+        message: "Planeje a proxima entrega.",
+      },
+      { interface: "agent" },
+    );
+
+    expect(invocation).toMatchObject({
+      ok: true,
+      capabilityId: "conversation.chat",
+      effects: [{ operation: "write", scope: "global" }],
     });
   });
 

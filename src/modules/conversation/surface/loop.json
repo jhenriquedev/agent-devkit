@@ -1,0 +1,15 @@
+{
+  "moduleId": "conversation",
+  "mode": "stateful-chat",
+  "allowedActions": [
+    "Create or resume a chat session.",
+    "Persist user and assistant messages.",
+    "Build a canonical prompt using personalization and context."
+  ],
+  "forbiddenActions": [
+    "Call tools automatically.",
+    "Promote session content into durable project knowledge automatically.",
+    "Use external LLM providers before a provider capability is explicitly configured."
+  ],
+  "approvalRequired": false
+}

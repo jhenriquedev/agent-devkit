@@ -1,0 +1,13 @@
+{
+  "moduleId": "conversation",
+  "purpose": "Run stateful chat turns through Agent DevKit's canonical prompt and brain request contracts.",
+  "whenToUse": [
+    "The user wants to talk with the local Agent DevKit personality.",
+    "A chat message should be saved into a resumable session.",
+    "A project context should guide a chat response."
+  ],
+  "whenNotToUse": [
+    "The user expects automatic tool execution.",
+    "The task requires a real external or local LLM provider that has not been configured yet."
+  ]
+}

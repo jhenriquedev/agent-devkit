@@ -26,6 +26,7 @@ describe("CapabilityToolRuntime", () => {
     expect(tools.map((tool) => tool.id)).toEqual([
       "context.projects",
       "context.sessions",
+      "conversation.chat",
       "environment.dependencies",
       "logs.analysis",
       "project.doctor",

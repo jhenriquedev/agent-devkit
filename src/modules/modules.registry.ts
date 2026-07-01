@@ -7,6 +7,12 @@ import { type ContextModuleBindOptions, createContextModuleBindings } from "./co
 import { contextModuleConfig } from "./context/context.config";
 import { createContextSurface } from "./context/context.surface";
 import {
+  type ConversationModuleBindOptions,
+  createConversationModuleBindings,
+} from "./conversation/conversation.bind";
+import { conversationModuleConfig } from "./conversation/conversation.config";
+import { createConversationSurface } from "./conversation/conversation.surface";
+import {
   createEnvironmentModuleBindings,
   type EnvironmentModuleBindOptions,
 } from "./environment/environment.bind";
@@ -30,6 +36,7 @@ import { createUserSurface } from "./user/user.surface";
 
 export type AgentModuleRegistryOptions = ProjectModuleBindOptions &
   SelfModuleBindOptions & {
+    conversation?: ConversationModuleBindOptions;
     context?: ContextModuleBindOptions;
     environment?: EnvironmentModuleBindOptions;
     logs?: LogsModuleBindOptions;
@@ -62,6 +69,16 @@ function bindingView<TBinding extends { capabilities: Record<string, InvokableCa
 }
 
 export const agentModuleDefinitions: AgentModuleDefinition[] = [
+  {
+    id: "conversation",
+    config: conversationModuleConfig,
+    surface: createConversationSurface,
+    bind: (options) =>
+      createConversationModuleBindings(options.conversation ?? {}).map((binding) =>
+        bindingView(binding),
+      ),
+    capabilities,
+  },
   {
     id: "context",
     config: contextModuleConfig,
