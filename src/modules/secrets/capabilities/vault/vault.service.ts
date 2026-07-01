@@ -1,7 +1,13 @@
 import { BaseCapabilityService, defineCapabilityConfig } from "../../../../infra/bases/capability";
 import { type AgentDevKitErrorCode, ErrorCodes } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
-import type { SecretsVaultOptions, SecretsVaultResult, SecretView } from "./vault.entities";
+import {
+  type SecretsVaultOptions,
+  SecretsVaultOptionsSchema,
+  type SecretsVaultResult,
+  SecretsVaultResultSchema,
+  type SecretView,
+} from "./vault.entities";
 import type { SecretsVaultRepositoryPort } from "./vault.repository";
 
 type SecretsVaultServiceDependencies = {
@@ -28,6 +34,8 @@ export class SecretsVaultService extends BaseCapabilityService<
   typeof secretsVaultCapabilityConfig,
   SecretsVaultServiceDependencies
 > {
+  readonly inputSchema = SecretsVaultOptionsSchema;
+  readonly outputSchema = SecretsVaultResultSchema;
   readonly #repository: SecretsVaultRepositoryPort;
 
   constructor(dependencies: SecretsVaultServiceDependencies) {
@@ -132,5 +140,9 @@ export class SecretsVaultService extends BaseCapabilityService<
       path: this.#repository.path(),
       secret: masked(summary),
     });
+  }
+
+  invoke(options: SecretsVaultOptions): Promise<Result<AgentDevKitErrorCode, SecretsVaultResult>> {
+    return this.execute(options);
   }
 }

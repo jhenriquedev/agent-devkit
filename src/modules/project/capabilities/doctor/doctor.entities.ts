@@ -1,4 +1,34 @@
+import { z } from "zod";
+
+export const DoctorInputSchema = z.object({}).strict();
+
 export type DoctorStatus = "ok" | "warning" | "error";
+
+export const DoctorReportSchema = z.object({
+  status: z.enum(["ok", "warning", "error"]),
+  version: z.string().min(1),
+  node: z.object({
+    version: z.string().min(1),
+  }),
+  system: z.object({
+    platform: z.string().min(1),
+    cwd: z.string().min(1),
+  }),
+  terminal: z.object({
+    stdinIsTTY: z.boolean(),
+    stdoutIsTTY: z.boolean(),
+  }),
+  runtime: z.object({
+    globalState: z.object({
+      path: z.string().min(1),
+      exists: z.boolean(),
+    }),
+    projectState: z.object({
+      path: z.string().min(1),
+      exists: z.boolean(),
+    }),
+  }),
+});
 
 export type DoctorStatePath = {
   path: string;

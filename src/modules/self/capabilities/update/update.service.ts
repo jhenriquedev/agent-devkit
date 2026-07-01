@@ -5,20 +5,18 @@ import {
 } from "../../../../infra/bases/capability";
 import type { AgentDevKitErrorCode } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
-import type { SelfUpdateResult } from "./update.entities";
+import {
+  type SelfUpdateResult,
+  SelfUpdateResultSchema,
+  type UpdateServiceOptions,
+  UpdateServiceOptionsSchema,
+} from "./update.entities";
 import type { UpdateRepositoryPort } from "./update.repository";
 
 type UpdateServiceDependencies = {
   currentVersion: string;
   packageName: string;
   repository: UpdateRepositoryPort;
-};
-
-type UpdateServiceOptions = {
-  dryRun: boolean;
-  latest: boolean;
-  version?: string;
-  yes: boolean;
 };
 
 function versionParts(version: string): number[] {
@@ -58,6 +56,8 @@ export class UpdateService
   extends BaseCapabilityService<typeof updateCapabilityConfig, UpdateServiceDependencies>
   implements CapabilityExecution<UpdateServiceOptions, SelfUpdateResult>
 {
+  readonly inputSchema = UpdateServiceOptionsSchema;
+  readonly outputSchema = SelfUpdateResultSchema;
   readonly #currentVersion: string;
   readonly #packageName: string;
   readonly #repository: UpdateRepositoryPort;
@@ -127,5 +127,9 @@ export class UpdateService
         selected: version === selectedVersion,
       })),
     });
+  }
+
+  invoke(options: UpdateServiceOptions): Promise<Result<AgentDevKitErrorCode, SelfUpdateResult>> {
+    return this.execute(options);
   }
 }

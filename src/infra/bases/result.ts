@@ -25,6 +25,25 @@ export class Result<Left, Right> {
     return !this.#ok;
   }
 
+  flatMap<NextRight>(mapper: (right: Right) => Result<Left, NextRight>): Result<Left, NextRight> {
+    return this.#ok ? mapper(this.#right as Right) : Result.fail(this.#left as Left);
+  }
+
+  map<NextRight>(mapper: (right: Right) => NextRight): Result<Left, NextRight> {
+    return this.#ok ? Result.ok(mapper(this.#right as Right)) : Result.fail(this.#left as Left);
+  }
+
+  mapError<NextLeft>(mapper: (left: Left) => NextLeft): Result<NextLeft, Right> {
+    return this.#ok ? Result.ok(this.#right as Right) : Result.fail(mapper(this.#left as Left));
+  }
+
+  match<TOutput>(handlers: {
+    error: (left: Left) => TOutput;
+    ok: (right: Right) => TOutput;
+  }): TOutput {
+    return this.#ok ? handlers.ok(this.#right as Right) : handlers.error(this.#left as Left);
+  }
+
   unwrap(): Right {
     if (!this.#ok) {
       throw new Error("Cannot unwrap a failed Result");

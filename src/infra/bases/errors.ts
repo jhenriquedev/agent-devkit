@@ -1,6 +1,7 @@
 export const ErrorCodes = {
   AssetReadFailed: "ASSET_READ_FAILED",
   CacheReadFailed: "CACHE_READ_FAILED",
+  CapabilityNotFound: "CAPABILITY_NOT_FOUND",
   CapabilityExecutionFailed: "CAPABILITY_EXECUTION_FAILED",
   DatabaseReadFailed: "DATABASE_READ_FAILED",
   DecryptionFailed: "DECRYPTION_FAILED",

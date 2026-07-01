@@ -109,13 +109,7 @@ describe("canonical architecture", () => {
         exists(join(process.cwd(), "src", "modules", moduleName, `${moduleName}.surface.ts`)),
       ).resolves.toBe(true);
 
-      for (const surfaceFile of [
-        "skill.json",
-        "knowledge.json",
-        "prompt.json",
-        "loop.json",
-        "capabilities.json",
-      ]) {
+      for (const surfaceFile of ["skill.json", "knowledge.json", "prompt.json", "loop.json"]) {
         await expect(
           exists(join(process.cwd(), "src", "modules", moduleName, "surface", surfaceFile)),
         ).resolves.toBe(true);
@@ -268,6 +262,8 @@ describe("canonical architecture", () => {
       id: "logs.analysis",
       moduleId: "logs",
     });
+    expect(logs.capabilities.analysis.inputSchema).toBeDefined();
+    expect(logs.capabilities.analysis.outputSchema).toBeDefined();
 
     expect(project.config).toBe(projectModuleConfig);
     expect(Object.keys(project.capabilities)).toEqual(["doctor", "init", "reset"]);
@@ -275,14 +271,20 @@ describe("canonical architecture", () => {
       id: "project.doctor",
       moduleId: "project",
     });
+    expect(project.capabilities.doctor.inputSchema).toBeDefined();
+    expect(project.capabilities.doctor.outputSchema).toBeDefined();
     expect(project.capabilities.init.capability).toMatchObject({
       id: "project.init",
       moduleId: "project",
     });
+    expect(project.capabilities.init.inputSchema).toBeDefined();
+    expect(project.capabilities.init.outputSchema).toBeDefined();
     expect(project.capabilities.reset.capability).toMatchObject({
       id: "project.reset",
       moduleId: "project",
     });
+    expect(project.capabilities.reset.inputSchema).toBeDefined();
+    expect(project.capabilities.reset.outputSchema).toBeDefined();
 
     expect(secrets.config).toBe(secretsModuleConfig);
     expect(Object.keys(secrets.capabilities)).toEqual(["vault"]);
@@ -290,6 +292,8 @@ describe("canonical architecture", () => {
       id: "secrets.vault",
       moduleId: "secrets",
     });
+    expect(secrets.capabilities.vault.inputSchema).toBeDefined();
+    expect(secrets.capabilities.vault.outputSchema).toBeDefined();
 
     expect(self.config).toBe(selfModuleConfig);
     expect(Object.keys(self.capabilities)).toEqual(["update"]);
@@ -297,6 +301,8 @@ describe("canonical architecture", () => {
       id: "self.update",
       moduleId: "self",
     });
+    expect(self.capabilities.update.inputSchema).toBeDefined();
+    expect(self.capabilities.update.outputSchema).toBeDefined();
 
     expect(user.config).toBe(userModuleConfig);
     expect(Object.keys(user.capabilities)).toEqual(["preferences"]);
@@ -304,5 +310,7 @@ describe("canonical architecture", () => {
       id: "user.preferences",
       moduleId: "user",
     });
+    expect(user.capabilities.preferences.inputSchema).toBeDefined();
+    expect(user.capabilities.preferences.outputSchema).toBeDefined();
   });
 });

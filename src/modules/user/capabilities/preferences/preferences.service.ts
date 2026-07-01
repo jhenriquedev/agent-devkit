@@ -10,6 +10,7 @@ import type {
   PreferencesServiceOptions,
   UserPreferences,
 } from "./preferences.entities";
+import { PreferencesResultSchema, PreferencesServiceOptionsSchema } from "./preferences.entities";
 import type { PreferencesRepositoryPort } from "./preferences.repository";
 
 type PreferencesServiceDependencies = {
@@ -33,6 +34,8 @@ export class PreferencesService
   extends BaseCapabilityService<typeof preferencesCapabilityConfig, PreferencesServiceDependencies>
   implements CapabilityExecution<PreferencesServiceOptions, PreferencesResult>
 {
+  readonly inputSchema = PreferencesServiceOptionsSchema;
+  readonly outputSchema = PreferencesResultSchema;
   readonly #repository: PreferencesRepositoryPort;
 
   constructor(dependencies: PreferencesServiceDependencies) {
@@ -181,5 +184,11 @@ export class PreferencesService
       theme,
       updatedAt: preferences.updatedAt,
     };
+  }
+
+  invoke(
+    options: PreferencesServiceOptions,
+  ): Promise<Result<AgentDevKitErrorCode, PreferencesResult>> {
+    return this.execute(options);
   }
 }

@@ -5,17 +5,18 @@ import {
 } from "../../../../infra/bases/capability";
 import type { AgentDevKitErrorCode } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
-import type { ProjectInitFile, ProjectInitResult } from "./init.entities";
+import {
+  type InitServiceOptions,
+  InitServiceOptionsSchema,
+  type ProjectInitFile,
+  type ProjectInitResult,
+  ProjectInitResultSchema,
+} from "./init.entities";
 import type { InitRepositoryPort } from "./init.repository";
 
 type InitServiceDependencies = {
   appVersion: string;
   repository: InitRepositoryPort;
-};
-
-type InitServiceOptions = {
-  dryRun: boolean;
-  projectRoot: string;
 };
 
 const projectFiles = [".agent-devkit/config.json", ".agent-devkit/agent-devkit.lock"];
@@ -33,6 +34,8 @@ export class InitService
   extends BaseCapabilityService<typeof initCapabilityConfig, InitServiceDependencies>
   implements CapabilityExecution<InitServiceOptions, ProjectInitResult>
 {
+  readonly inputSchema = InitServiceOptionsSchema;
+  readonly outputSchema = ProjectInitResultSchema;
   readonly #appVersion: string;
   readonly #repository: InitRepositoryPort;
 
@@ -104,5 +107,9 @@ export class InitService
         },
       },
     ];
+  }
+
+  invoke(options: InitServiceOptions): Promise<Result<AgentDevKitErrorCode, ProjectInitResult>> {
+    return this.execute(options);
   }
 }

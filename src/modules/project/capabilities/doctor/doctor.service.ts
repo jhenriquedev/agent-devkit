@@ -6,7 +6,7 @@ import {
 } from "../../../../infra/bases/capability";
 import type { AgentDevKitErrorCode } from "../../../../infra/bases/errors";
 import { Result } from "../../../../infra/bases/result";
-import type { DoctorReport } from "./doctor.entities";
+import { DoctorInputSchema, type DoctorReport, DoctorReportSchema } from "./doctor.entities";
 import type { DoctorRepositoryPort } from "./doctor.repository";
 
 type DoctorServiceDependencies = {
@@ -27,6 +27,8 @@ export class DoctorService
   extends BaseCapabilityService<typeof doctorCapabilityConfig, DoctorServiceDependencies>
   implements CapabilityExecution<void, DoctorReport>
 {
+  readonly inputSchema = DoctorInputSchema;
+  readonly outputSchema = DoctorReportSchema;
   readonly #appVersion: string;
   readonly #repository: DoctorRepositoryPort;
 
@@ -88,5 +90,9 @@ export class DoctorService
         },
       },
     });
+  }
+
+  invoke(): Promise<Result<AgentDevKitErrorCode, DoctorReport>> {
+    return this.execute();
   }
 }
