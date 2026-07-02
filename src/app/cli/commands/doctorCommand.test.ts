@@ -21,7 +21,7 @@ describe("agent doctor", () => {
       });
 
       expect(stdout).toContain("Agent DevKit Doctor");
-      expect(stdout).toContain("Versao: 0.4.0");
+      expect(stdout).toContain("Versao: 0.3.3");
       expect(stdout).toContain("Estado global:");
       expect(stdout).toContain("Estado do projeto:");
     } finally {
@@ -43,7 +43,7 @@ describe("agent doctor", () => {
       const report = JSON.parse(stdout);
 
       expect(report.status).toBe("warning");
-      expect(report.version).toBe("0.4.0");
+      expect(report.version).toBe("0.3.3");
       expect(report.runtime.globalState).toEqual({
         path: join(homeDirectory, ".agent-devkit"),
         exists: false,

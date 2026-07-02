@@ -45,14 +45,14 @@ describe("file serializers", () => {
     });
 
     try {
-      const write = await store.write("state/config.json", { version: "0.4.0" });
+      const write = await store.write("state/config.json", { version: "0.3.3" });
       const read = await store.read<{ version: string }>("state/config.json");
 
       expect(write.isOk()).toBe(true);
       expect(read.isOk()).toBe(true);
-      expect(read.unwrap()).toEqual({ version: "0.4.0" });
+      expect(read.unwrap()).toEqual({ version: "0.3.3" });
       expect(await readFile(join(directory, "state", "config.json"), "utf8")).toContain(
-        '"version": "0.4.0"',
+        '"version": "0.3.3"',
       );
     } finally {
       await rm(directory, { force: true, recursive: true });

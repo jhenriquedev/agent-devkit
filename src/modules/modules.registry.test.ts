@@ -1,8 +1,8 @@
 import { agentModuleDefinitions } from "./modules.registry";
 
 const moduleOptions = {
-  appVersion: "0.4.0",
-  currentVersion: "0.4.0",
+  appVersion: "0.3.3",
+  currentVersion: "0.3.3",
   packageName: "agent-devkit",
 };
 

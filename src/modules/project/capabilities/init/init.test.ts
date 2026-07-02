@@ -11,7 +11,7 @@ describe("project.init", () => {
     try {
       const repository = new InitRepository();
       const result = await new InitService({
-        appVersion: "0.4.0",
+        appVersion: "0.3.3",
         repository,
       }).execute({ dryRun: true, projectRoot });
 
@@ -38,7 +38,7 @@ describe("project.init", () => {
     try {
       const repository = new InitRepository();
       const initialize = new InitService({
-        appVersion: "0.4.0",
+        appVersion: "0.3.3",
         repository,
       });
 
@@ -71,11 +71,11 @@ describe("project.init", () => {
 
       expect(config).toMatchObject({
         schema: "agent-devkit.project-config/v1",
-        version: "0.4.0",
+        version: "0.3.3",
       });
       expect(lock).toMatchObject({
         schema: "agent-devkit.project-lock/v1",
-        version: "0.4.0",
+        version: "0.3.3",
       });
     } finally {
       await rm(projectRoot, { force: true, recursive: true });

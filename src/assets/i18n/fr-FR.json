@@ -239,7 +239,7 @@
     "characters.robot.tagline": "Focus technique",
     "characters.robot.description": "Technique, precis et pragmatique pour l'ingenierie.",
     "tui.title": "Agent DevKit",
-    "tui.foundation": "v0.4.0 base technique",
+    "tui.foundation": "v0.3.3 base technique",
     "tui.prompt": "Prompt: {{prompt}}",
     "tui.helpHint": "Executez agent --help pour les options CLI.",
     "cli.alias.description": "gere un alias local pour le CLI Agent DevKit",

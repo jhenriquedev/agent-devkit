@@ -20,7 +20,7 @@ describe("agent root command", () => {
   it.each([["-v"], ["--version"]])("prints the version with %s", async (flag) => {
     const { stdout } = await runAgent([flag]);
 
-    expect(stdout.trim()).toBe("0.4.0");
+    expect(stdout.trim()).toBe("0.3.3");
   });
 
   it.each([["-h"], ["--help"]])("prints help with %s", async (flag) => {

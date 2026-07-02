@@ -13,7 +13,7 @@ describe("project.doctor", () => {
 
     try {
       const result = await new DoctorService({
-        appVersion: "0.4.0",
+        appVersion: "0.3.3",
         repository: {
           repositoryId: "test.doctor.repository",
           cwd: () => Result.ok(projectDirectory),
@@ -30,7 +30,7 @@ describe("project.doctor", () => {
       const report = result.unwrap();
 
       expect(report.status).toBe("warning");
-      expect(report.version).toBe("0.4.0");
+      expect(report.version).toBe("0.3.3");
       expect(report.node.version).toBe("v20.0.0");
       expect(report.runtime.globalState.path).toBe(join(homeDirectory, ".agent-devkit"));
       expect(report.runtime.globalState.exists).toBe(false);
@@ -44,7 +44,7 @@ describe("project.doctor", () => {
 
   it("reports ok when Agent DevKit state exists", async () => {
     const result = await new DoctorService({
-      appVersion: "0.4.0",
+      appVersion: "0.3.3",
       repository: {
         repositoryId: "test.doctor.repository",
         cwd: () => Result.ok("/workspace/project"),
@@ -64,7 +64,7 @@ describe("project.doctor", () => {
   it("formats a branded terminal-style doctor report", () => {
     const report: DoctorReport = {
       status: "ok",
-      version: "0.4.0",
+      version: "0.3.3",
       node: {
         version: "v20.0.0",
       },
@@ -104,7 +104,7 @@ describe("project.doctor", () => {
   it("can apply brand colors when terminal color is enabled", () => {
     const report: DoctorReport = {
       status: "ok",
-      version: "0.4.0",
+      version: "0.3.3",
       node: {
         version: "v20.0.0",
       },

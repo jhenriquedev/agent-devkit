@@ -239,7 +239,7 @@
     "characters.robot.tagline": "技术专注",
     "characters.robot.description": "技术、精确、务实，适合工程工作。",
     "tui.title": "Agent DevKit",
-    "tui.foundation": "v0.4.0 技术基础",
+    "tui.foundation": "v0.3.3 技术基础",
     "tui.prompt": "提示: {{prompt}}",
     "tui.helpHint": "运行 agent --help 查看 CLI 选项。",
     "cli.alias.description": "管理 Agent DevKit CLI 的本地命令别名",

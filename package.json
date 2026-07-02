@@ -1,6 +1,6 @@
 {
   "name": "agent-devkit",
-  "version": "0.4.0",
+  "version": "0.3.3",
   "description": "Agent DevKit CLI and TUI runtime for specialist AI agents, capabilities and provider-aware workflows.",
   "license": "MIT",
   "type": "module",

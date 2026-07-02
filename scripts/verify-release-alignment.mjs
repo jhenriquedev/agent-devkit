@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 const expected = process.argv[2];
 
 if (!expected) {
-  throw new Error("Usage: npm run release:verify -- v0.4.0");
+  throw new Error("Usage: npm run release:verify -- v0.3.3");
 }
 
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));

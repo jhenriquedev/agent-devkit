@@ -7,8 +7,8 @@ import { createCapabilityToolRuntime } from "./capability_tool_runtime";
 
 function runtime() {
   const result = createCapabilityToolRuntime({
-    appVersion: "0.4.0",
-    currentVersion: "0.4.0",
+    appVersion: "0.3.3",
+    currentVersion: "0.3.3",
     packageName: "agent-devkit",
   });
 
@@ -124,7 +124,7 @@ describe("CapabilityToolRuntime", () => {
       effects: [{ operation: "read", scope: "none" }],
       output: {
         status: expect.any(String),
-        version: "0.4.0",
+        version: "0.3.3",
       },
       risk: "read-only",
       status: "succeeded",
