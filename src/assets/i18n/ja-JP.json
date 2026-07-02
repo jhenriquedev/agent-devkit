@@ -5,7 +5,8 @@
   "nativeName": "日本語",
   "messages": {
     "cli.root.description": "Agent DevKit CLI と TUI ランタイム",
-    "cli.root.promptArgument": "任意の自由入力プロンプトで TUI を開く",
+    "cli.root.promptArgument": "エージェントへ送る自由入力メッセージ。未指定の場合は TUI を開く",
+    "cli.root.removedChatCommand": "\"chat\" コマンドは削除されました。使い方: agent \"your message\"",
     "cli.version.option": "現在のバージョンを出力する",
     "cli.help.option": "コマンドヘルプを表示する",
     "cli.help.title.usage": "使用法:",
@@ -263,6 +264,8 @@
     "cli.models.uninstall.description": "インストール済みのローカルモデルを削除します",
     "cli.models.update.description": "インストール済みモデル、または指定 id を更新/修復します",
     "cli.models.use.description": "デフォルトのローカルモデルを設定します",
+    "cli.models.use.option.agent": "エージェント役割のデフォルトモデルを設定します",
+    "cli.models.use.option.chat": "チャット役割のデフォルトモデルを設定します",
     "cli.models.argument.id": "カタログモデル id",
     "cli.models.option.json": "結果を JSON で出力します",
     "cli.firstRun.hint": "ローカルモデルが未インストールです。実行: agent models install {{id}}",

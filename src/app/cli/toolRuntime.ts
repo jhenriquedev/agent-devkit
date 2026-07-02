@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import type { ToolRuntime } from "../../infra/bases/tool_runtime";
+import { createBrainDockProvider } from "../../infra/brain/brain_dock";
 import { createCapabilityToolRuntime } from "../../modules/capability_tool_runtime";
 
 export type CliToolRuntimeOptions = {
@@ -12,6 +13,10 @@ export function createCliToolRuntime(options: CliToolRuntimeOptions): ToolRuntim
   const runtime = createCapabilityToolRuntime({
     appVersion: options.currentVersion,
     context: { homeDirectory },
+    conversation: {
+      brainProvider: createBrainDockProvider({ stateDirectory: `${homeDirectory}/.agent-devkit` }),
+      homeDirectory,
+    },
     currentVersion: options.currentVersion,
     logs: { homeDirectory },
     packageName: options.packageName,

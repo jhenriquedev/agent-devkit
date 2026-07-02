@@ -50,7 +50,7 @@ describe("Agent MCP server", () => {
       const doctorResult = parseToolText(doctor);
       const runtimeToolNames = activeRuntime.listTools().map((tool) => tool.id);
 
-      expect(tools.tools.map((tool) => tool.name)).toEqual(runtimeToolNames);
+      expect(tools.tools.map((tool) => tool.name)).toEqual(["agent.task", ...runtimeToolNames]);
       expect(tools.tools).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

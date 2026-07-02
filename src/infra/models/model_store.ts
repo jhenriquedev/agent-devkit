@@ -214,10 +214,12 @@ export class ModelStore {
         }
       }
 
-      const currentDefault = await this.getDefault();
+      for (const role of [undefined, "agent", "chat"]) {
+        const current = await this.#readDefaultFile(this.#defaultPath(role));
 
-      if (currentDefault.isOk() && currentDefault.unwrap() === id) {
-        await rm(this.#defaultPath(), { force: true }).catch(() => undefined);
+        if (current.isOk() && current.unwrap() === id) {
+          await rm(this.#defaultPath(role), { force: true }).catch(() => undefined);
+        }
       }
 
       return Result.ok({ removed });
@@ -261,18 +263,17 @@ export class ModelStore {
     }
   }
 
-  async getDefault(): Promise<Result<AgentDevKitErrorCode, string | undefined>> {
-    try {
-      const id = (await readFile(this.#defaultPath(), "utf8")).trim();
-      return Result.ok(id.length > 0 ? id : undefined);
-    } catch (error) {
-      return errno(error) === "ENOENT"
-        ? Result.ok(undefined)
-        : Result.fail(ErrorCodes.FileReadFailed);
+  async getDefault(role?: string): Promise<Result<AgentDevKitErrorCode, string | undefined>> {
+    const primary = await this.#readDefaultFile(this.#defaultPath(role));
+
+    if (primary.isErr() || primary.unwrap() !== undefined || role === undefined) {
+      return primary;
     }
+
+    return this.#readDefaultFile(this.#defaultPath());
   }
 
-  async setDefault(id: string): Promise<Result<AgentDevKitErrorCode, void>> {
+  async setDefault(id: string, role?: string): Promise<Result<AgentDevKitErrorCode, void>> {
     const status = await this.status(id);
 
     if (status.isErr()) {
@@ -285,7 +286,7 @@ export class ModelStore {
 
     try {
       await mkdir(this.#directory, { recursive: true, mode: 0o700 });
-      await writeFile(this.#defaultPath(), `${id}\n`, { mode: 0o600 });
+      await writeFile(this.#defaultPath(role), `${id}\n`, { mode: 0o600 });
       return Result.ok(undefined);
     } catch {
       return Result.fail(ErrorCodes.FileWriteFailed);
@@ -300,7 +301,18 @@ export class ModelStore {
     return join(this.#directory, `${id}.json`);
   }
 
-  #defaultPath(): string {
-    return join(this.#directory, "default");
+  #defaultPath(role?: string): string {
+    return join(this.#directory, role === undefined ? "default" : `default-${role}`);
+  }
+
+  async #readDefaultFile(path: string): Promise<Result<AgentDevKitErrorCode, string | undefined>> {
+    try {
+      const id = (await readFile(path, "utf8")).trim();
+      return Result.ok(id.length > 0 ? id : undefined);
+    } catch (error) {
+      return errno(error) === "ENOENT"
+        ? Result.ok(undefined)
+        : Result.fail(ErrorCodes.FileReadFailed);
+    }
   }
 }

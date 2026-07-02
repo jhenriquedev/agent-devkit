@@ -169,6 +169,10 @@ describe("EncryptedSecretStore", () => {
   });
 
   it("does not treat inaccessible canonical vault directories as empty vaults", async () => {
+    if (typeof process.getuid === "function" && process.getuid() === 0) {
+      return;
+    }
+
     const root = await mkdtemp(join(tmpdir(), "agent-devkit-secrets-"));
     const stateDirectory = join(root, ".agent-devkit");
     const canonicalDirectory = join(stateDirectory, "data", "secrets");

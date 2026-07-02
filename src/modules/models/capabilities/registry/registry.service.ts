@@ -142,10 +142,10 @@ export class ModelsRegistryService extends BaseCapabilityService<
         : Result.fail(models.unwrapError());
     }
 
-    const defaultId = await this.#repository.setDefault(options.id);
+    const defaultId = await this.#repository.setDefault(options.id, options.role);
 
     return defaultId.isOk()
-      ? Result.ok({ action: "use", directory, defaultId: defaultId.unwrap() })
+      ? Result.ok({ action: "use", directory, defaultId: defaultId.unwrap(), role: options.role })
       : Result.fail(defaultId.unwrapError());
   }
 }

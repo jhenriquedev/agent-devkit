@@ -16,7 +16,7 @@ export interface ModelsRegistryRepositoryPort extends CapabilityRepositoryPort {
     onProgress?: ModelInstallProgress,
   ): Promise<Result<AgentDevKitErrorCode, ModelView>>;
   listModels(): Promise<Result<AgentDevKitErrorCode, ModelView[]>>;
-  setDefault(id: string): Promise<Result<AgentDevKitErrorCode, string>>;
+  setDefault(id: string, role?: "agent" | "chat"): Promise<Result<AgentDevKitErrorCode, string>>;
   statusModels(id?: string): Promise<Result<AgentDevKitErrorCode, ModelView[]>>;
   uninstall(id: string): Promise<Result<AgentDevKitErrorCode, { id: string; removed: boolean }>>;
   update(id?: string): Promise<Result<AgentDevKitErrorCode, ModelView[]>>;
@@ -153,8 +153,11 @@ export class ModelsRegistryRepository implements ModelsRegistryRepositoryPort {
     return Result.ok(views);
   }
 
-  async setDefault(id: string): Promise<Result<AgentDevKitErrorCode, string>> {
-    const set = await this.#store.setDefault(id);
+  async setDefault(
+    id: string,
+    role?: "agent" | "chat",
+  ): Promise<Result<AgentDevKitErrorCode, string>> {
+    const set = await this.#store.setDefault(id, role);
     return set.isOk() ? Result.ok(id) : Result.fail(set.unwrapError());
   }
 

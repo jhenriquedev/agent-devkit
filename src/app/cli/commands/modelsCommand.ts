@@ -190,15 +190,32 @@ export function registerModelsCommand(
     .command("use")
     .argument("<id>", options.translator.t("cli.models.argument.id"))
     .description(options.translator.t("cli.models.use.description"))
+    .option("--agent", options.translator.t("cli.models.use.option.agent"))
+    .option("--chat", options.translator.t("cli.models.use.option.chat"))
     .option("--json", options.translator.t("cli.models.option.json"));
 
   useCommand.action(
     options.usageLogging.track(
       { area: "system", command: "models.use", options: () => useCommand.opts() },
       async (id: string) => {
-        const commandOptions = useCommand.opts<{ json?: boolean }>();
+        const commandOptions = useCommand.opts<{
+          agent?: boolean;
+          chat?: boolean;
+          json?: boolean;
+        }>();
+
+        if (commandOptions.agent === true && commandOptions.chat === true) {
+          throw new Error("Use only one of --agent or --chat.");
+        }
+
+        const role =
+          commandOptions.agent === true
+            ? "agent"
+            : commandOptions.chat === true
+              ? "chat"
+              : undefined;
         printResult(
-          await modelsCapability().execute({ action: "use", id }),
+          await modelsCapability().execute({ action: "use", id, role }),
           options.translator,
           wantsJson(commandOptions),
         );

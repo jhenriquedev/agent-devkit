@@ -6,7 +6,13 @@ export const ModelsRegistryOptionsSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("install"), id: z.string().min(1) }).strict(),
   z.object({ action: z.literal("uninstall"), id: z.string().min(1) }).strict(),
   z.object({ action: z.literal("update"), id: z.string().min(1).optional() }).strict(),
-  z.object({ action: z.literal("use"), id: z.string().min(1) }).strict(),
+  z
+    .object({
+      action: z.literal("use"),
+      id: z.string().min(1),
+      role: z.enum(["agent", "chat"]).optional(),
+    })
+    .strict(),
 ]);
 
 export type ModelsRegistryOptions =
@@ -15,7 +21,7 @@ export type ModelsRegistryOptions =
   | { action: "install"; id: string }
   | { action: "uninstall"; id: string }
   | { action: "update"; id?: string }
-  | { action: "use"; id: string };
+  | { action: "use"; id: string; role?: "agent" | "chat" };
 
 export const ModelViewSchema = z.object({
   id: z.string().min(1),
@@ -66,6 +72,7 @@ export const ModelsRegistryResultSchema = z.discriminatedUnion("action", [
     action: z.literal("use"),
     directory: z.string().min(1),
     defaultId: z.string().min(1),
+    role: z.enum(["agent", "chat"]).optional(),
   }),
 ]);
 
@@ -75,4 +82,4 @@ export type ModelsRegistryResult =
   | { action: "install"; directory: string; model: ModelView }
   | { action: "uninstall"; directory: string; id: string; removed: boolean }
   | { action: "update"; directory: string; models: ModelView[] }
-  | { action: "use"; directory: string; defaultId: string };
+  | { action: "use"; directory: string; defaultId: string; role?: "agent" | "chat" };

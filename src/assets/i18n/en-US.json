@@ -5,7 +5,8 @@
   "nativeName": "English",
   "messages": {
     "cli.root.description": "Agent DevKit CLI and TUI runtime",
-    "cli.root.promptArgument": "open the TUI with an optional free-form prompt",
+    "cli.root.promptArgument": "free-form message to send to the agent; without a message opens the TUI",
+    "cli.root.removedChatCommand": "The \"chat\" command was removed. Use: agent \"your message\"",
     "cli.version.option": "print the current version",
     "cli.help.option": "display command help",
     "cli.help.title.usage": "Usage:",
@@ -263,6 +264,8 @@
     "cli.models.uninstall.description": "remove an installed local model",
     "cli.models.update.description": "update/repair installed models (or a specific id)",
     "cli.models.use.description": "set the default local model",
+    "cli.models.use.option.agent": "set the default model for the agent role",
+    "cli.models.use.option.chat": "set the default model for the chat role",
     "cli.models.argument.id": "catalog model id",
     "cli.models.option.json": "print the result as JSON",
     "cli.firstRun.hint": "No local model installed. Run: agent models install {{id}}",

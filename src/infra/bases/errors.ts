@@ -1,6 +1,7 @@
 export const ErrorCodes = {
   AssetReadFailed: "ASSET_READ_FAILED",
   ApprovalRequired: "APPROVAL_REQUIRED",
+  BrainProviderUnavailable: "BRAIN_PROVIDER_UNAVAILABLE",
   CacheReadFailed: "CACHE_READ_FAILED",
   CapabilityNotFound: "CAPABILITY_NOT_FOUND",
   CapabilityExecutionFailed: "CAPABILITY_EXECUTION_FAILED",

@@ -5,7 +5,8 @@
   "nativeName": "Portugues",
   "messages": {
     "cli.root.description": "Runtime CLI e TUI do Agent DevKit",
-    "cli.root.promptArgument": "abrir a TUI com um prompt livre opcional",
+    "cli.root.promptArgument": "mensagem livre para enviar ao agente; sem mensagem abre a TUI",
+    "cli.root.removedChatCommand": "O comando \"chat\" foi removido. Use: agent \"sua mensagem\"",
     "cli.version.option": "imprime a versao atual",
     "cli.help.option": "exibe ajuda do comando",
     "cli.help.title.usage": "Uso:",
@@ -263,6 +264,8 @@
     "cli.models.uninstall.description": "remove um modelo local instalado",
     "cli.models.update.description": "atualiza/repara modelos instalados (ou um id especifico)",
     "cli.models.use.description": "define o modelo local padrao",
+    "cli.models.use.option.agent": "define o modelo padrao do papel de agente",
+    "cli.models.use.option.chat": "define o modelo padrao do papel de chat",
     "cli.models.argument.id": "id do modelo do catalogo",
     "cli.models.option.json": "imprime o resultado como JSON",
     "cli.firstRun.hint": "Nenhum modelo local instalado. Rode: agent models install {{id}}",

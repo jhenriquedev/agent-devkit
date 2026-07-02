@@ -5,7 +5,8 @@
   "nativeName": "Francais",
   "messages": {
     "cli.root.description": "Runtime CLI et TUI Agent DevKit",
-    "cli.root.promptArgument": "ouvrir la TUI avec un prompt libre optionnel",
+    "cli.root.promptArgument": "message libre a envoyer a l'agent; sans message ouvre la TUI",
+    "cli.root.removedChatCommand": "La commande \"chat\" a ete supprimee. Utilisez : agent \"votre message\"",
     "cli.version.option": "imprime la version actuelle",
     "cli.help.option": "affiche l'aide de la commande",
     "cli.help.title.usage": "Utilisation:",
@@ -263,6 +264,8 @@
     "cli.models.uninstall.description": "supprime un modele local installe",
     "cli.models.update.description": "met a jour/repare les modeles installes (ou un id specifique)",
     "cli.models.use.description": "definit le modele local par defaut",
+    "cli.models.use.option.agent": "definit le modele par defaut pour le role d'agent",
+    "cli.models.use.option.chat": "definit le modele par defaut pour le role de chat",
     "cli.models.argument.id": "id du modele du catalogue",
     "cli.models.option.json": "imprime le resultat en JSON",
     "cli.firstRun.hint": "Aucun modele local installe. Executez: agent models install {{id}}",

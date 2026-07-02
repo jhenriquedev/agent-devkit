@@ -53,6 +53,7 @@ export function formatModelsRegistryText(
     return rows.join("\n");
   }
 
-  rows.push(`  ${t("models.field.default")} ${result.defaultId}`);
+  const roleSuffix = result.role === undefined ? "" : ` (${result.role})`;
+  rows.push(`  ${t("models.field.default")} ${result.defaultId}${roleSuffix}`);
   return rows.join("\n");
 }

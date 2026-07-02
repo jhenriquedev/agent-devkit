@@ -4,7 +4,6 @@ import { render } from "ink";
 import React from "react";
 import packageJson from "../package.json";
 import { registerAliasCommand } from "./app/cli/commands/aliasCommand";
-import { registerChatCommand } from "./app/cli/commands/chatCommand";
 import { registerDoctorCommand } from "./app/cli/commands/doctorCommand";
 import { registerInitCommand } from "./app/cli/commands/initCommand";
 import { registerInstallCommand } from "./app/cli/commands/installCommand";
@@ -26,6 +25,7 @@ import {
   createCliTranslator,
   loadCliUserPreferences,
 } from "./app/cli/i18n";
+import { runRootConversation } from "./app/cli/rootConversation";
 import { CliUsageLoggingMiddleware } from "./app/cli/usageLogging";
 import { App } from "./app/tui/App";
 import { JsonTechnicalLogger } from "./infra/logging/json_technical_logger";
@@ -40,6 +40,8 @@ const usageLogging = new CliUsageLoggingMiddleware({
 });
 configureLocalizedHelp(program, translator);
 
+const removedRootCommandAliases = new Set(["ask", "chat"]);
+
 program
   .name("agent")
   .description(translator.t("cli.root.description"))
@@ -48,13 +50,19 @@ program
   .action(
     usageLogging.track({ area: "user", command: "tui" }, async (promptParts: string[]) => {
       const initialPrompt = promptParts.join(" ").trim();
+      const firstPromptPart = promptParts[0]?.toLowerCase();
+
+      if (typeof firstPromptPart === "string" && removedRootCommandAliases.has(firstPromptPart)) {
+        program.error(translator.t("cli.root.removedChatCommand"));
+      }
+
+      if (initialPrompt.length > 0) {
+        await runRootConversation(initialPrompt);
+        return;
+      }
+
       await ensureFirstRunModel(translator);
-      render(
-        React.createElement(App, {
-          initialPrompt: initialPrompt.length > 0 ? initialPrompt : undefined,
-          translator,
-        }),
-      );
+      render(React.createElement(App, { translator }));
     }),
   );
 
@@ -94,6 +102,5 @@ registerToolsCommand(program, {
   usageLogging,
 });
 registerUpdateCommand(program, { translator, usageLogging });
-registerChatCommand(program, { translator, usageLogging });
 
 await program.parseAsync(process.argv);

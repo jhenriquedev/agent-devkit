@@ -5,7 +5,8 @@
   "nativeName": "简体中文",
   "messages": {
     "cli.root.description": "Agent DevKit CLI 和 TUI 运行时",
-    "cli.root.promptArgument": "使用可选自由提示打开 TUI",
+    "cli.root.promptArgument": "发送给智能体的自由消息；没有消息时打开 TUI",
+    "cli.root.removedChatCommand": "\"chat\" 命令已移除。请使用：agent \"your message\"",
     "cli.version.option": "打印当前版本",
     "cli.help.option": "显示命令帮助",
     "cli.help.title.usage": "用法:",
@@ -263,6 +264,8 @@
     "cli.models.uninstall.description": "移除已安装的本地模型",
     "cli.models.update.description": "更新/修复已安装模型（或指定 id）",
     "cli.models.use.description": "设置默认本地模型",
+    "cli.models.use.option.agent": "设置智能体角色的默认模型",
+    "cli.models.use.option.chat": "设置聊天角色的默认模型",
     "cli.models.argument.id": "目录模型 id",
     "cli.models.option.json": "以 JSON 输出结果",
     "cli.firstRun.hint": "未安装本地模型。运行: agent models install {{id}}",

@@ -1,4 +1,8 @@
-import type { BrainProviderPort, BrainRequest, BrainResponse } from "../../../../infra/bases/brain";
+import type {
+  BrainProviderPort,
+  BrainRequest,
+  BrainStreamHandler,
+} from "../../../../infra/bases/brain";
 import {
   BaseCapabilityService,
   type CapabilityApproval,
@@ -30,28 +34,7 @@ export const conversationChatCapabilityConfig = defineCapabilityConfig({
   risk: "writes-global-state",
 } as const);
 
-export class MockBrainProvider implements BrainProviderPort {
-  async generate(request: BrainRequest): Promise<Result<AgentDevKitErrorCode, BrainResponse>> {
-    const text = `${request.prompt.agent.name}: Entendi. Vou responder no contexto da sessão atual: "${request.prompt.task.userMessage}".`;
-    const inputTokens = request.prompt.messages
-      .map((message) => message.content.split(/\s+/g).filter(Boolean).length)
-      .reduce((total, count) => total + count, 0);
-    const outputTokens = text.split(/\s+/g).filter(Boolean).length;
-
-    return Result.ok({
-      finishReason: "stop",
-      model: request.options.model ?? "mock-chat",
-      provider: "mock",
-      schema: "agent-devkit.brain-response/v1",
-      text,
-      usage: {
-        inputTokens,
-        outputTokens,
-        totalTokens: inputTokens + outputTokens,
-      },
-    });
-  }
-}
+export { MockBrainProvider } from "../../../../infra/brain/mock_provider";
 
 export class ConversationChatService extends BaseCapabilityService<
   typeof conversationChatCapabilityConfig,
@@ -83,6 +66,18 @@ export class ConversationChatService extends BaseCapabilityService<
     return this.#run(input, context);
   }
 
+  /**
+   * Interactive streaming variant used by the CLI/TUI. Emits reply tokens via
+   * `onToken` while still resolving to the same `ConversationChatResult` and
+   * persisting session memory. MCP and `agent run` use the buffered `execute`.
+   */
+  stream(
+    input: ConversationChatOptions,
+    onToken: BrainStreamHandler,
+  ): Promise<Result<AgentDevKitErrorCode, ConversationChatResult>> {
+    return this.#run(input, { interface: "cli" }, onToken);
+  }
+
   override effectsForInput(): CapabilityEffect[] {
     return [{ operation: "write", scope: "global" }];
   }
@@ -97,6 +92,7 @@ export class ConversationChatService extends BaseCapabilityService<
   async #run(
     options: ConversationChatOptions,
     context: Pick<CapabilityInvocationContext, "interface">,
+    onToken?: BrainStreamHandler,
   ): Promise<Result<AgentDevKitErrorCode, ConversationChatResult>> {
     const parsed = this.inputSchema.safeParse(options);
 
@@ -111,11 +107,14 @@ export class ConversationChatService extends BaseCapabilityService<
     }
 
     const request: BrainRequest = {
-      options: parsed.data.brain ?? { provider: "mock" },
+      options: parsed.data.brain ?? { provider: "local" },
       prompt: prepared.unwrap().prompt,
       schema: "agent-devkit.brain-request/v1",
     };
-    const brain = await this.#brainProvider.generate(request);
+    const brain =
+      onToken !== undefined && this.#brainProvider.generateStream !== undefined
+        ? await this.#brainProvider.generateStream(request, onToken)
+        : await this.#brainProvider.generate(request);
 
     if (brain.isErr()) {
       return Result.fail(brain.unwrapError());
