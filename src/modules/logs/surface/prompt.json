@@ -1,0 +1,10 @@
+{
+  "moduleId": "logs",
+  "templates": [
+    {
+      "id": "logs.analysis",
+      "template": "Analyze these Agent DevKit usage log results and explain relevant behavior, failures, and trends: {{logs}}",
+      "variables": ["logs"]
+    }
+  ]
+}

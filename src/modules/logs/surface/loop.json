@@ -1,0 +1,14 @@
+{
+  "moduleId": "logs",
+  "mode": "inspect-before-conclude",
+  "allowedActions": [
+    "List available log files before assuming there are events.",
+    "Use search for targeted questions about commands, failures, or terms.",
+    "Use summary for aggregate behavior and slow command inspection."
+  ],
+  "forbiddenActions": [
+    "Delete or mutate logs from this module.",
+    "Expose secrets if future log payloads contain sensitive metadata."
+  ],
+  "approvalRequired": false
+}

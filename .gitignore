@@ -39,6 +39,6 @@ docs/
 
 # Logs and temp files
 *.log
-logs/
+/logs/
 tmp/
 .cache/

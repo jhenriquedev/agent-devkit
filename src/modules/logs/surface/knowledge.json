@@ -1,0 +1,9 @@
+{
+  "moduleId": "logs",
+  "summary": "Agent DevKit usage and technical logs are stored globally under ~/.agent-devkit/data/logs as JSON Lines files named usage-YYYY-MM-DD.jsonl and technical-YYYY-MM-DD.jsonl.",
+  "facts": [
+    "Each CLI command execution writes one usage event after the command completes.",
+    "Logs commands may also write usage events, so analysis can include observability activity itself.",
+    "The canonical usage event schema is agent-devkit.usage-log/v1."
+  ]
+}

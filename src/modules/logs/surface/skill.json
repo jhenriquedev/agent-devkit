@@ -1,0 +1,13 @@
+{
+  "moduleId": "logs",
+  "purpose": "Analyze Agent DevKit usage logs for troubleshooting, usage inspection, and operational visibility.",
+  "whenToUse": [
+    "The user wants to inspect Agent DevKit logs.",
+    "The user wants to search command usage or failures.",
+    "The user wants a usage summary or recent activity tail."
+  ],
+  "whenNotToUse": [
+    "The user wants to delete logs.",
+    "The user wants to change logger configuration."
+  ]
+}
