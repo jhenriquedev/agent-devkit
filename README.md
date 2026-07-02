@@ -3,7 +3,7 @@
 Agent DevKit is a TypeScript/Node rewrite of the `agent-devkit` package.
 
 The public npm package is `agent-devkit`; the canonical command is `agent`.
-Version `0.3.3` starts a new implementation focused on a maintainable CLI/TUI
+Version `0.3.4` starts a new implementation focused on a maintainable CLI/TUI
 runtime while preserving the product direction from the legacy `0.3.x` line.
 
 ## Status
@@ -145,7 +145,7 @@ Rules:
 ## Distribution
 
 The package is npm-first and publishes the `agent` binary from `dist/main.js`.
-Standalone binaries are outside the initial `0.3.3` scope.
+Standalone binaries are outside the initial `0.3.4` scope.
 
 Installing the npm package must not create runtime folders or project files.
 State is created only when the user runs the tool:
@@ -187,8 +187,8 @@ agent reset --dry-run
 agent reset --yes
 agent reset -g --dry-run
 agent update --latest --dry-run
-agent update 0.3.3 --dry-run
-agent update 0.3.3 --yes
+agent update 0.3.4 --dry-run
+agent update 0.3.4 --yes
 agent preferences
 agent preferences --json
 agent preferences themes

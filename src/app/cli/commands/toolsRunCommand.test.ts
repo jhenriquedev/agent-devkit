@@ -72,7 +72,7 @@ describe("agent tools/run", () => {
 
       expect(result).toMatchObject({
         capabilityId: "project.doctor",
-        output: { version: "0.3.3" },
+        output: { version: "0.3.4" },
         status: "succeeded",
       });
     } finally {

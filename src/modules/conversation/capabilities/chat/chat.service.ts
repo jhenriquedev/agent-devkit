@@ -1,6 +1,7 @@
 import type {
   BrainProviderPort,
   BrainRequest,
+  BrainResponse,
   BrainStreamHandler,
 } from "../../../../infra/bases/brain";
 import {
@@ -35,6 +36,61 @@ export const conversationChatCapabilityConfig = defineCapabilityConfig({
 } as const);
 
 export { MockBrainProvider } from "../../../../infra/brain/mock_provider";
+
+function normalizeQuestion(value: string): string {
+  return value
+    .normalize("NFD")
+    .replaceAll(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replaceAll(/[^\p{Letter}\p{Number}\s]/gu, " ")
+    .replaceAll(/\s+/g, " ")
+    .trim();
+}
+
+function isSelfDescriptionQuestion(message: string): boolean {
+  const normalized = normalizeQuestion(message);
+
+  return (
+    normalized === "o que voce pode fazer" ||
+    normalized === "o que voce faz" ||
+    normalized === "quais sao suas capacidades" ||
+    normalized === "quais suas capacidades" ||
+    normalized === "what can you do" ||
+    normalized === "what do you do"
+  );
+}
+
+function countPromptTokens(request: BrainRequest): number {
+  return request.prompt.messages
+    .map((message) => message.content.split(/\s+/g).filter(Boolean).length)
+    .reduce((total, count) => total + count, 0);
+}
+
+function selfDescriptionResponse(request: BrainRequest): BrainResponse | undefined {
+  if (!isSelfDescriptionQuestion(request.prompt.task.userMessage)) {
+    return undefined;
+  }
+
+  const { agent } = request.prompt;
+  const traits =
+    agent.traits.length === 0 ? "sem tracos extras configurados" : agent.traits.join(", ");
+  const text = `${agent.name}: Eu posso conversar com voce mantendo o contexto da sessao, ajudar a raciocinar, organizar ideias, analisar informacoes e responder no meu estilo configurado. Minha postura e ${agent.behavior}, meu tom e ${agent.tone}, meu nivel de detalhe e ${agent.detailLevel}, e meus tracos atuais sao: ${traits}.`;
+  const inputTokens = countPromptTokens(request);
+  const outputTokens = text.split(/\s+/g).filter(Boolean).length;
+
+  return {
+    finishReason: "stop",
+    model: "self-description",
+    provider: "system",
+    schema: "agent-devkit.brain-response/v1",
+    text,
+    usage: {
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+    },
+  };
+}
 
 export class ConversationChatService extends BaseCapabilityService<
   typeof conversationChatCapabilityConfig,
@@ -111,10 +167,17 @@ export class ConversationChatService extends BaseCapabilityService<
       prompt: prepared.unwrap().prompt,
       schema: "agent-devkit.brain-request/v1",
     };
-    const brain =
-      onToken !== undefined && this.#brainProvider.generateStream !== undefined
-        ? await this.#brainProvider.generateStream(request, onToken)
-        : await this.#brainProvider.generate(request);
+    const selfDescription = selfDescriptionResponse(request);
+    const brain: Result<AgentDevKitErrorCode, BrainResponse> =
+      selfDescription === undefined
+        ? onToken !== undefined && this.#brainProvider.generateStream !== undefined
+          ? await this.#brainProvider.generateStream(request, onToken)
+          : await this.#brainProvider.generate(request)
+        : Result.ok(selfDescription);
+
+    if (selfDescription !== undefined) {
+      onToken?.(selfDescription.text);
+    }
 
     if (brain.isErr()) {
       return Result.fail(brain.unwrapError());

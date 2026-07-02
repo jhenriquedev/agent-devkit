@@ -7,8 +7,8 @@ import { createAgentCapabilityRegistry } from "./capability_registry";
 
 function registry() {
   return createAgentCapabilityRegistry({
-    appVersion: "0.3.3",
-    currentVersion: "0.3.3",
+    appVersion: "0.3.4",
+    currentVersion: "0.3.4",
     packageName: "agent-devkit",
   });
 }
@@ -320,7 +320,7 @@ describe("agent capability registry", () => {
       capabilityId: "project.doctor",
       data: {
         status: expect.any(String),
-        version: "0.3.3",
+        version: "0.3.4",
       },
       effects: [
         {

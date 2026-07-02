@@ -22,7 +22,7 @@ describe("context.projects", () => {
     try {
       const created = await projects.execute({
         action: "create",
-        description: "Rewrite v0.3.3",
+        description: "Rewrite v0.3.4",
         name: "Agent DevKit",
         path: "/repo/agent-devkit",
         tags: ["typescript", "cli"],

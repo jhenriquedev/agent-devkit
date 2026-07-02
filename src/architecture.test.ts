@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { agentModuleDefinitions } from "./modules/modules.registry";
 
 const moduleOptions = {
-  appVersion: "0.3.3",
-  currentVersion: "0.3.3",
+  appVersion: "0.3.4",
+  currentVersion: "0.3.4",
   packageName: "agent-devkit",
 };
 

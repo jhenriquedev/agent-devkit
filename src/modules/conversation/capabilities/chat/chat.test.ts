@@ -79,6 +79,20 @@ describe("conversation.chat", () => {
           name: expect.any(String),
         },
         context: {
+          knowledge: expect.arrayContaining([
+            expect.objectContaining({
+              id: "agent-devkit.identity",
+            }),
+            expect.objectContaining({
+              id: "agent-devkit.self-description-rule",
+            }),
+            expect.objectContaining({
+              id: "agent-devkit.project-scope-rule",
+            }),
+            expect.objectContaining({
+              id: "agent-devkit.chat-mode-limits",
+            }),
+          ]),
           project: {
             id: "proj_agent_devkit",
             name: "Agent DevKit",
@@ -94,11 +108,44 @@ describe("conversation.chat", () => {
           userMessage: "Analise a arquitetura atual do projeto.",
         },
       });
+      expect(
+        result
+          .unwrap()
+          .prompt.context.knowledge.map((knowledge) => knowledge.content)
+          .join("\n"),
+      ).toContain("Do not answer as a generic human");
       expect(result.unwrap().brain).toMatchObject({
         finishReason: "stop",
         provider: "mock",
         text: result.unwrap().reply,
       });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("answers personal capability questions from the character persona", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agent-devkit-conversation-chat-"));
+    const { chat } = service(root);
+
+    try {
+      const result = await chat.execute({
+        action: "send",
+        message: "o que você pode fazer?",
+      });
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toMatchObject({
+        brain: {
+          model: "self-description",
+          provider: "system",
+        },
+        sessionId: "ses_chat_test",
+      });
+      expect(result.unwrap().reply).toContain("Eu posso conversar com voce");
+      expect(result.unwrap().reply).toContain("meu tom");
+      expect(result.unwrap().reply).not.toContain("Agent DevKit");
+      expect(result.unwrap().reply).not.toContain("MCP");
     } finally {
       await rm(root, { force: true, recursive: true });
     }

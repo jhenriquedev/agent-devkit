@@ -1,7 +1,13 @@
 import type { AgentDevKitErrorCode } from "./errors";
 import type { Result } from "./result";
 
-export type AgentDataNamespace = "context" | "logs" | "personalization" | "preferences" | "secrets";
+export type AgentDataNamespace =
+  | "context"
+  | "conversation"
+  | "logs"
+  | "personalization"
+  | "preferences"
+  | "secrets";
 
 export type AgentDataPath = {
   namespace: AgentDataNamespace;
@@ -57,6 +63,7 @@ export interface AgentDataStore {
 
 const policies: Record<AgentDataNamespace, AgentDataNamespacePolicy> = {
   context: { encrypted: false },
+  conversation: { encrypted: false },
   logs: { encrypted: false },
   personalization: { encrypted: false },
   preferences: { encrypted: false },

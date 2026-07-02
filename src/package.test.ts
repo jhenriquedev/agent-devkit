@@ -3,7 +3,7 @@ import packageJson from "../package.json";
 describe("package metadata", () => {
   it("publishes the canonical agent binary", () => {
     expect(packageJson.name).toBe("agent-devkit");
-    expect(packageJson.version).toBe("0.3.3");
+    expect(packageJson.version).toBe("0.3.4");
     expect(packageJson.bin).toEqual({ agent: "./dist/main.js" });
   });
 

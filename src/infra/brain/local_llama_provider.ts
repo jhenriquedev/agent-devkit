@@ -49,6 +49,59 @@ type NodeLlamaCpp = {
 // dependency at build time; it is loaded lazily at runtime.
 const nodeLlamaModuleName: string = "node-llama-cpp";
 
+function shouldSuppressNodeLlamaLog(line: string): boolean {
+  return line.startsWith("[node-llama-cpp]");
+}
+
+const defaultLocalGenerationOptions = {
+  maxTokens: 512,
+  temperature: 0.25,
+  topK: 40,
+  topP: 0.9,
+} as const;
+
+async function suppressNodeLlamaLogs<T>(operation: () => Promise<T>): Promise<T> {
+  const originalWrite = process.stderr.write;
+  let pending = "";
+  const filteredWrite = ((
+    chunk: string | Uint8Array,
+    encodingOrCallback?: BufferEncoding | ((error?: Error | null) => void),
+    callback?: (error?: Error | null) => void,
+  ): boolean => {
+    const encoding = typeof encodingOrCallback === "string" ? encodingOrCallback : "utf8";
+    const done = typeof encodingOrCallback === "function" ? encodingOrCallback : callback;
+    const text =
+      typeof chunk === "string"
+        ? chunk
+        : Buffer.isBuffer(chunk)
+          ? chunk.toString(encoding)
+          : String(chunk);
+    const lines = `${pending}${text}`.split(/\r?\n/);
+    pending = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!shouldSuppressNodeLlamaLog(line)) {
+        originalWrite.call(process.stderr, `${line}\n`);
+      }
+    }
+
+    done?.();
+    return true;
+  }) as typeof process.stderr.write;
+
+  process.stderr.write = filteredWrite;
+
+  try {
+    return await operation();
+  } finally {
+    if (pending.length > 0 && !shouldSuppressNodeLlamaLog(pending)) {
+      originalWrite.call(process.stderr, pending);
+    }
+
+    process.stderr.write = originalWrite;
+  }
+}
+
 async function loadNodeLlama(): Promise<Result<AgentDevKitErrorCode, NodeLlamaCpp>> {
   try {
     return Result.ok((await import(nodeLlamaModuleName)) as NodeLlamaCpp);
@@ -57,11 +110,14 @@ async function loadNodeLlama(): Promise<Result<AgentDevKitErrorCode, NodeLlamaCp
   }
 }
 
-function systemPromptFrom(prompt: AgentPrompt): string {
+export function systemPromptFrom(prompt: AgentPrompt): string {
   const { agent } = prompt;
   const lines = [
-    `You are ${agent.name}.`,
+    `You are ${agent.name}, the user's configured Agent DevKit personality.`,
+    "You operate inside Agent DevKit, a local AI agent toolkit exposed through the `agent` CLI, TUI and MCP.",
+    "Answer as the agent. Do not answer as the user, as a generic person, or as a generic chatbot.",
     `Behavior: ${agent.behavior}. Tone: ${agent.tone}. Detail level: ${agent.detailLevel}.`,
+    "If the user asks personal questions about you, your personality or what you can do, answer from your configured persona and conversation abilities. Do not list generic human activities. Do not describe Agent DevKit internals unless the user explicitly asks about Agent DevKit, tools, commands, MCP, modules or project capabilities.",
   ];
 
   if (agent.traits.length > 0) {
@@ -73,6 +129,44 @@ function systemPromptFrom(prompt: AgentPrompt): string {
   if (project !== undefined) {
     lines.push(
       `Project: ${project.name}${project.description === undefined ? "" : ` — ${project.description}`}.`,
+    );
+  }
+
+  const { session } = prompt.context;
+
+  if (session !== undefined) {
+    lines.push(
+      `Session: ${session.id}. Title: ${session.title}. Messages: ${session.messageCount}.`,
+    );
+  }
+
+  if (prompt.context.knowledge.length > 0) {
+    lines.push(
+      "",
+      "Agent DevKit knowledge:",
+      ...prompt.context.knowledge.map((knowledge) => `- ${knowledge.content}`),
+    );
+  }
+
+  if (prompt.tools.length > 0) {
+    lines.push(
+      "",
+      "Available tools:",
+      ...prompt.tools.map((tool) => `- ${tool.id} (${tool.risk}): ${tool.description}`),
+    );
+  }
+
+  lines.push(
+    "",
+    "Tool policy:",
+    `- Tool calls allowed: ${prompt.policies.allowToolCalls ? "yes" : "no"}.`,
+    `- Approval required: ${prompt.policies.approvalRequired ? "yes" : "no"}.`,
+    `- Max tool calls: ${prompt.policies.maxToolCalls}.`,
+  );
+
+  if (!prompt.policies.allowToolCalls) {
+    lines.push(
+      "- In this mode, do not claim that you already executed actions. If the user asks for a concrete action, explain that direct tool execution is unavailable in this chat turn.",
     );
   }
 
@@ -170,33 +264,35 @@ export class LocalLlamaBrainProvider implements BrainProviderPort {
     }
 
     try {
-      const llama = nodeLlama.unwrap();
-      const loadedModel = await this.#loadModel(llama, model.unwrap().path);
-      const context = await loadedModel.createContext();
-      const session = new llama.LlamaChatSession({
-        contextSequence: context.getSequence(),
-        systemPrompt: systemPromptFrom(request.prompt),
-      });
+      return await suppressNodeLlamaLogs(async () => {
+        const llama = nodeLlama.unwrap();
+        const loadedModel = await this.#loadModel(llama, model.unwrap().path);
+        const context = await loadedModel.createContext();
+        const session = new llama.LlamaChatSession({
+          contextSequence: context.getSequence(),
+          systemPrompt: systemPromptFrom(request.prompt),
+        });
 
-      const text = await session.prompt(request.prompt.task.userMessage, {
-        grammar: await this.#grammarFor(options.jsonSchema),
-        maxTokens: request.options.maxOutputTokens,
-        onTextChunk: options.onToken,
-        seed: request.options.seed,
-        temperature: request.options.temperature,
-        topK: request.options.topK,
-        topP: request.options.topP,
-      });
+        const text = await session.prompt(request.prompt.task.userMessage, {
+          grammar: await this.#grammarFor(options.jsonSchema),
+          maxTokens: request.options.maxOutputTokens ?? defaultLocalGenerationOptions.maxTokens,
+          onTextChunk: options.onToken,
+          seed: request.options.seed,
+          temperature: request.options.temperature ?? defaultLocalGenerationOptions.temperature,
+          topK: request.options.topK ?? defaultLocalGenerationOptions.topK,
+          topP: request.options.topP ?? defaultLocalGenerationOptions.topP,
+        });
 
-      const outputTokens = text.split(/\s+/g).filter(Boolean).length;
+        const outputTokens = text.split(/\s+/g).filter(Boolean).length;
 
-      return Result.ok({
-        finishReason: "stop",
-        model: model.unwrap().id,
-        provider: "local",
-        schema: "agent-devkit.brain-response/v1",
-        text,
-        usage: { outputTokens },
+        return Result.ok({
+          finishReason: "stop",
+          model: model.unwrap().id,
+          provider: "local",
+          schema: "agent-devkit.brain-response/v1",
+          text,
+          usage: { outputTokens },
+        });
       });
     } catch {
       return Result.fail(ErrorCodes.BrainProviderUnavailable);

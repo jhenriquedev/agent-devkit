@@ -39,7 +39,7 @@ if (packageJson.name !== "agent-devkit") {
   throw new Error(`Unexpected package name: ${packageJson.name}`);
 }
 
-if (packageJson.version !== "0.3.3") {
+if (packageJson.version !== "0.3.4") {
   throw new Error(`Unexpected package version: ${packageJson.version}`);
 }
 

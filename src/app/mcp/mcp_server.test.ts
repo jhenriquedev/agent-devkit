@@ -8,8 +8,8 @@ import { createAgentMcpServer } from "./mcp_server";
 
 function runtime() {
   const result = createCapabilityToolRuntime({
-    appVersion: "0.3.3",
-    currentVersion: "0.3.3",
+    appVersion: "0.3.4",
+    currentVersion: "0.3.4",
     packageName: "agent-devkit",
   });
 
@@ -37,7 +37,7 @@ describe("Agent MCP server", () => {
     const server = createAgentMcpServer({
       packageName: "agent-devkit",
       runtime: activeRuntime,
-      version: "0.3.3",
+      version: "0.3.4",
     });
     const client = new Client({ name: "agent-devkit-test", version: "0.0.0" });
 
@@ -77,7 +77,7 @@ describe("Agent MCP server", () => {
       );
       expect(doctorResult).toMatchObject({
         capabilityId: "project.doctor",
-        output: { version: "0.3.3" },
+        output: { version: "0.3.4" },
         status: "succeeded",
       });
 
@@ -103,7 +103,7 @@ describe("Agent MCP server", () => {
     const server = createAgentMcpServer({
       packageName: "agent-devkit",
       runtime: runtime(),
-      version: "0.3.3",
+      version: "0.3.4",
     });
     const client = new Client({ name: "agent-devkit-test", version: "0.0.0" });
 
@@ -159,7 +159,7 @@ describe("Agent MCP server", () => {
       packageName: "agent-devkit",
       port: 0,
       runtime: runtime(),
-      version: "0.3.3",
+      version: "0.3.4",
     });
     const address = httpServer.address();
     const port = typeof address === "object" && address !== null ? address.port : 0;
@@ -189,7 +189,7 @@ describe("Agent MCP server", () => {
       packageName: "agent-devkit",
       port: 0,
       runtime: runtime(),
-      version: "0.3.3",
+      version: "0.3.4",
     });
     const address = httpServer.address();
     const port = typeof address === "object" && address !== null ? address.port : 0;

@@ -8,6 +8,7 @@ const execFileAsync = promisify(execFile);
 const repoRoot = process.cwd();
 const tsxBin = join(repoRoot, "node_modules", ".bin", "tsx");
 const mainEntrypoint = join(repoRoot, "src", "main.tsx");
+const sessionPattern = /Session: (ses_[a-f0-9]+)/;
 
 async function runAgent(args: string[]) {
   return execFileAsync(tsxBin, [mainEntrypoint, ...args], {
@@ -20,7 +21,7 @@ describe("agent root command", () => {
   it.each([["-v"], ["--version"]])("prints the version with %s", async (flag) => {
     const { stdout } = await runAgent([flag]);
 
-    expect(stdout.trim()).toBe("0.3.3");
+    expect(stdout.trim()).toBe("0.3.4");
   });
 
   it.each([["-h"], ["--help"]])("prints help with %s", async (flag) => {
@@ -39,18 +40,30 @@ describe("agent root command", () => {
     });
   });
 
-  it("uses a root prompt as a user conversation message", async () => {
+  it("uses root prompts as a continuous CLI conversation", async () => {
     const home = await mkdtemp(join(tmpdir(), "agent-devkit-root-chat-"));
 
     try {
-      const { stdout } = await execFileAsync(tsxBin, [mainEntrypoint, "Planeje o mini brain."], {
+      const first = await execFileAsync(tsxBin, [mainEntrypoint, "Planeje o mini brain."], {
         cwd: repoRoot,
         env: { ...process.env, HOME: home },
       });
+      const second = await execFileAsync(tsxBin, [mainEntrypoint, "Continue a mesma conversa."], {
+        cwd: repoRoot,
+        env: { ...process.env, HOME: home },
+      });
+      const firstSession = first.stdout.match(sessionPattern)?.[1];
+      const secondSession = second.stdout.match(sessionPattern)?.[1];
 
-      expect(stdout).toContain("Agent:");
-      expect(stdout).toContain("Planeje o mini brain.");
-      expect(stdout).toContain("Session: ses_");
+      expect(first.stdout).not.toContain("Agent:");
+      expect(first.stdout).toContain("kit:");
+      expect(first.stdout).toContain("Planeje o mini brain.");
+      expect(firstSession).toMatch(/^ses_/);
+      expect(first.stdout).toContain("Model:");
+      expect(first.stdout).toContain("Tokens:");
+      expect(second.stdout).not.toContain("Agent:");
+      expect(second.stdout).toContain("Continue a mesma conversa.");
+      expect(secondSession).toBe(firstSession);
     } finally {
       await rm(home, { force: true, recursive: true });
     }

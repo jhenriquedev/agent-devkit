@@ -64,6 +64,39 @@ function compact(value: string): string {
   return value.replaceAll(/\s+/g, " ").trim();
 }
 
+const agentDevKitConversationKnowledge = [
+  {
+    content:
+      "Agent DevKit is a local AI agent toolkit exposed through the `agent` CLI, a TUI and MCP. It helps users operate this project through capabilities, local state, sessions, projects, preferences, personalization, logs, secrets, dependencies and local models.",
+    id: "agent-devkit.identity",
+    source: "conversation.chat",
+  },
+  {
+    content:
+      "When the user asks personal questions about you, your personality or what you can do, answer as the configured character using your behavior, tone, detail level and traits. Do not answer as a generic human and do not list unrelated human activities.",
+    id: "agent-devkit.self-description-rule",
+    source: "conversation.chat",
+  },
+  {
+    content:
+      "Only describe Agent DevKit internals, modules, tools, MCP, CLI commands or project capabilities when the user explicitly asks about Agent DevKit, the project, tools, commands, MCP or capabilities.",
+    id: "agent-devkit.project-scope-rule",
+    source: "conversation.chat",
+  },
+  {
+    content:
+      "This conversation mode can answer, keep session memory and use project context. Direct tool execution is disabled in this chat prompt.",
+    id: "agent-devkit.chat-mode-limits",
+    source: "conversation.chat",
+  },
+  {
+    content:
+      "Current capability areas include project doctor/init/reset, package update, preferences, themes, aliases, personalization characters, logs, encrypted secrets, dependency inspection/planning, models, projects, sessions and conversation.",
+    id: "agent-devkit.capability-map",
+    source: "conversation.chat",
+  },
+];
+
 export class ConversationChatRepository implements ConversationChatRepositoryPort {
   readonly repositoryId = "conversation.chat.repository";
   readonly #clock: () => Date;
@@ -270,7 +303,7 @@ export class ConversationChatRepository implements ConversationChatRepositoryPor
         traits: input.character.profile.traits,
       },
       context: {
-        knowledge: [],
+        knowledge: agentDevKitConversationKnowledge,
         project:
           input.project === undefined
             ? undefined

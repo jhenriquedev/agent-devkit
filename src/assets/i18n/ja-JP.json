@@ -239,7 +239,7 @@
     "characters.robot.tagline": "技術フォーカス",
     "characters.robot.description": "エンジニアリング作業に向いた、技術的で正確かつ実用的なキャラクター。",
     "tui.title": "Agent DevKit",
-    "tui.foundation": "v0.3.3 技術基盤",
+    "tui.foundation": "v0.3.4 技術基盤",
     "tui.prompt": "プロンプト: {{prompt}}",
     "tui.helpHint": "CLI オプションは agent --help を実行してください。",
     "cli.alias.description": "Agent DevKit CLI のローカルコマンド別名を管理します",

@@ -19,7 +19,7 @@ async function createFakeNpm(root: string): Promise<string> {
     `#!/usr/bin/env node
 const args = process.argv.slice(2);
 if (args.join(" ") === "view agent-devkit versions --json") {
-  console.log(JSON.stringify(["0.3.2", "0.3.3", "0.4.1", "0.4.2"]));
+  console.log(JSON.stringify(["0.3.2", "0.3.4", "0.4.1", "0.4.2"]));
   process.exit(0);
 }
 if (args.join(" ") === "view agent-devkit dist-tags --json") {
@@ -58,7 +58,7 @@ describe("agent update", () => {
       const result = JSON.parse(stdout);
 
       expect(result.status).toBe("planned");
-      expect(result.currentVersion).toBe("0.3.3");
+      expect(result.currentVersion).toBe("0.3.4");
       expect(result.selectedVersion).toBe("0.4.2");
       expect(result.command).toBe("npm install -g agent-devkit@0.4.2");
       expect(result.executed).toBe(false);
